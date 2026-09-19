@@ -9,7 +9,7 @@ let challenge = null,
   receivedAt = 0;
 async function loadChallenge() {
   const response = await fetch(endpoint, {
-    signal: AbortSignal.timeout(12000),
+    signal: AbortSignal.timeout(20000),
   });
   if (!response.ok) throw Error("unavailable");
   challenge = await response.json();
@@ -40,7 +40,7 @@ form.addEventListener("submit", async (event) => {
         website,
         challenge,
       }),
-      signal: AbortSignal.timeout(18000),
+      signal: AbortSignal.timeout(25000),
     });
     if (!response.ok) {
       if (response.status === 429)

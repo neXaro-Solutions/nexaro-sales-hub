@@ -14,6 +14,12 @@ Ein zentraler, geschützter Arbeitsbereich für einen Inhaber: **SumUp Vertrieb*
 - Persönlicher Login, Datenbankberechtigungen für genau einen freigeschalteten Nutzer, Versionsprüfung gegen versehentliches Überschreiben.
 - JSON-Export, Fehlermeldungen, Online-Status, automatisierte Berechnungs- und Browsertests.
 
+## Direkt öffnen
+
+- [Sales Hub · Anmeldung](https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/hub/)
+- [Demo mit fiktiven Daten](https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/hub/?demo=1)
+- [Öffentliches Kontaktformular](https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/public-lead.html)
+
 ## Start
 
 Node.js 24, dann:
@@ -39,7 +45,7 @@ Die neue Datenstruktur verwendet ausschließlich `nx_*`-Tabellen. Alte Kunden we
 
 ## Bereitstellung
 
-Der Quellcode liegt in `neXaro-Solutions/nexaro-sales-hub`. Der statische Build kann auf GitHub Pages liegen. Für einen sofortigen Betrieb ohne neue Hosting-Einstellungen kann der geprüfte Build unter `/hub/` im bestehenden Pages-Repository `new-nexaro-field-sales-crm` veröffentlicht werden.
+Der Quellcode liegt in `neXaro-Solutions/nexaro-sales-hub`. Der geprüfte statische Build ist unter `/hub/` im bestehenden Pages-Repository `new-nexaro-field-sales-crm` veröffentlicht. Dadurch bleiben die bereits aktive Hosting-Konfiguration und die feste Formularadresse nutzbar.
 
 Die Kontaktformular-Adresse bleibt:
 

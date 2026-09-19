@@ -10,6 +10,19 @@
 - SQL-Transaktion mit Owner-Rolle: Kunde mit beiden Geschäftsbereichen, verknüpfte Verkaufschancen, Angebotsprüfung und Versionszähler erfolgreich. Gegenprobe mit fremder Nutzer-ID abgewiesen. Teständerungen zurückgerollt.
 - Öffentliche Edge Function aktiv. Eine eindeutig markierte Testanfrage zweimal mit derselben signierten Challenge versandt: beide Antworten erfolgreich, genau ein Kunde, zwei Verkaufschancen und zwei Wiedervorlagen gespeichert. Testdaten gezielt entfernt.
 
+## GitHub
+
+- [GitHub-Checks](https://github.com/neXaro-Solutions/nexaro-sales-hub/actions/runs/35440587311): erfolgreich, einschließlich der acht Tests mit regulärem Playwright-Chromium. Geprüfter Quellcode-Commit: `63b941d30aeff7cdecc0f878b98cde753bf01890`.
+- [Pages-Veröffentlichung](https://github.com/neXaro-Solutions/new-nexaro-field-sales-crm/actions/runs/35440607723): erfolgreich. Deployment-Commit: `a20736f5c031ea4c40ceb86e30003f747ab01d0c`.
+
+## Live-Abruf
+
+Hub-Startseite, feste Formularadresse, Formular-JavaScript und Kartenkonfiguration antworteten nach Veröffentlichung mit HTTP 200 und stimmten per SHA-256 mit dem lokalen Build überein. Loginseite und Demo-Dashboard wurden im mobilen Browser von der Live-Adresse geladen. Der öffentliche Endpoint lieferte bei separatem HTTPS-Abruf eine signierte Challenge und den passenden CORS-Header für die Pages-Origin.
+
+Auch das Formular wurde abschließend unter der exakten Live-Adresse im mobilen Browser geladen: signierte Challenge empfangen, keine JavaScript-Fehler und keine horizontale Überbreite. Der Container-Browser benötigte die Proxy-Konfiguration mit HTTP/1.1; dies ändert keine Produktionseinstellungen. Es wurde bei dieser Prüfung keine weitere Kundenanfrage abgeschickt.
+
+Die Formular-Wartezeit wurde nach einem langsamen Live-Verbindungsaufbau auf 20 Sekunden für die Challenge und 25 Sekunden für den Versand erhöht. Fehler werden weiterhin angezeigt; Wiederholungen behalten die Anfrage-ID.
+
 ## Aussagegrenzen
 
 Dies ist kein unabhängiger Penetrationstest oder Verfügbarkeitsnachweis. Die echte Anmeldung im Browser mit dem Passwort des Inhabers wurde nicht ausgeführt; Passwort und Sitzung wurden nicht übernommen. Die Berechtigungen wurden auf Datenbankebene geprüft.
