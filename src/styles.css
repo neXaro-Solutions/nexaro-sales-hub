@@ -2240,3 +2240,13 @@ progress {
     overflow-wrap: anywhere;
   }
 }
+
+/* iOS Safari zooms form controls smaller than 16px and makes a two-column
+   form appear horizontally shifted while the numeric keyboard is open. */
+@media (max-width: 700px) {
+  .sales-studio input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .sales-studio select,
+  .sales-studio textarea {
+    font-size: 16px;
+  }
+}
