@@ -92,6 +92,7 @@ test("demo isolates data, creates linked customers, routes and offers", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Schließen", exact: true }).click();
   await navigate(page, "SumUp Vertrieb");
+  await page.getByRole("button", { name: "Analyse & Foto", exact: true }).click();
   await page
     .getByLabel("Analyse einer Kundenakte zuordnen")
     .selectOption({ label: "Teststandort" });
@@ -198,6 +199,7 @@ test("real local photo OCR feeds reviewed totals and hardware advice", async ({
   });
   await page.goto("/?demo=1");
   await navigate(page, "SumUp Vertrieb");
+  await page.getByRole("button", { name: "Analyse & Foto", exact: true }).click();
   await page
     .getByRole("button", { name: "Abrechnung fotografieren / hochladen" })
     .click();
