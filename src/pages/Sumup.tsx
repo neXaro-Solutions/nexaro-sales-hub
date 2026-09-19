@@ -215,7 +215,7 @@ export function Sumup() {
             />
           )}
           {tab === "studio" && (
-            <SalesStudio customerId={customer} onOffer={setDraft} />
+            <SalesStudio customerId={customer} onOffer={setDraft} photoInput={p} photoAvailable={Boolean(statement)} />
           )}
           {tab === "analysis" && (
             <>
