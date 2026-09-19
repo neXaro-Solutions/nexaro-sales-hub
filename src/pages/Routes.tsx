@@ -53,10 +53,11 @@ export function Routes() {
     [message, setMessage] = useState(""),
     [filter, setFilter] = useState("all"),
     [saved, setSaved] = useState(false),
-    [myPosition, setMyPosition] = useState<Position | null>(null);
+    [myPosition, setMyPosition] = useState<Position | null>(null),
+    [searchFromGps, setSearchFromGps] = useState(false);
   useEffect(() => {
     let active = true;
-    void locateIfGranted().then(p => { if (active && p) setMyPosition(p); });
+    void locateIfGranted().then(p => { if (active && p) { setMyPosition(p); if (!query.trim()) setSearchFromGps(true); } });
     return () => { active = false; };
   }, []);
   async function useMyLocation() {
@@ -64,7 +65,9 @@ export function Routes() {
     try {
       const p = await locate();
       setMyPosition(p);
-      setMessage("Aktueller Standort übernommen. Er wird nicht dauerhaft gespeichert.");
+      setSearchFromGps(true);
+      setResults([]);
+      setMessage("GPS-Standort als Mittelpunkt der Umkreissuche übernommen. Jetzt „Standorte suchen“ wählen.");
     } catch (e) { setMessage((e as Error).message); }
     finally { setBusy(""); }
   }
@@ -97,7 +100,9 @@ export function Routes() {
     setBusy("search");
     setMessage("");
     try {
-      const c = await geocode(query);
+      const c = searchFromGps && myPosition
+        ? { lat: myPosition.lat, lng: myPosition.lng, city: "GPS-Standort" }
+        : await geocode(query);
       setCenter(c);
       const p = await findProspects(c, radius, category);
       setResults(p);
@@ -191,14 +196,14 @@ export function Routes() {
             eyebrow="ÖFFENTLICHE UNTERNEHMENSRECHERCHE"
           >
             <div className="form-grid">
-              <button className="secondary" type="button" disabled={!!busy} onClick={() => void useMyLocation()}>
+              <button className="secondary route-gps-button" type="button" disabled={!!busy} onClick={() => void useMyLocation()}>
                 <MapPin size={15} /> {busy === "location" ? "Standort wird ermittelt …" : "Meinen Standort ermitteln"}
               </button>
-              {myPosition && <p className="hint">Aktueller Standort erkannt (Genauigkeit ca. {Math.round(myPosition.accuracy)} m). Für Navigation und Routensortierung verwendet; nicht in der Kundenakte gespeichert.</p>}
+              {myPosition && <p className="hint route-gps-hint">Aktueller Standort erkannt (Genauigkeit ca. {Math.round(myPosition.accuracy)} m). {searchFromGps ? "Mittelpunkt der Umkreissuche, Navigation und Routensortierung." : "Für Navigation und Routensortierung verfügbar; die Ortssuche nutzt die eingegebene PLZ."} Nicht in der Kundenakte gespeichert.</p>}
               <Field label="PLZ / Ort">
                 <input
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => { setQuery(e.target.value); setSearchFromGps(false); }}
                   placeholder="z. B. 15757 Halbe"
                 />
               </Field>
@@ -210,6 +215,11 @@ export function Routes() {
                   <option value="1">1 km</option>
                   <option value="2">2 km</option>
                   <option value="5">5 km</option>
+                  <option value="10">10 km</option>
+                  <option value="15">15 km</option>
+                  <option value="20">20 km</option>
+                  <option value="25">25 km</option>
+                  <option value="30">30 km</option>
                 </select>
               </Field>
               <Field label="Branche">
@@ -236,7 +246,7 @@ export function Routes() {
               <button
                 className="primary"
                 onClick={() => void search()}
-                disabled={!!busy || query.trim().length < 3}
+                disabled={!!busy || (!searchFromGps && query.trim().length < 3)}
               >
                 <Search size={16} />
                 {busy === "search" ? "Suche läuft …" : "Standorte suchen"}
@@ -271,7 +281,7 @@ export function Routes() {
               </a>
             </p>
             <p className="hint">
-              Ergebnisse aus OpenStreetMap, bis zu 60 Treffer. Unvollständige
+              Ergebnisse aus OpenStreetMap, bis zu 60 Treffer je Suche. Bei großen Radien kann die Suche länger dauern; 60 Treffer sind keine vollständige Gebietserfassung. Unvollständige
               Daten sind möglich. Google Maps ergänzt die manuelle Recherche.
             </p>
             <External href="https://www.openstreetmap.org/copyright">
