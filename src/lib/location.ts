@@ -8,7 +8,7 @@ export function locate(): Promise<Position> {
       error => reject(Error(error.code === 1
         ? "Standortzugriff abgelehnt. Bitte in den Browser-Einstellungen erlauben oder Ort manuell eingeben."
         : error.code === 3 ? "Standortabfrage hat zu lange gedauert. Bitte erneut versuchen."
-        : "Standort nicht verfügbar. Bitte GPS aktivieren oder Ort manuell eingeben."),
+        : "Standort nicht verfügbar. Bitte GPS aktivieren oder Ort manuell eingeben.")),
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
     );
   });
