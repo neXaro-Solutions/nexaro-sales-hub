@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Card, Field, External } from "../components/UI";
-import { money } from "../lib/calculations";
+import { money, type PaymentInput } from "../lib/calculations";
 import {
   catalogCheckedAt, catalogSource, catalogHardwareSource, compareOffers,
   emptyMix, hardwareCatalog, subscriptions,
@@ -25,8 +25,9 @@ const initial: ComparisonInput = {
   splitConfirmed: false, hardware: [], hardwareDiscount: 0, subscriptions: [],
 };
 const num = (v: string) => Number(v);
-export function SalesStudio({ customerId, onOffer }: {
+export function SalesStudio({ customerId, onOffer, photoInput, photoAvailable }: {
   customerId: string; onOffer: (draft: OfferDraft) => void;
+  photoInput: PaymentInput; photoAvailable: boolean;
 }) {
   const [input, setInput] = useState<ComparisonInput>(initial);
   const [provider, setProvider] = useState("");
@@ -129,7 +130,16 @@ export function SalesStudio({ customerId, onOffer }: {
                 onChange={e => update("currentPerTransaction", num(e.target.value))} />
             </Field>
           </div>
-          <p className="hint">📷 Die vorhandene Foto- und Beleganalyse bleibt im Reiter „Analyse & Vergleich“ erhalten.</p>
+          <p className="hint">📷 Abrechnung im Reiter „Analyse & Foto“ fotografieren und prüfen. Anschließend hier übernehmen.</p>
+          <button className="secondary" disabled={!photoAvailable} onClick={() => setInput(old => ({
+            ...old, monthlyVolume: photoInput.volume + photoInput.onlineVolume,
+            currentMonthly: photoInput.currentTotal ?? 0,
+            currentFixed: photoInput.currentTotal === undefined ? photoInput.currentFixed : 0,
+            currentVariablePercent: photoInput.currentTotal === undefined ? photoInput.currentRate : 0,
+            currentTransactionCount: photoInput.currentTotal === undefined ? photoInput.transactions : 0,
+            currentPerTransaction: photoInput.currentTotal === undefined ? photoInput.currentPerTransaction : 0,
+            mix: { ...emptyMix, cardNotPresent: photoInput.onlineVolume }, splitConfirmed: false,
+          }))}>Geprüfte Foto-Abrechnung übernehmen</button>
         </Card>
         <Card title="03 · Kartenmix" eyebrow="TPV JE KARTENART">
           <p className="hint">Beträge pro Monat eingeben. Nicht erfasster Umsatz wird mit 1,39 % kalkuliert, niemals stillschweigend als vergünstigte Karte.</p>
