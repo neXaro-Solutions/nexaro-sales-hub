@@ -2188,3 +2188,55 @@ progress {
   max-width: 100%;
   accent-color: #ff671b;
 }
+
+
+/* SumUp sales studio: prevent native date inputs and long labels from
+   overflowing into the adjacent field on narrow iPhone screens. */
+.sales-studio,
+.sales-studio .section-intro,
+.sales-studio .section-intro > div,
+.sales-studio .form-grid,
+.sales-studio .form-grid > *,
+.sales-studio .field {
+  min-width: 0;
+  max-width: 100%;
+}
+.sales-studio .field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.sales-studio .field select,
+.sales-studio .field textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.sales-studio .section-intro {
+  align-items: flex-start;
+}
+.sales-studio .section-intro p,
+.sales-studio > .hint {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .sales-studio .section-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .sales-studio .section-intro h2 {
+    line-height: 1.25;
+  }
+  .sales-studio .section-intro > a {
+    align-self: flex-start;
+  }
+  .sales-studio .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .sales-studio .checkbox-field {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
