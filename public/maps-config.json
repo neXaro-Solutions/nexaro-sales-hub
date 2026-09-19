@@ -1,0 +1,4 @@
+{
+  "enabled": true,
+  "geocoder": "https://nominatim.openstreetmap.org/search"
+}

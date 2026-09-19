@@ -1,0 +1,278 @@
+import {
+  ArrowRight,
+  Plus,
+  Clock3,
+  Target,
+  Users,
+  Check,
+  MapPin,
+  Inbox,
+} from "lucide-react";
+import { useState } from "react";
+import { useStore } from "../lib/store";
+import { today, money, dateLabel, dayKey } from "../lib/calculations";
+import { Card, Metric, Empty, DivisionBadge, Badge } from "../components/UI";
+import type { Task } from "../lib/types";
+export function Dashboard({
+  navigate,
+  newCustomer,
+  newTask,
+}: {
+  navigate: (s: string) => void;
+  newCustomer: () => void;
+  newTask: () => void;
+}) {
+  const { data, save } = useStore();
+  const [error, setError] = useState(""),
+    [busy, setBusy] = useState("");
+  const now = today();
+  const due = data.tasks
+    .filter((t) => !t.done && dayKey(t.due_at) <= now)
+    .sort((a, b) => a.due_at.localeCompare(b.due_at));
+  const open = data.opportunities.filter(
+    (o) => !["Gewonnen", "Verloren"].includes(o.stage),
+  );
+  const sumup = open
+      .filter((o) => o.division === "sumup")
+      .reduce((n, o) => n + o.potential, 0),
+    vape = open
+      .filter((o) => o.division === "vape")
+      .reduce((n, o) => n + o.potential, 0);
+  async function done(t: Task) {
+    setBusy(t.id);
+    try {
+      await save("tasks", { ...t, done: true });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+  return (
+    <>
+      <div className="welcome">
+        <div>
+          <span className="eyebrow">DEIN VERTRIEB. DEIN ÜBERBLICK.</span>
+          <h1>
+            Starke Standorte.
+            <br />
+            <span>Klare nächste Schritte.</span>
+          </h1>
+          <p>Alles, was deinen Vertrieb heute weiterbringt.</p>
+          <button className="primary" onClick={newCustomer}>
+            <Plus size={17} /> Standort erfassen
+          </button>
+          <button className="secondary" onClick={() => navigate("routes")}>
+            <MapPin size={16} /> Tagesroute planen
+          </button>
+        </div>
+        <div className="welcome-art" aria-hidden="true">
+          <div className="x-shape">X</div>
+          <span>
+            PEOPLE
+            <br />
+            PAYMENT
+            <br />
+            PRODUCTS
+            <br />
+            <b>PROGRESS.</b>
+          </span>
+        </div>
+      </div>
+      <div className="metrics">
+        <Metric
+          label="Aktive Standorte"
+          value={data.customers.length}
+          detail={`${open.length} offene Verkaufschancen`}
+          icon={<Users size={17} />}
+        />
+        <Metric
+          label="Heute & überfällig"
+          value={due.length}
+          detail={`${data.tasks.filter((t) => !t.done).length} Aufgaben insgesamt offen`}
+          icon={<Clock3 size={17} />}
+        />
+        <Metric
+          label="SumUp · Kartenpotenzial"
+          value={money(sumup)}
+          detail="Monatliches Volumen offener Chancen"
+          icon={<Target size={17} />}
+        />
+        <Metric
+          label="Vapes · Umsatzpotenzial"
+          value={money(vape)}
+          detail="Monatlicher Nettoumsatz offener Chancen"
+        />
+      </div>
+      <div className="dashboard-grid">
+        <Card
+          title="Dein Fokus für heute"
+          eyebrow={dateLabel(now)}
+          action={
+            <button className="text-button" onClick={newTask}>
+              <Plus size={16} /> Aufgabe
+            </button>
+          }
+        >
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+          {due.length ? (
+            <div className="task-list">
+              {due.slice(0, 6).map((t) => (
+                <div className="task-row" key={t.id}>
+                  <button
+                    className="check-button"
+                    aria-label={t.title + " erledigen"}
+                    disabled={busy === t.id}
+                    onClick={() => void done(t)}
+                  >
+                    <Check size={15} />
+                  </button>
+                  <div className="grow">
+                    <strong>{t.title}</strong>
+                    <small>
+                      {data.customers.find((c) => c.id === t.customer_id)
+                        ?.company || "Allgemeine Aufgabe"}
+                    </small>
+                  </div>
+                  {t.division && <DivisionBadge division={t.division} />}
+                  <span
+                    className={dayKey(t.due_at) < now ? "overdue" : "muted"}
+                  >
+                    {dayKey(t.due_at) < now
+                      ? "Überfällig"
+                      : new Date(t.due_at).toLocaleTimeString("de-DE", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          timeZone: "Europe/Berlin",
+                        })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty title="Alles im Blick">
+              Keine fälligen Aufgaben. Plane jetzt deinen nächsten
+              Kundenkontakt.
+            </Empty>
+          )}
+          <button className="card-footer" onClick={() => navigate("tasks")}>
+            Alle Aufgaben ansehen <ArrowRight size={16} />
+          </button>
+        </Card>
+        <Card
+          title="Deine Vertriebsbereiche"
+          eyebrow="ZWEI BEREICHE. EINE ZENTRALE."
+        >
+          <button className="division-card" onClick={() => navigate("sumup")}>
+            <span className="division-icon">S</span>
+            <div className="grow">
+              <strong>SumUp Vertrieb</strong>
+              <small>
+                {
+                  data.opportunities.filter((o) => o.division === "sumup")
+                    .length
+                }{" "}
+                Verkaufschancen · Payment
+              </small>
+            </div>
+            <ArrowRight size={19} />
+          </button>
+          <button className="division-card" onClick={() => navigate("vape")}>
+            <span className="division-icon vape-icon">V</span>
+            <div className="grow">
+              <strong>Vapes & Trendartikel</strong>
+              <small>{data.products.length} Produkte · Sortiment & Marge</small>
+            </div>
+            <ArrowRight size={19} />
+          </button>
+          <div className="quiet-box">
+            <Inbox size={20} />
+            <div>
+              <strong>
+                {
+                  data.customers.filter((c) => c.source === "Kontaktformular")
+                    .length
+                }{" "}
+                Formularanfragen
+              </strong>
+              <small>
+                Neue Anfragen erhalten automatisch eine Wiedervorlage.
+              </small>
+            </div>
+          </div>
+        </Card>
+      </div>
+      <Card
+        title="Vertrieb in Bewegung"
+        eyebrow="PIPELINE"
+        action={
+          <button className="text-button" onClick={() => navigate("customers")}>
+            Kunden öffnen <ArrowRight size={15} />
+          </button>
+        }
+      >
+        <div className="pipeline">
+          {["Neu", "Kontaktiert", "Termin", "Angebot", "Gewonnen"].map(
+            (stage, i) => {
+              const count = data.opportunities.filter(
+                (o) => o.stage === stage,
+              ).length;
+              return (
+                <div key={stage}>
+                  <div>
+                    <span
+                      className="pipeline-dot"
+                      style={{ opacity: 0.35 + i * 0.16 }}
+                    />
+                    {stage}
+                    <b>{count}</b>
+                  </div>
+                  <div className="pipeline-track">
+                    <i
+                      style={{
+                        width: `${data.opportunities.length ? Math.max(3, (count / data.opportunities.length) * 100) : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            },
+          )}
+        </div>
+      </Card>
+      <Card
+        title="Letzte Aktivitäten"
+        action={<Badge>Gemeinsame Kundenhistorie</Badge>}
+      >
+        {data.events.length ? (
+          <div className="activity-list">
+            {[...data.events]
+              .sort((a, b) => b.created_at.localeCompare(a.created_at))
+              .slice(0, 5)
+              .map((e) => (
+                <div key={e.id}>
+                  <span className="activity-dot" />
+                  <div className="grow">
+                    <strong>{e.description}</strong>
+                    <small>
+                      {data.customers.find((c) => c.id === e.customer_id)
+                        ?.company || "Vertrieb"}
+                    </small>
+                  </div>
+                  <small>{dateLabel(e.created_at)}</small>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <p className="muted">
+            Gesprächsnotizen und neue Formularanfragen erscheinen hier.
+          </p>
+        )}
+      </Card>
+    </>
+  );
+}

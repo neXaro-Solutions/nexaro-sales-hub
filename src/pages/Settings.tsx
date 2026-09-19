@@ -1,0 +1,123 @@
+import {
+  Download,
+  ExternalLink,
+  ShieldCheck,
+  Database,
+  RefreshCw,
+} from "lucide-react";
+import { useStore } from "../lib/store";
+import { Card, External, Badge } from "../components/UI";
+import { today, dateLabel } from "../lib/calculations";
+import { checkedAt, pricingSource } from "../lib/sumup";
+export function Settings() {
+  const { data, demo, refresh } = useStore();
+  function backup() {
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          {
+            format: "nexaro-sales-hub",
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            demo,
+            data,
+          },
+          null,
+          2,
+        ),
+      ],
+      { type: "application/json" },
+    );
+    const url = URL.createObjectURL(blob),
+      a = document.createElement("a");
+    a.href = url;
+    a.download = `nexaro-backup-${today()}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return (
+    <>
+      <div className="section-intro">
+        <div>
+          <h1>Dein System</h1>
+          <p>Verbindungen, Datenstand und Sicherung im Überblick.</p>
+        </div>
+        <Badge>Einzelnutzer-Betrieb</Badge>
+      </div>
+      <div className="analysis-grid">
+        <Card title="Daten & Zugriff" eyebrow="ZENTRAL GESPEICHERT">
+          <div className="settings-item">
+            <ShieldCheck />
+            <div>
+              <strong>Persönlicher Zugang</strong>
+              <p>
+                Nur das freigeschaltete Administratorkonto kann CRM-Daten lesen
+                und bearbeiten. Die Prüfung erfolgt auch in der Datenbank.
+              </p>
+            </div>
+          </div>
+          <div className="settings-item">
+            <Database />
+            <div>
+              <strong>
+                {demo
+                  ? "Demo · Daten nur im Arbeitsspeicher"
+                  : "Supabase · EU-Region Irland"}
+              </strong>
+              <p>
+                {demo
+                  ? "Änderungen verschwinden beim Neuladen. Es werden keine Demo-Daten übertragen."
+                  : "Kunden, Aufgaben, Routen und Angebote werden zentral gespeichert. Nicht gespeicherte Eingaben bleiben lokal im geöffneten Formular."}
+              </p>
+            </div>
+          </div>
+          <button className="secondary" onClick={() => void refresh()}>
+            <RefreshCw size={16} /> Daten neu laden
+          </button>
+        </Card>
+        <Card title="Datensicherung">
+          <p>
+            Exportiere regelmäßig eine vollständige Kopie deiner CRM-Daten und
+            bewahre sie geschützt auf. Die Datei enthält auch Kontaktdaten und
+            Einkaufspreise.
+          </p>
+          <button className="primary" onClick={backup}>
+            <Download size={16} /> JSON-Sicherung herunterladen
+          </button>
+          <p className="hint">
+            Der Export ersetzt keine automatisch überwachte Datenbanksicherung.
+            Wiederherstellung und Datenbank-Backups sind im Betriebsleitfaden
+            beschrieben.
+          </p>
+          <External href="https://github.com/neXaro-Solutions/nexaro-sales-hub/blob/main/docs/OPERATIONS.md">
+            Betriebsleitfaden
+          </External>
+        </Card>
+        <Card title="SumUp-Datenstand">
+          <Badge>{dateLabel(checkedAt)}</Badge>
+          <p>
+            Öffentliche Konditionen mit festgehaltenem Quellenstand. Bestehende
+            Angebote behalten ihre Berechnungsgrundlage. Eine Aktualisierung
+            wird erst nach Prüfung übernommen.
+          </p>
+          <External href={pricingSource}>
+            Aktuelle SumUp-Konditionen prüfen
+          </External>
+        </Card>
+        <Card title="Öffentliche Kontaktanfragen">
+          <p>
+            Neue Anfragen legen automatisch eine Kundenakte, die gewählten
+            Verkaufschancen und eine Aufgabe zur Nachverfolgung an.
+          </p>
+          <External href="https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/public-lead.html">
+            Bestehendes Kontaktformular öffnen
+          </External>
+          <p className="hint">
+            Diese feste Adresse wird über das bisherige GitHub-Repository
+            bereitgestellt.
+          </p>
+        </Card>
+      </div>
+    </>
+  );
+}

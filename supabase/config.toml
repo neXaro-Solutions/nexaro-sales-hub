@@ -1,0 +1,5 @@
+project_id = "nexaro-sales-hub"
+# Deliberately public contact endpoint. It verifies a short-lived HMAC challenge,
+# validates the payload and invokes a service-only rate-limited transaction.
+[functions.nx-public-intake]
+verify_jwt = false
