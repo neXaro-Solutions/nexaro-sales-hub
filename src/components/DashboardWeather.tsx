@@ -1,0 +1,85 @@
+import { useEffect, useState } from "react";
+import { CloudSun, MapPin, RefreshCw } from "lucide-react";
+import { Card } from "../components/UI";
+
+type Weather = { temperature: number; feels: number; code: number; wind: number; city: string; fetched: Date };
+const label = (code: number) => {
+  if (code === 0) return "Sonnig";
+  if ([1, 2].includes(code)) return "Heiter";
+  if (code === 3) return "Bewölkt";
+  if ([45, 48].includes(code)) return "Neblig";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Nieselregen";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Regen";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Schnee";
+  if ([95, 96, 99].includes(code)) return "Gewitter";
+  return "Wechselhaft";
+};
+export function DashboardWeather() {
+  const [city, setCity] = useState(() => {
+    try { return localStorage.getItem("nx_weather_city") || ""; } catch { return ""; }
+  });
+  const [draft, setDraft] = useState(city);
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    if (!city) return;
+    const controller = new AbortController();
+    const load = async () => {
+      setLoading(true); setError("");
+      try {
+        const geo = await fetch("https://geocoding-api.open-meteo.com/v1/search?name=" +
+          encodeURIComponent(city) + "&count=1&language=de&format=json", { signal: controller.signal });
+        if (!geo.ok) throw Error("Standortsuche momentan nicht erreichbar.");
+        const result = await geo.json() as { results?: { name: string; country?: string; latitude: number; longitude: number }[] };
+        const location = result.results?.[0];
+        if (!location) throw Error("Ort nicht gefunden. Bitte Stadt genauer eingeben.");
+        const url = "https://api.open-meteo.com/v1/forecast?latitude=" + location.latitude +
+          "&longitude=" + location.longitude +
+          "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto";
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw Error("Wetterdaten momentan nicht erreichbar.");
+        const json = await response.json() as { current?: {
+          temperature_2m: number; apparent_temperature: number; weather_code: number; wind_speed_10m: number;
+        } };
+        if (!json.current) throw Error("Keine aktuellen Wetterdaten verfügbar.");
+        if (!controller.signal.aborted) setWeather({
+          temperature: json.current.temperature_2m, feels: json.current.apparent_temperature,
+          code: json.current.weather_code, wind: json.current.wind_speed_10m,
+          city: location.name + (location.country ? ", " + location.country : ""), fetched: new Date(),
+        });
+      } catch (e) {
+        if (!controller.signal.aborted) { setWeather(null); setError((e as Error).message); }
+      } finally { if (!controller.signal.aborted) setLoading(false); }
+    };
+    void load();
+    return () => controller.abort();
+  }, [city, revision]);
+  return <Card title="Wetter am Standort" eyebrow="AKTUELLE BEDINGUNGEN"
+    action={<button className="text-button" aria-label="Wetter aktualisieren" disabled={!city || loading}
+      onClick={() => setRevision(x => x + 1)}><RefreshCw size={16} /> Aktualisieren</button>}>
+    <form onSubmit={e => {
+      e.preventDefault();
+      const value = draft.trim();
+      if (!value) { setError("Bitte einen Ort eingeben."); return; }
+      try { localStorage.setItem("nx_weather_city", value); } catch { /* storage optional */ }
+      setCity(value); setRevision(x => x + 1);
+    }} className="button-row">
+      <label className="grow">Stadt / Einsatzgebiet
+        <input value={draft} onChange={e => setDraft(e.target.value)}
+          placeholder="z. B. Berlin" aria-label="Wetterstandort" /></label>
+      <button className="secondary" type="submit"><MapPin size={15} /> Anzeigen</button>
+    </form>
+    {!city && <p className="muted">Standort eingeben, um aktuelle Wetterdaten zu sehen. Keine automatische Standortfreigabe nötig.</p>}
+    {loading && <p role="status" className="muted">Wetter wird geladen …</p>}
+    {error && <p role="alert" className="error">{error}</p>}
+    {weather && !loading && <>
+      <div className="cost-row"><span><CloudSun size={23} /> {weather.city}<br /><small>{label(weather.code)}</small></span>
+        <strong>{Math.round(weather.temperature)} °C</strong></div>
+      <div className="mini-stats"><div><span>Gefühlt</span><b>{Math.round(weather.feels)} °C</b></div>
+        <div><span>Wind</span><b>{Math.round(weather.wind)} km/h</b></div></div>
+      <p className="hint">Aktualisiert: {weather.fetched.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} · Quelle: Open-Meteo</p>
+    </>}
+  </Card>;
+}
