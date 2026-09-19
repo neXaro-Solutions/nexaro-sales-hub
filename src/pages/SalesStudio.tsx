@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type InputHTMLAttributes } from "react";
 import { Card, Field, External } from "../components/UI";
 import { money, type PaymentInput } from "../lib/calculations";
 import {
@@ -25,6 +25,16 @@ const initial: ComparisonInput = {
   splitConfirmed: false, hardware: [], hardwareDiscount: 0, subscriptions: [],
 };
 const num = (v: string) => Number(v);
+/** Keep the in-progress text separate from the numeric calculation.
+ * Otherwise deleting the last digit immediately renders 0 again on iOS. */
+function NumericInput({ value, onChange, onFocus, onBlur, ...props }:
+  Omit<InputHTMLAttributes<HTMLInputElement>, "value"> & { value: number | string }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return <input {...props} type="number" value={draft ?? value}
+    onFocus={e => { setDraft(Number(value) === 0 ? "" : String(value)); onFocus?.(e); }}
+    onChange={e => { setDraft(e.target.value); onChange?.(e); }}
+    onBlur={e => { setDraft(null); onBlur?.(e); }} />;
+}
 export function SalesStudio({ customerId, onOffer, photoInput, photoAvailable }: {
   customerId: string; onOffer: (draft: OfferDraft) => void;
   photoInput: PaymentInput; photoAvailable: boolean;
@@ -79,7 +89,7 @@ export function SalesStudio({ customerId, onOffer, photoInput, photoAvailable }:
             <input placeholder="Name des Anbieters" value={provider} onChange={e => setProvider(e.target.value)} />
           </Field>
           <Field label="Voraussichtliches monatliches TPV (€)">
-            <input type="number" min="0" step=".01" value={input.monthlyVolume}
+            <NumericInput min="0" step=".01" value={input.monthlyVolume}
               onChange={e => update("monthlyVolume", num(e.target.value))} />
           </Field>
           <Field label="Auszahlungsfrequenz">
@@ -106,26 +116,26 @@ export function SalesStudio({ customerId, onOffer, photoInput, photoAvailable }:
           <p className="hint">Entweder die vollständigen monatlichen Ist-Kosten eingeben oder aus den einzelnen Konditionen berechnen lassen. Nicht doppelt erfassen.</p>
           <div className="form-grid">
             <Field label="Ist-Gesamtkosten / Monat (€) · 0 = Formel">
-              <input type="number" min="0" step=".01" value={input.currentMonthly}
+              <NumericInput min="0" step=".01" value={input.currentMonthly}
                 onChange={e => update("currentMonthly", num(e.target.value))} />
             </Field>
             <Field label="Monatliche Fixkosten (€)">
-              <input type="number" min="0" step=".01" value={input.currentFixed}
+              <NumericInput min="0" step=".01" value={input.currentFixed}
                 disabled={input.currentMonthly > 0}
                 onChange={e => update("currentFixed", num(e.target.value))} />
             </Field>
             <Field label="Bestandsgebühr (%)">
-              <input type="number" min="0" max="100" step=".01" value={input.currentVariablePercent}
+              <NumericInput min="0" max="100" step=".01" value={input.currentVariablePercent}
                 disabled={input.currentMonthly > 0}
                 onChange={e => update("currentVariablePercent", num(e.target.value))} />
             </Field>
             <Field label="Transaktionen / Monat">
-              <input type="number" min="0" step="1" value={input.currentTransactionCount}
+              <NumericInput min="0" step="1" value={input.currentTransactionCount}
                 disabled={input.currentMonthly > 0}
                 onChange={e => update("currentTransactionCount", num(e.target.value))} />
             </Field>
             <Field label="Kosten je Transaktion (€)">
-              <input type="number" min="0" step=".01" value={input.currentPerTransaction}
+              <NumericInput min="0" step=".01" value={input.currentPerTransaction}
                 disabled={input.currentMonthly > 0}
                 onChange={e => update("currentPerTransaction", num(e.target.value))} />
             </Field>
@@ -146,7 +156,7 @@ export function SalesStudio({ customerId, onOffer, photoInput, photoAvailable }:
           <div className="form-grid">
             {keys.map(({ key, label }) =>
               <Field key={key} label={label + " (€)"}>
-                <input type="number" min="0" step=".01" value={input.mix[key]}
+                <NumericInput min="0" step=".01" value={input.mix[key]}
                   onChange={e => update("mix", { ...input.mix, [key]: num(e.target.value) })} />
               </Field>)}
           </div>
@@ -167,10 +177,10 @@ export function SalesStudio({ customerId, onOffer, photoInput, photoAvailable }:
                 onChange={() => toggleHardware(item.id)} /> <strong>{item.name}</strong></label>
               <small>{item.price === null ? "Regulärpreis noch nicht öffentlich verifiziert" : money(item.price) + " netto / Stück"}</small>
               {selected && <div className="form-grid">
-                <Field label="Menge"><input type="number" min="1" max="100" step="1" value={selected.quantity}
+                <Field label="Menge"><NumericInput min="1" max="100" step="1" value={selected.quantity}
                   onChange={e => update("hardware", input.hardware.map(x => x.id === item.id ? { ...x, quantity: num(e.target.value) } : x))} /></Field>
                 <Field label="Bestätigter Stückpreis netto (€)">
-                  <input type="number" min="0" step=".01" value={selected.price ?? ""}
+                  <NumericInput min="0" step=".01" value={selected.price ?? ""}
                     placeholder="Preis prüfen" onChange={e => update("hardware", input.hardware.map(x =>
                       x.id === item.id ? { ...x, price: e.target.value === "" ? null : num(e.target.value) } : x))} />
                 </Field>
@@ -196,7 +206,7 @@ export function SalesStudio({ customerId, onOffer, photoInput, photoAvailable }:
               onChange={() => toggleSubscription(s.id)} /> <strong>{s.name}</strong></label>
             <small>{s.monthly === null ? "Preis auf Anfrage / nicht verifiziert" : money(s.monthly) + " monatlich"}</small>
             {chosen && <Field label="Bestätigte Monatskosten (€)">
-              <input type="number" min="0" step=".01" value={chosen.monthly ?? ""}
+              <NumericInput min="0" step=".01" value={chosen.monthly ?? ""}
                 placeholder="Preis prüfen" onChange={e => update("subscriptions", input.subscriptions.map(x =>
                   x.id === s.id ? { ...x, monthly: e.target.value === "" ? null : num(e.target.value) } : x))} />
             </Field>}
