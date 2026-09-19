@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { locate, locateIfGranted, type Position } from "../lib/location";
 import {
   Search,
   MapPin,
@@ -51,8 +52,24 @@ export function Routes() {
     [busy, setBusy] = useState(""),
     [message, setMessage] = useState(""),
     [filter, setFilter] = useState("all"),
-    [saved, setSaved] = useState(false);
-  const links = mapsRoutes(stops, origin);
+    [saved, setSaved] = useState(false),
+    [myPosition, setMyPosition] = useState<Position | null>(null);
+  useEffect(() => {
+    let active = true;
+    void locateIfGranted().then(p => { if (active && p) setMyPosition(p); });
+    return () => { active = false; };
+  }, []);
+  async function useMyLocation() {
+    setBusy("location"); setMessage("");
+    try {
+      const p = await locate();
+      setMyPosition(p);
+      setMessage("Aktueller Standort übernommen. Er wird nicht dauerhaft gespeichert.");
+    } catch (e) { setMessage((e as Error).message); }
+    finally { setBusy(""); }
+  }
+  const routeOrigin = origin.trim() || (myPosition ? `${myPosition.lat},${myPosition.lng}` : "");
+  const links = mapsRoutes(stops, routeOrigin);
   const customers = data.customers.filter(
     (c) =>
       filter === "all" ||
@@ -142,7 +159,7 @@ export function Routes() {
     setBusy("optimize");
     setMessage("");
     try {
-      const start = center || undefined;
+      const start = myPosition || center || undefined;
       setStops((v) => orderStops(v, start));
       setSaved(false);
       setMessage(
@@ -174,6 +191,10 @@ export function Routes() {
             eyebrow="ÖFFENTLICHE UNTERNEHMENSRECHERCHE"
           >
             <div className="form-grid">
+              <button className="secondary" type="button" disabled={!!busy} onClick={() => void useMyLocation()}>
+                <MapPin size={15} /> {busy === "location" ? "Standort wird ermittelt …" : "Meinen Standort ermitteln"}
+              </button>
+              {myPosition && <p className="hint">Aktueller Standort erkannt (Genauigkeit ca. {Math.round(myPosition.accuracy)} m). Für Navigation und Routensortierung verwendet; nicht in der Kundenakte gespeichert.</p>}
               <Field label="PLZ / Ort">
                 <input
                   value={query}
@@ -372,7 +393,7 @@ export function Routes() {
                   setOrigin(e.target.value);
                   setSaved(false);
                 }}
-                placeholder="Startpunkt für die Navigation"
+                placeholder={myPosition ? "Aktueller Standort (automatisch)" : "Startpunkt für die Navigation"}
               />
             </Field>
             {stops.length ? (
@@ -442,8 +463,8 @@ export function Routes() {
               <RouteIcon size={16} /> Nach Nähe sortieren
             </button>
             <p className="hint">
-              Heuristische Reihenfolge ab Suchgebiet oder erstem Stopp nach
-              Luftlinie. Die Startadresse wird erst an Google Maps übergeben.
+              Heuristische Reihenfolge ab aktuellem Standort, Suchgebiet oder erstem Stopp nach
+              Luftlinie. Eine manuell eingegebene Startadresse hat bei der Navigation Vorrang vor GPS.
               Ohne Verkehrsdaten; Stopps ohne Koordinaten bleiben am Ende.
               Besuchsdauer und Öffnungszeiten selbst berücksichtigen.
             </p>
