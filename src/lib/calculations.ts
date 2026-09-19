@@ -36,6 +36,7 @@ export const finite = (value: number, label: string, min = 0, max = 1e9) => {
   return value;
 };
 export type PaymentInput = {
+  currentTotal?: number;
   volume: number;
   eligibleShare: number;
   freeShare: number;
@@ -47,7 +48,7 @@ export type PaymentInput = {
   hardware: number;
   targetVolume: number;
 };
-export function paymentAnalysis(p: PaymentInput) {
+export function paymentAnalysis(p: PaymentInput, allowAnnual = false) {
   Object.entries(p).forEach(([k, v]) => finite(v, k));
   finite(p.eligibleShare, "Plus-Kartenanteil", 0, 100);
   finite(p.freeShare, "SumUp-Kartenanteil", 0, 100);
@@ -61,12 +62,21 @@ export function paymentAnalysis(p: PaymentInput) {
   const plus = round(
     19 + eligible * 0.0079 + other * 0.0139 + p.onlineVolume * 0.025,
   );
-  const current = round(
-    ((p.volume + p.onlineVolume) * p.currentRate) / 100 +
-      p.currentFixed +
-      p.transactions * p.currentPerTransaction,
-  );
-  const best = Math.min(standard, plus),
+  const current =
+    p.currentTotal !== undefined
+      ? finite(p.currentTotal, "Belegkosten")
+      : round(
+          ((p.volume + p.onlineVolume) * p.currentRate) / 100 +
+            p.currentFixed +
+            p.transactions * p.currentPerTransaction,
+        );
+  const plusAnnualTotal = round((plus - 19) * 12 + 199);
+  const annualSelected =
+    allowAnnual && plusAnnualTotal < Math.min(standard, plus) * 12;
+  const best = annualSelected
+      ? round(plusAnnualTotal / 12)
+      : Math.min(standard, plus),
+    bestYear = annualSelected ? plusAnnualTotal : round(best * 12),
     savings = round(current - best);
   return {
     standard,
@@ -74,10 +84,17 @@ export function paymentAnalysis(p: PaymentInput) {
     current,
     best,
     savings,
-    annualSavings: round(savings * 12 - p.hardware),
-    firstYear: round(best * 12 + p.hardware),
-    firstMonth: round(best + p.hardware),
-    recommended: plus < standard ? "Zahlungen Plus" : "Umsatzbasiert",
+    annualSavings: round(current * 12 - bestYear - p.hardware),
+    firstYear: round(bestYear + p.hardware),
+    firstMonth: round((annualSelected ? plus - 19 + 199 : best) + p.hardware),
+    plusAnnual: round(plusAnnualTotal / 12),
+    plusAnnualTotal,
+    annualSelected,
+    recommended: annualSelected
+      ? "Zahlungen Plus · Jahresabo"
+      : plus < standard
+        ? "Zahlungen Plus"
+        : "Umsatzbasiert",
     breakEven:
       p.eligibleShare > 0 ? 19 / ((0.006 * p.eligibleShare) / 100) : null,
     extraVolume: Math.max(0, p.targetVolume - p.volume),

@@ -5,7 +5,7 @@ Ein zentraler, geschützter Arbeitsbereich für einen Inhaber: **SumUp Vertrieb*
 ## Funktionen
 
 - Zentrale Kundenakte, getrennte Verkaufschancen, Gesprächshistorie, Aufgaben und Dashboard.
-- SumUp-Kostenvergleich mit Kartenmix, Online-Zahlungen, Hardware und Jahresbetrachtung; Leitfaden, Lösungsvergleich und Angebot.
+- SumUp-Kostenvergleich mit lokaler Foto-Texterkennung, Belegprüfung, Kartenmix und Online-Zahlungen. Bedarfsabhängiger Hardwarevorschlag sowie Monats-/optionaler Jahresabo-Vergleich; Leitfaden und Angebot.
 - Lieferantenverwaltung, manuelle Produktpflege und CSV/TSV-Import mit Spaltenzuordnung, Vorschau, Gebinden und atomarem Import.
 - EK/VK, Handelsspanne, Aufschlag, Versand, Produkt-/Lieferantenvergleich und Absatzpotenzial.
 - Öffentliche OSM-Recherche, Google Maps / Street View, manuelle Tagesrouten und Sortierung nach Luftlinie. Navigation in mobilen Etappen ohne verlorene Zwischenstopps.
@@ -39,6 +39,8 @@ Produktiv verwendet die App das vorhandene Supabase-Projekt. Die öffentliche Pr
 
 ## Datenbank / Betrieb
 
+Zur Fotoanalyse siehe [Bedienung und Grenzen](docs/STATEMENT-OCR.md).
+
 Siehe [Betriebsleitfaden](docs/OPERATIONS.md), [Architektur und Sicherheit](docs/ARCHITECTURE.md), [Prüfprotokoll](docs/VERIFICATION.md) und [öffentliche Quellen](docs/SOURCES.md).
 
 Die neue Datenstruktur verwendet ausschließlich `nx_*`-Tabellen. Alte Kunden werden nicht übernommen. Das bestehende Administratorkonto wird aus dem bereits angelegten aktiven `staff_users`-Administrator übernommen, sofern genau einer existiert. Andere Auth-Konten bekommen keinen CRM-Zugriff.
@@ -55,7 +57,7 @@ Die Dateien `public/public-lead.html`, `public/nx-public-intake.js` und `public/
 
 ## Klare Grenzen
 
-- Kein Zugriff auf tatsächliche SumUp-Transaktionen; Analysen verwenden eingegebene Händlerzahlen und öffentliche Referenzkonditionen vom 19.09.2026.
+- Kein Zugriff auf tatsächliche SumUp-Transaktionen; Analysen verwenden geprüfte Belegwerte oder eingegebene Händlerzahlen und öffentliche Referenzkonditionen vom 19.09.2026.
 - SumUp-Preise werden nicht unkontrolliert aus Website-HTML überschrieben. Vor Angeboten aktuellen Quellenstand prüfen.
 - Kein Großhandels-API-Zugang vorhanden. Der Dateiimport funktioniert; eine konkrete Portalautomatisierung benötigt den Namen und die Portaladresse des Händlers sowie eine Prüfung seiner Möglichkeiten.
 - Öffentliche Kartendienste bieten keine garantierte Verfügbarkeit; keine kostenpflichtige Google Places/Routes-Anbindung. Routensortierung verwendet Luftlinie, keine Verkehrsprognose.

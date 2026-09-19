@@ -183,3 +183,89 @@ test("catalog import supports supplier mapping and margin calculation", async ({
     page.getByRole("heading", { name: "Marge & Abnahmepotenzial" }),
   ).toBeVisible();
 });
+
+test("real local photo OCR feeds reviewed totals and hardware advice", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  const external: string[] = [];
+  page.on("request", (r) => {
+    if (
+      !r.url().startsWith("http://127.0.0.1:4173") &&
+      !r.url().startsWith("blob:")
+    )
+      external.push(r.url());
+  });
+  await page.goto("/?demo=1");
+  await navigate(page, "SumUp Vertrieb");
+  await page
+    .getByRole("button", { name: "Abrechnung fotografieren / hochladen" })
+    .click();
+  await page
+    .getByLabel("Abrechnungsfoto (JPG / PNG / WebP)")
+    .setInputFiles("tests/fixtures/statement-test.png");
+  await expect(
+    page.getByRole("heading", { name: "Belegwerte prüfen", exact: true }),
+  ).toBeVisible({ timeout: 100000 });
+  await expect(
+    page.getByLabel("Kartenumsatz vor Ort (€)", { exact: true }),
+  ).toHaveValue("5000");
+  await expect(
+    page.getByLabel("Vergleichbare Gesamtkosten netto (€)", { exact: true }),
+  ).toHaveValue("95");
+  await expect(
+    page.getByRole("button", { name: "Geprüfte Werte übernehmen" }),
+  ).toBeDisabled();
+  await page
+    .getByRole("checkbox", {
+      name: "Ich habe Beträge, Nettobasis, Zeitraum und Umsatzaufteilung mit dem Beleg abgeglichen.",
+    })
+    .check();
+  await page.getByRole("button", { name: "Geprüfte Werte übernehmen" }).click();
+  await expect(
+    page.getByLabel("Geprüfte Ist-Gesamtkosten / Monat (€)"),
+  ).toHaveValue("95");
+  await expect(
+    page.getByLabel("Plus-Kartenanteil", { exact: true }),
+  ).toHaveValue("0");
+  await page
+    .getByRole("checkbox", { name: "Gedruckte Belege erforderlich" })
+    .check();
+  await page
+    .getByRole("button", { name: "Hardwarevorschlag übernehmen" })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Lösung", exact: true }),
+  ).toHaveValue("3");
+  await expect(
+    page.getByLabel("Einmalige Hardwarekosten netto (€)"),
+  ).toHaveValue("139");
+  await page
+    .getByLabel("Analyse einer Kundenakte zuordnen")
+    .selectOption({ label: "Café Morgenrot" });
+  await expect(
+    page.getByLabel("Geprüfte Ist-Gesamtkosten / Monat (€)"),
+  ).toHaveCount(0);
+  await page
+    .getByLabel("Kartenumsatz vor Ort / Monat (€)", { exact: true })
+    .fill("1234");
+  await page
+    .getByRole("button", { name: "Analyse speichern", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("gespeichert");
+  await page.getByLabel("Analyse einer Kundenakte zuordnen").selectOption("");
+  await expect(
+    page.getByLabel("Kartenumsatz vor Ort / Monat (€)", { exact: true }),
+  ).toHaveValue("5000");
+  await page
+    .getByLabel("Analyse einer Kundenakte zuordnen")
+    .selectOption({ label: "Café Morgenrot" });
+  await expect(
+    page.getByLabel("Kartenumsatz vor Ort / Monat (€)", { exact: true }),
+  ).toHaveValue("1234");
+  expect(external).toEqual([]);
+  await page.screenshot({
+    path: `test-results/advisor-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+});

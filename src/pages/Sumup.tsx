@@ -1,3 +1,12 @@
+import {
+  StatementCapture,
+  type StatementReview,
+} from "../components/StatementCapture";
+import {
+  defaultNeeds,
+  recommendHardware,
+  type HardwareNeeds,
+} from "../lib/payment-advisor";
 import { useState } from "react";
 import { ArrowRight, Save, FileText, CheckCircle2 } from "lucide-react";
 import { useStore } from "../lib/store";
@@ -24,8 +33,25 @@ import {
 } from "../lib/sumup";
 import { OfferForm, type OfferDraft } from "./Offers";
 import { Customers } from "./Customers";
+const initialPayment: PaymentInput = {
+  volume: 5000,
+  eligibleShare: 80,
+  freeShare: 0,
+  onlineVolume: 0,
+  transactions: 200,
+  currentRate: 1.5,
+  currentFixed: 15,
+  currentPerTransaction: 0,
+  hardware: solutions[2].price,
+  targetVolume: 7000,
+};
 export function Sumup() {
   const { data, save } = useStore();
+  const [capture, setCapture] = useState(false),
+    [needs, setNeeds] = useState<HardwareNeeds>(defaultNeeds),
+    [statement, setStatement] = useState<StatementReview | null>(null),
+    [mixConfirmed, setMixConfirmed] = useState(false);
+  const hardwareAdvice = recommendHardware(needs);
   const [tab, setTab] = useState("analysis"),
     [customer, setCustomer] = useState(""),
     [solution, setSolution] = useState(2),
@@ -34,27 +60,22 @@ export function Sumup() {
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [draft, setDraft] = useState<OfferDraft | null>(null);
-  const [p, setP] = useState<PaymentInput>({
-    volume: 5000,
-    eligibleShare: 80,
-    freeShare: 0,
-    onlineVolume: 0,
-    transactions: 200,
-    currentRate: 1.5,
-    currentFixed: 15,
-    currentPerTransaction: 0,
-    hardware: solutions[2].price,
-    targetVolume: 7000,
-  });
+  const [p, setP] = useState<PaymentInput>(initialPayment);
   let analysis: ReturnType<typeof paymentAnalysis> | null = null,
     error = "";
   try {
-    analysis = paymentAnalysis(p);
+    analysis = paymentAnalysis(p, needs.annual);
   } catch (e) {
     error = (e as Error).message;
   }
-  const update = (key: keyof PaymentInput, n: number) =>
+  const update = (key: keyof PaymentInput, n: number) => {
     setP((v) => ({ ...v, [key]: n }));
+    if (key === "eligibleShare" || key === "freeShare") setMixConfirmed(false);
+    if (
+      ["currentTotal", "volume", "onlineVolume", "transactions"].includes(key)
+    )
+      setStatement(null);
+  };
   const selectedOpportunity = data.opportunities.find(
     (o) => o.customer_id === customer && o.division === "sumup",
   );
@@ -74,6 +95,9 @@ export function Sumup() {
             solution: solutions[solution].name,
             checkedAt,
             source: pricingSource,
+            needs,
+            statement,
+            mixConfirmed,
           },
           conversation: notes,
         },
@@ -127,14 +151,26 @@ export function Sumup() {
                     (o) => o.customer_id === id && o.division === "sumup",
                   );
                   const stored = o?.details.payment as
-                    | { input?: PaymentInput; solution?: string }
+                    | {
+                        input?: PaymentInput;
+                        solution?: string;
+                        needs?: HardwareNeeds;
+                        statement?: StatementReview;
+                        mixConfirmed?: boolean;
+                      }
                     | undefined;
+                  setNeeds(stored?.needs ?? defaultNeeds);
+                  setStatement(stored?.statement ?? null);
+                  setMixConfirmed(stored?.mixConfirmed ?? false);
                   if (stored?.input) {
                     setP(stored.input);
                     const idx = solutions.findIndex(
                       (s) => s.name === stored.solution,
                     );
-                    if (idx >= 0) setSolution(idx);
+                    setSolution(idx >= 0 ? idx : 2);
+                  } else {
+                    setP(initialPayment);
+                    setSolution(2);
                   }
                   setNotes(String(o?.details.conversation || ""));
                 }}
@@ -157,10 +193,127 @@ export function Sumup() {
             </Field>
             <span className="muted">Referenzstand {dateLabel(checkedAt)}</span>
           </div>
+          {capture && (
+            <StatementCapture
+              onClose={() => setCapture(false)}
+              onApply={(values, review) => {
+                setP((v) => ({
+                  ...v,
+                  ...values,
+                  currentRate: 0,
+                  currentFixed: 0,
+                  currentPerTransaction: 0,
+                  eligibleShare: 0,
+                  freeShare: 0,
+                  targetVolume: values.volume ?? v.targetVolume,
+                }));
+                setStatement(review);
+                setMixConfirmed(false);
+              }}
+            />
+          )}
           {tab === "analysis" && (
             <>
+              <Card
+                title="Vom Abrechnungsfoto zum Vorschlag"
+                eyebrow="ABRECHNUNG & BEDARF"
+              >
+                <p>
+                  Foto erfassen, erkannte Beträge prüfen und deinen
+                  Hardwarebedarf bestätigen. Der günstigste verfügbare
+                  Standardtarif wird aus den Monatswerten berechnet.
+                </p>
+                <button className="primary" onClick={() => setCapture(true)}>
+                  <FileText size={16} /> Abrechnung fotografieren / hochladen
+                </button>
+                {statement && (
+                  <p className="hint">
+                    Geprüfter Beleg übernommen · {statement.months} Monat(e),
+                    auf einen Monat umgerechnet. Die Ist-Kosten stammen direkt
+                    aus dem Beleg.
+                  </p>
+                )}
+                <div className="form-grid advisor-needs">
+                  {(
+                    [
+                      ["smartphone", "Kompatibles Smartphone vorhanden"],
+                      ["chip", "Chip-Kartenzahlungen erforderlich"],
+                      ["standalone", "Ohne Smartphone kassieren"],
+                      ["paper", "Gedruckte Belege erforderlich"],
+                      ["catalog", "Artikelkatalog am Terminal benötigt"],
+                      [
+                        "advancedPos",
+                        "Erweiterte Kasse / TSE / Integrationen benötigt",
+                      ],
+                      [
+                        "annual",
+                        "12 Monate Jahresabo berücksichtigen (199 € vorab)",
+                      ],
+                    ] as [keyof HardwareNeeds, string][]
+                  ).map(([key, label]) => (
+                    <label className="checkbox-field" key={key}>
+                      <input
+                        type="checkbox"
+                        checked={needs[key]}
+                        onChange={(e) =>
+                          setNeeds((v) => ({ ...v, [key]: e.target.checked }))
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <div className="recommendation">
+                  <Badge>Hardwarevorschlag nach deinen Anforderungen</Badge>
+                  <h3>
+                    {hardwareAdvice.best.name} ·{" "}
+                    {money(hardwareAdvice.best.price)} netto
+                  </h3>
+                  <p>{hardwareAdvice.reasons.join(" ")}</p>
+                  {hardwareAdvice.warning && (
+                    <p className="notice">{hardwareAdvice.warning}</p>
+                  )}
+                  <button
+                    className="secondary"
+                    onClick={() => {
+                      setSolution(hardwareAdvice.best.index);
+                      update("hardware", hardwareAdvice.best.price);
+                    }}
+                  >
+                    Hardwarevorschlag übernehmen
+                  </button>
+                </div>
+              </Card>
               <div className="analysis-grid">
                 <Card title="Deine Ausgangslage" eyebrow="IST-SITUATION">
+                  {p.currentTotal !== undefined && (
+                    <div className="notice">
+                      <Field label="Geprüfte Ist-Gesamtkosten / Monat (€)">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={p.currentTotal}
+                          onChange={(e) =>
+                            update("currentTotal", +e.target.value)
+                          }
+                        />
+                      </Field>
+                      <p>
+                        Dieser Betrag ersetzt die bisherige Gebührenformel
+                        vollständig.
+                      </p>
+                      <button
+                        className="text-link"
+                        onClick={() => {
+                          setP(({ currentTotal, ...rest }) => rest);
+                          setStatement(null);
+                        }}
+                      >
+                        Zur Gebührenformel wechseln
+                      </button>
+                    </div>
+                  )}
                   <div className="form-grid">
                     {(
                       [
@@ -174,6 +327,10 @@ export function Sumup() {
                     ).map(([key, label]) => (
                       <Field key={key} label={label}>
                         <input
+                          disabled={
+                            p.currentTotal !== undefined &&
+                            key.startsWith("current")
+                          }
                           type="number"
                           min="0"
                           max={key === "currentRate" ? 100 : 1000000000}
@@ -185,6 +342,22 @@ export function Sumup() {
                     ))}
                   </div>
                   <h3>Kartenmix vor Ort</h3>
+                  <label className="checkbox-field">
+                    <input
+                      type="checkbox"
+                      checked={mixConfirmed}
+                      onChange={(e) => setMixConfirmed(e.target.checked)}
+                    />
+                    Kartenmix anhand des Belegs oder mit dem Händler bestätigt
+                  </label>
+                  {!mixConfirmed && (
+                    <p className="notice">
+                      Vorläufige Empfehlung: Der Kartenmix ist noch unbestätigt.
+                      Beim Fotoimport wird zunächst konservativ mit 0 %
+                      rabattfähigen Karten gerechnet. Ein hoher geeigneter
+                      Anteil kann Zahlungen Plus günstiger machen.
+                    </p>
+                  )}
                   <Field
                     label={`Für 0,79 % geeignete Karten: ${p.eligibleShare} %`}
                   >
@@ -251,9 +424,28 @@ export function Sumup() {
                             </span>
                             <strong>{money(analysis.plus)}</strong>
                           </div>
+                          {needs.annual && (
+                            <div className="cost-row">
+                              <span>
+                                SumUp · Plus Jahresabo
+                                <small>199 € vorab · Monatsdurchschnitt</small>
+                              </span>
+                              <strong>{money(analysis.plusAnnual)}</strong>
+                            </div>
+                          )}
                           <div className="recommendation">
-                            <Badge kind="positive">Rechnerisch günstiger</Badge>
+                            <Badge kind="positive">
+                              {mixConfirmed
+                                ? "Günstigster hinterlegter Tarif"
+                                : "Vorläufig bei diesem Kartenmix"}
+                            </Badge>
                             <h2>{analysis.recommended}</h2>
+                            {analysis.annualSelected && (
+                              <p>
+                                12 Monate Bindung. Erstmonat inkl. Hardware und
+                                Jahresgrundgebühr: {money(analysis.firstMonth)}.
+                              </p>
+                            )}
                             <strong>
                               {money(analysis.savings)}
                               <small> Differenz pro Monat zum Ist</small>
@@ -274,7 +466,7 @@ export function Sumup() {
                               <b>{money(analysis.annualSavings)}</b>
                             </div>
                             <div>
-                              <span>Plus lohnt sich ab</span>
+                              <span>Plus-Monatsabo lohnt sich ab</span>
                               <b>
                                 {analysis.breakEven
                                   ? money(analysis.breakEven) + " / Monat"
@@ -359,6 +551,9 @@ export function Sumup() {
                         analysis,
                         paymentInput: p,
                         source: pricingSource,
+                        needs,
+                        statement,
+                        mixConfirmed,
                         checkedAt,
                       },
                     })
@@ -368,11 +563,11 @@ export function Sumup() {
                 </button>
               </div>
               <p className="hint">
-                Modellrechnung, kein garantierter Mehrumsatz. Der Ist-Tarif wird
-                vereinfachend als einheitlicher Gebührensatz auf Vor-Ort- und
-                Online-Umsatz gerechnet. 2,5 % Online-Gebühr in beiden
-                SumUp-Tarifen. Hardware netto; Steuern und optionale Abos
-                separat.
+                Modellrechnung bei unverändertem Umsatz und Kartenmix.
+                Ist-Kosten stammen aus dem geprüften Beleg oder der eingegebenen
+                Gebührenformel. Online-Zahlungen kosten in allen hinterlegten
+                SumUp-Tarifen 2,5 %. Hardware netto; weitere Kassen-Abos,
+                Steuern und individuelle Sonderkonditionen separat prüfen.
               </p>
             </>
           )}

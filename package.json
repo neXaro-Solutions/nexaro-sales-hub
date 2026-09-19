@@ -5,20 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run prepare:ocr && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check": "npm run test && npm run build"
+    "check": "npm run test && npm run build",
+    "prepare:ocr": "node scripts/prepare-ocr.mjs",
+    "predev": "npm run prepare:ocr"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",
     "lucide-react": "1.47.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
+    "@tesseract.js-data/deu": "1.0.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "prettier": "3.8.3",

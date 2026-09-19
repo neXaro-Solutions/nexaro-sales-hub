@@ -2148,3 +2148,43 @@ dialog::backdrop {
     scroll-behavior: auto !important;
   }
 }
+
+.statement-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 12px;
+  margin: 16px auto;
+}
+.ocr-evidence {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  padding: 8px;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  background: transparent;
+  color: inherit;
+}
+.checkbox-field {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  margin: 12px 0;
+}
+.checkbox-field input {
+  width: 18px;
+  flex-shrink: 0;
+  accent-color: #ff671b;
+}
+.advisor-needs {
+  margin: 18px 0;
+}
+progress {
+  max-width: 100%;
+  accent-color: #ff671b;
+}

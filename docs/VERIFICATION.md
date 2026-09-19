@@ -30,3 +30,9 @@ Dies ist kein unabhängiger Penetrationstest oder Verfügbarkeitsnachweis. Die e
 Der lokale Chromium-Test nutzte eine containergeeignete Chromium-Binärdatei. Der GitHub-Workflow installiert den regulären Playwright-Browser. Die Buildhinweise betreffen die Größe des JavaScript-Bundles und `use client`-Direktiven der Icon-Bibliothek; der statische SPA-Build ist erfolgreich.
 
 Vorhandene Sicherheitswarnungen des älteren CRM und der Auth-Konfiguration sind in ARCHITECTURE.md dokumentiert. Backup-Wiederherstellung, Großhandelsanbindung und automatische Preisaktualisierung sind nicht als fertig getestet ausgewiesen. Öffentliche Kartenanbieter werden nicht durch automatisierte Tests belastet.
+
+## Erweiterung: SumUp-Fotoanalyse (19.09.2026)
+
+23 Unit-Tests und Produktionsbuild erfolgreich. Acht gezielt ausgewählte Browsertests bestanden: lokale OCR mit echtem Sprachmodell, Belegprüfung, Hardwareanforderungen und Wechsel/Speichern der Kundenakte sowie CRM-Demodaten, Anmeldeschutz und öffentlicher Formular-Wiederholungsversand – jeweils Desktop und mobile Bildschirmgröße. Während des OCR-Demotests keine Anfragen an externe Dienste. Dieses Update enthält keine neue Großhandelsübernahme.
+
+Der Fotovergleich wurde mit einem synthetischen deutschen Musterbeleg geprüft, nicht mit allen Anbieterlayouts oder echten Kundendokumenten. Preise wurden erneut mit den offiziellen SumUp-Seiten abgeglichen. Sie sind versionierte Referenzdaten, kein automatischer Live-Preisfeed.
