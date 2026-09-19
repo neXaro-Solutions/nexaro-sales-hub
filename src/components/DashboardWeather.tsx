@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CloudSun, MapPin, RefreshCw } from "lucide-react";
 import { Card } from "../components/UI";
+import { locate, locateIfGranted, type Position } from "../lib/location";
 
 type Weather = { temperature: number; feels: number; code: number; wind: number; city: string; fetched: Date };
 const label = (code: number) => {
@@ -23,17 +24,30 @@ export function DashboardWeather() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [position, setPosition] = useState<Position | null>(null);
+  const [locating, setLocating] = useState(false);
   useEffect(() => {
-    if (!city) return;
+    let active = true;
+    void locateIfGranted().then(p => { if (active && p) setPosition(p); });
+    return () => { active = false; };
+  }, []);
+  async function useLocation() {
+    setLocating(true); setError("");
+    try { setPosition(await locate()); setCity(""); setWeather(null); }
+    catch (e) { setError((e as Error).message); }
+    finally { setLocating(false); }
+  }
+  useEffect(() => {
+    if (!city && !position) return;
     const controller = new AbortController();
     const load = async () => {
       setLoading(true); setError("");
       try {
-        const geo = await fetch("https://geocoding-api.open-meteo.com/v1/search?name=" +
+        const geo = position ? null : await fetch("https://geocoding-api.open-meteo.com/v1/search?name=" +
           encodeURIComponent(city) + "&count=1&language=de&format=json", { signal: controller.signal });
-        if (!geo.ok) throw Error("Standortsuche momentan nicht erreichbar.");
-        const result = await geo.json() as { results?: { name: string; country?: string; latitude: number; longitude: number }[] };
-        const location = result.results?.[0];
+        if (geo && !geo.ok) throw Error("Standortsuche momentan nicht erreichbar.");
+        const result = geo ? await geo.json() as { results?: { name: string; country?: string; latitude: number; longitude: number }[] } : null;
+        const location = position ? { latitude: position.lat, longitude: position.lng, name: "Mein Standort", country: "" } : result?.results?.[0];
         if (!location) throw Error("Ort nicht gefunden. Bitte Stadt genauer eingeben.");
         const url = "https://api.open-meteo.com/v1/forecast?latitude=" + location.latitude +
           "&longitude=" + location.longitude +
@@ -55,23 +69,26 @@ export function DashboardWeather() {
     };
     void load();
     return () => controller.abort();
-  }, [city, revision]);
+  }, [city, position, revision]);
   return <Card title="Wetter am Standort" eyebrow="AKTUELLE BEDINGUNGEN"
-    action={<button className="text-button" aria-label="Wetter aktualisieren" disabled={!city || loading}
+    action={<button className="text-button" aria-label="Wetter aktualisieren" disabled={(!city && !position) || loading}
       onClick={() => setRevision(x => x + 1)}><RefreshCw size={16} /> Aktualisieren</button>}>
     <form onSubmit={e => {
       e.preventDefault();
       const value = draft.trim();
       if (!value) { setError("Bitte einen Ort eingeben."); return; }
       try { localStorage.setItem("nx_weather_city", value); } catch { /* storage optional */ }
-      setCity(value); setRevision(x => x + 1);
+      setPosition(null); setCity(value); setRevision(x => x + 1);
     }} className="button-row">
       <label className="grow">Stadt / Einsatzgebiet
         <input value={draft} onChange={e => setDraft(e.target.value)}
           placeholder="z. B. Berlin" aria-label="Wetterstandort" /></label>
       <button className="secondary" type="submit"><MapPin size={15} /> Anzeigen</button>
     </form>
-    {!city && <p className="muted">Standort eingeben, um aktuelle Wetterdaten zu sehen. Keine automatische Standortfreigabe nötig.</p>}
+    <button className="secondary" type="button" onClick={() => void useLocation()} disabled={locating}>
+      <MapPin size={15} /> {locating ? "Standort wird ermittelt …" : "Meinen Standort verwenden"}
+    </button>
+    {!city && !position && <p className="muted">Bei bereits erteilter Browserfreigabe wird dein Standort automatisch ermittelt. Andernfalls kannst du ihn einmalig freigeben oder den Ort manuell eingeben.</p>}
     {loading && <p role="status" className="muted">Wetter wird geladen …</p>}
     {error && <p role="alert" className="error">{error}</p>}
     {weather && !loading && <>
