@@ -2250,3 +2250,13 @@ progress {
     font-size: 16px;
   }
 }
+
+/* Keep GPS action and its confirmation readable in the routes two-column form. */
+.route-gps-button,
+.route-gps-hint { grid-column: 1 / -1; min-width: 0; }
+.route-gps-button { justify-self: start; width: auto; max-width: 100%; }
+.route-gps-hint { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .route-grid .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .route-gps-button { width: 100%; font-size: 16px; }
+}
