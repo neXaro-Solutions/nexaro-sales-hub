@@ -32,6 +32,7 @@ import {
   guide,
 } from "../lib/sumup";
 import { OfferForm, type OfferDraft } from "./Offers";
+import { SalesStudio } from "./SalesStudio";
 import { Customers } from "./Customers";
 const initialPayment: PaymentInput = {
   volume: 5000,
@@ -52,7 +53,7 @@ export function Sumup() {
     [statement, setStatement] = useState<StatementReview | null>(null),
     [mixConfirmed, setMixConfirmed] = useState(false);
   const hardwareAdvice = recommendHardware(needs);
-  const [tab, setTab] = useState("analysis"),
+  const [tab, setTab] = useState("studio"),
     [customer, setCustomer] = useState(""),
     [solution, setSolution] = useState(2),
     [step, setStep] = useState(0),
@@ -121,7 +122,8 @@ export function Sumup() {
       </div>
       <div className="tabs">
         {[
-          ["analysis", "Analyse & Vergleich"],
+          ["studio", "Vertriebsstudio"],
+          ["analysis", "Analyse & Foto"],
           ["solutions", "Lösungen"],
           ["guide", "Gesprächsleitfaden"],
           ["leads", "Händler & Leads"],
@@ -211,6 +213,9 @@ export function Sumup() {
                 setMixConfirmed(false);
               }}
             />
+          )}
+          {tab === "studio" && (
+            <SalesStudio customerId={customer} onOffer={setDraft} />
           )}
           {tab === "analysis" && (
             <>
