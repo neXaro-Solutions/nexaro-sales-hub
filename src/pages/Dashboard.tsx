@@ -9,10 +9,21 @@ import {
   Inbox,
 } from "lucide-react";
 import { useState } from "react";
+import { DashboardWeather } from "../components/DashboardWeather";
 import { useStore } from "../lib/store";
 import { today, money, dateLabel, dayKey } from "../lib/calculations";
 import { Card, Metric, Empty, DivisionBadge, Badge } from "../components/UI";
 import type { Task } from "../lib/types";
+const motivation = [
+  "Jeder gute Abschluss beginnt mit einem ehrlichen Gespräch.",
+  "Konsequente Nachfassaktionen machen aus Chancen Ergebnisse.",
+  "Heute ist ein guter Tag, um einem Kunden echten Mehrwert zu zeigen.",
+  "Nicht jeder Kontakt wird ein Abschluss – jeder Kontakt bringt Klarheit.",
+  "Vertrauen entsteht, wenn du zuhörst und passende Lösungen anbietest.",
+  "Ein klarer nächster Schritt ist oft wertvoller als ein perfekter Pitch.",
+  "Deine beste Vertriebsstrategie: verstehen, vergleichen, verlässlich handeln.",
+  "Ein gutes Angebot macht dem Kunden die Entscheidung leichter.",
+];
 export function Dashboard({
   navigate,
   newCustomer,
@@ -23,6 +34,7 @@ export function Dashboard({
   newTask: () => void;
 }) {
   const { data, save } = useStore();
+  const [quote] = useState(() => motivation[Math.floor(Math.random() * motivation.length)]);
   const [error, setError] = useState(""),
     [busy, setBusy] = useState("");
   const now = today();
@@ -32,6 +44,10 @@ export function Dashboard({
   const open = data.opportunities.filter(
     (o) => !["Gewonnen", "Verloren"].includes(o.stage),
   );
+  const closing = data.offers.filter(o => o.status === "Gesendet" && o.valid_until >= now)
+    .sort((a, b) => a.valid_until.localeCompare(b.valid_until));
+  const offerOpportunities = open.filter(o => o.stage === "Angebot" &&
+    !closing.some(offer => offer.customer_id === o.customer_id && offer.division === o.division));
   const sumup = open
       .filter((o) => o.division === "sumup")
       .reduce((n, o) => n + o.potential, 0),
@@ -58,7 +74,7 @@ export function Dashboard({
             <br />
             <span>Klare nächste Schritte.</span>
           </h1>
-          <p>Alles, was deinen Vertrieb heute weiterbringt.</p>
+          <p>{quote}</p>
           <button className="primary" onClick={newCustomer}>
             <Plus size={17} /> Standort erfassen
           </button>
@@ -79,6 +95,7 @@ export function Dashboard({
           </span>
         </div>
       </div>
+      <DashboardWeather />
       <div className="metrics">
         <Metric
           label="Aktive Standorte"
@@ -153,11 +170,25 @@ export function Dashboard({
                 </div>
               ))}
             </div>
+          ) : closing.length || offerOpportunities.length ? (
+            <div className="task-list">
+              <p className="hint">Keine fälligen Aufgaben. Diese Angebote und Abschlusschancen verdienen deine Aufmerksamkeit:</p>
+              {closing.slice(0, 4).map(offer => <div className="task-row" key={offer.id}>
+                <Target size={17} />
+                <div className="grow"><strong>{data.customers.find(c => c.id === offer.customer_id)?.company || "Kunde"} · Angebot {offer.number}</strong>
+                  <small>Gesendet · gültig bis {dateLabel(offer.valid_until)}</small></div>
+                <DivisionBadge division={offer.division} />
+              </div>)}
+              {offerOpportunities.slice(0, Math.max(0, 4 - closing.length)).map(o => <div className="task-row" key={o.id}>
+                <Target size={17} />
+                <div className="grow"><strong>{data.customers.find(c => c.id === o.customer_id)?.company || "Kunde"}</strong>
+                  <small>Verkaufschance in Phase Angebot · Abschluss nachfassen</small></div>
+                <DivisionBadge division={o.division} />
+              </div>)}
+              <button className="secondary" onClick={() => navigate("offers")}>Angebote öffnen <ArrowRight size={16} /></button>
+            </div>
           ) : (
-            <Empty title="Alles im Blick">
-              Keine fälligen Aufgaben. Plane jetzt deinen nächsten
-              Kundenkontakt.
-            </Empty>
+            <Empty title="Alles im Blick">Keine fälligen Aufgaben oder offenen Angebote. Plane deinen nächsten Kundenkontakt.</Empty>
           )}
           <button className="card-footer" onClick={() => navigate("tasks")}>
             Alle Aufgaben ansehen <ArrowRight size={16} />
