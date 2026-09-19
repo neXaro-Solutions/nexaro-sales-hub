@@ -87,7 +87,7 @@ export async function findProspects(
     !Number.isFinite(center.lat) ||
     !Number.isFinite(center.lng) ||
     radius < 1 ||
-    radius > 5
+    radius > 30
   )
     throw Error("Ungültiger Suchbereich.");
   const selector =
@@ -96,11 +96,11 @@ export async function findProspects(
       : category === "food"
         ? '["amenity"~"cafe|restaurant|fast_food|bar|pub"]'
         : '["shop"~"kiosk|tobacco|convenience|e-cigarette"]';
-  const q = `[out:json][timeout:20];nwr["name"]${selector}(around:${radius * 1000},${center.lat},${center.lng});out center tags 60;`;
+  const q = `[out:json][timeout:40];nwr["name"]${selector}(around:${radius * 1000},${center.lat},${center.lng});out center tags 60;`;
   const response = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
     body: new URLSearchParams({ data: q }),
-    signal: AbortSignal.timeout(26000),
+    signal: AbortSignal.timeout(50000),
   });
   if (!response.ok)
     throw Error(
