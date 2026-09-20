@@ -43,6 +43,7 @@ export function Routes() {
     [category, setCategory] = useState("shops"),
     [results, setResults] = useState<Prospect[]>([]),
     [selectedProspect, setSelectedProspect] = useState<string | null>(null),
+    [showAllResults, setShowAllResults] = useState(false),
     [center, setCenter] = useState<{
       lat: number;
       lng: number;
@@ -69,6 +70,7 @@ export function Routes() {
       setSearchFromGps(true);
       setResults([]);
       setSelectedProspect(null);
+      setShowAllResults(false);
       const gpsCenter = { lat: p.lat, lng: p.lng, city: "GPS-Standort" };
       setCenter(gpsCenter);
       setBusy("search");
@@ -79,6 +81,10 @@ export function Routes() {
         : "Keine Treffer an deinem aktuellen Standort. Bitte Branche oder Radius anpassen.");
     } catch (e) { setMessage((e as Error).message); }
     finally { setBusy(""); }
+  }
+  function focusProspect(p:Prospect) {
+    setSelectedProspect(p.id);
+    document.getElementById("route-search-map")?.scrollIntoView({behavior:"smooth",block:"start"});
   }
   const routeOrigin = origin.trim() || (myPosition ? `${myPosition.lat},${myPosition.lng}` : "");
   const links = mapsRoutes(stops, routeOrigin);
@@ -116,6 +122,7 @@ export function Routes() {
       const p = await findProspects(c, radius, category);
       setResults(p);
       setSelectedProspect(null);
+      setShowAllResults(false);
       if (!p.length)
         setMessage(
           "Keine Treffer in diesem Suchbereich. Branche oder Radius anpassen.",
@@ -299,7 +306,7 @@ export function Routes() {
               {message}
             </p>
           )}
-          {center && <Card title="2 · Standort auf der Karte" eyebrow="KARTENAUSSCHNITT · SUCHGEBIET">
+          {center && <div id="route-search-map"><Card title="2 · Standort auf der Karte" eyebrow="KARTENAUSSCHNITT · SUCHGEBIET">
             <div className="route-map-header">
               <div><strong>{selectedProspect ? results.find(p=>p.id===selectedProspect)?.name||center.city : center.city}</strong>
                 <p className="hint">{selectedProspect?"Ausgewähltes Geschäft mit Standortmarker":"Suchmittelpunkt mit Standortmarker"} · Umkreis der Suche: {radius} km</p></div>
@@ -312,10 +319,10 @@ export function Routes() {
             <div className="route-map-footer"><span>© OpenStreetMap-Mitwirkende</span>
               <External href={osmLocation(results.find(p=>p.id===selectedProspect)?.lat??center.lat,
                 results.find(p=>p.id===selectedProspect)?.lng??center.lng)}>Große Karte öffnen</External></div>
-          </Card>}
+          </Card></div>}
           {results.length > 0 && (
             <Card title={`3 · ${results.length} Recherchetreffer`}>
-              {results.map((p) => (
+              {results.slice(0,showAllResults?results.length:12).map((p) => (
                 <div className={"prospect route-prospect"+(selectedProspect===p.id?" route-prospect-active":"")} key={p.id}>
                   <div className="grow">
                     <strong>{p.name}</strong>
@@ -332,7 +339,7 @@ export function Routes() {
                           " km Luftlinie"}
                     </small>
                     <div className="button-row">
-                      <button className="secondary" onClick={()=>setSelectedProspect(p.id)}><MapPin size={15}/> Auf Karte</button>
+                      <button className="secondary" onClick={()=>focusProspect(p)}><MapPin size={15}/> Auf Karte</button>
                       <External
                         href={mapSearch(
                           p.name +
@@ -358,6 +365,7 @@ export function Routes() {
                   </button>
                 </div>
               ))}
+              {results.length>12&&<button className="secondary wide" onClick={()=>setShowAllResults(v=>!v)}>{showAllResults?"Weniger Treffer anzeigen":"Alle "+results.length+" Treffer anzeigen"}</button>}
             </Card>
           )}
           <Card title="4 · Kunden zur Route hinzufügen">
@@ -368,8 +376,6 @@ export function Routes() {
             >
               <option value="all">Alle Kunden</option>
               <option value="due">Fällige Wiedervorlagen</option>
-              <option value="sumup">SumUp</option>
-              <option value="vape">Vapes</option>
             </select>
             {customers.length ? (
               customers.map((c) => (
