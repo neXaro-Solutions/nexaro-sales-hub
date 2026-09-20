@@ -2760,3 +2760,60 @@ progress {
  .nx-document .sumup-tariff-card,.nx-document .sumup-hardware-summary{break-inside:avoid}
  .nx-document .sumup-offer-details{break-inside:auto}
 }
+
+
+/* Mobile field visit: eliminate horizontal drift at the container level. */
+.sales-studio.field-studio,.sales-studio.field-studio .card,
+.sales-studio.field-studio .form-grid,.sales-studio.field-studio .range-field,
+.sales-studio.field-studio .range-field-values{box-sizing:border-box;min-width:0;max-width:100%}
+.sales-studio.field-studio .form-grid{align-items:stretch;align-content:start;grid-auto-rows:min-content;gap:14px}
+.sales-studio.field-studio .form-grid>*{min-width:0;max-width:100%;width:100%;margin:0;align-self:start}
+.sales-studio.field-studio .field>span{display:block;line-height:1.35;margin:0 0 7px;font-weight:650}
+.sales-studio.field-studio .range-field-values{display:grid;grid-template-columns:minmax(0,1fr) minmax(65px,90px) 16px;align-items:center;column-gap:10px}
+.sales-studio.field-studio .range-field-values input[type=range]{width:100%;min-width:0;min-height:34px;accent-color:var(--orange);touch-action:pan-y}
+.sales-studio.field-studio .range-field-values input[type=number]{width:100%;min-width:0;max-width:100%;font-size:16px;padding:9px 7px;box-sizing:border-box}
+.sales-studio.field-studio .range-field-values>span{font-size:13px;margin:0;letter-spacing:0}
+.sales-studio.field-studio .range-field{padding:6px 0 11px;border-bottom:1px solid #39452f}
+.sales-studio.field-studio .field-fees-grid{grid-template-columns:minmax(0,1fr);gap:9px}
+.sales-studio.field-studio .field-fees-grid .field-computed{min-height:42px;padding:7px 0;font-size:20px;line-height:1.3}
+.sales-studio.field-studio .mini-stats{margin-block:12px}
+.document-export-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:15px}
+.document-export-actions button{min-height:48px}
+.document-export-actions .hint{flex-basis:100%;line-height:1.5}
+@media screen and (max-width:700px){
+  html,body,#root{max-width:100%;overflow-x:clip}
+  dialog[open]{position:fixed;inset:0;margin:auto;
+    box-sizing:border-box;width:100vw;max-width:100vw;max-height:100dvh;
+    border-radius:0;padding:calc(10px + env(safe-area-inset-top,0px)) 14px
+      calc(18px + env(safe-area-inset-bottom,0px));overflow-x:clip;overflow-y:auto;
+    -webkit-overflow-scrolling:touch}
+  dialog[open]>.modal-head{position:sticky;top:calc(-10px - env(safe-area-inset-top,0px));
+    z-index:8;background:#1a2114;padding:12px 0;margin:0 0 16px;border-bottom:1px solid #3c4735}
+  dialog[open] .modal-head h2{font-size:18px;line-height:1.25}
+  dialog[open] .offer-line{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;
+    width:100%;max-width:100%;box-sizing:border-box}
+  dialog[open] .offer-line>*{min-width:0}
+  dialog[open] .offer-line>.field:first-child{grid-column:1/-1}
+  dialog[open] .offer-line input{max-width:100%;width:100%;box-sizing:border-box}
+  dialog[open] .total-strip{flex-wrap:wrap;justify-content:space-between;padding:12px}
+  dialog[open] .sumup-offer-comparison{max-width:100%;width:100%;box-sizing:border-box}
+  dialog[open] .sumup-benefits-table{min-width:0;table-layout:fixed;width:100%}
+  dialog[open] .sumup-benefits-table th,dialog[open] .sumup-benefits-table td{overflow-wrap:anywhere}
+  .sales-studio.field-studio .form-grid{display:flex;flex-direction:column;align-items:stretch;gap:11px}
+  .sales-studio.field-studio .range-field-values{grid-template-columns:minmax(0,1fr) 80px 14px}
+  .document-export-actions{flex-direction:column;align-items:stretch}
+  .document-export-actions button{width:100%}
+}
+@media print{
+  body > :not(dialog){display:none!important}
+  body > dialog[open]{position:static!important;width:100%!important;max-width:none!important;
+    height:auto!important;max-height:none!important;margin:0!important;
+    border:0!important;border-radius:0!important;padding:0!important;overflow:visible!important;
+    box-shadow:none!important;background:#fff!important;color:#000!important}
+  body > dialog[open] .modal-head,body > dialog[open] .no-print{display:none!important}
+  body > dialog[open] .print-sheet{display:block!important;overflow:visible!important;
+    width:100%!important;max-width:none!important;padding:0!important;margin:0!important}
+  body > dialog[open] .nx-document-table{min-width:0!important;width:100%!important;table-layout:fixed;font-size:9px}
+  body > dialog[open] .nx-document-table th,body > dialog[open] .nx-document-table td{overflow-wrap:anywhere}
+  body > dialog[open] .sumup-benefits-table{min-width:0!important;table-layout:fixed}
+}
