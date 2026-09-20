@@ -32,7 +32,8 @@ import {
   dayKey,
 } from "../lib/calculations";
 import { geocode, findProspects, type Prospect } from "../lib/maps";
-import type { Stop, Division, Route } from "../lib/types";
+import { osmEmbed, osmLocation } from "../lib/osmEmbed";
+import type { Stop, Route } from "../lib/types";
 export function Routes() {
   const { data, save, refresh } = useStore();
   const [day, setDay] = useState(today()),
@@ -40,8 +41,8 @@ export function Routes() {
     [query, setQuery] = useState(""),
     [radius, setRadius] = useState(2),
     [category, setCategory] = useState("shops"),
-    [division, setDivision] = useState<Division>("sumup"),
     [results, setResults] = useState<Prospect[]>([]),
+    [selectedProspect, setSelectedProspect] = useState<string | null>(null),
     [center, setCenter] = useState<{
       lat: number;
       lng: number;
@@ -67,6 +68,7 @@ export function Routes() {
       setMyPosition(p);
       setSearchFromGps(true);
       setResults([]);
+      setSelectedProspect(null);
       const gpsCenter = { lat: p.lat, lng: p.lng, city: "GPS-Standort" };
       setCenter(gpsCenter);
       setBusy("search");
@@ -113,6 +115,7 @@ export function Routes() {
       setCenter(c);
       const p = await findProspects(c, radius, category);
       setResults(p);
+      setSelectedProspect(null);
       if (!p.length)
         setMessage(
           "Keine Treffer in diesem Suchbereich. Branche oder Radius anpassen.",
@@ -149,7 +152,7 @@ export function Routes() {
             "Öffentlicher Recherchetreffer. Kontaktdaten und Bedarf vor Ort prüfen.",
           lat: p.lat,
           lng: p.lng,
-          ...{ interests: [division] },
+          interests: ["sumup","vape"],
         });
         await refresh();
       }
@@ -160,7 +163,8 @@ export function Routes() {
         lat: c.lat,
         lng: c.lng,
       });
-      setMessage("Standort im CRM und in der Tagesroute.");
+      setSelectedProspect(p.id);
+      setMessage("Standort einmal zentral im CRM gespeichert und in der Tagesroute ergänzt. Für SumUp und Vape nutzbar.");
     } catch (e) {
       setMessage((e as Error).message);
     } finally {
@@ -199,8 +203,8 @@ export function Routes() {
       <div className="route-grid">
         <div>
           <Card
-            title="Neue Standorte entdecken"
-            eyebrow="ÖFFENTLICHE UNTERNEHMENSRECHERCHE"
+            title="1 · Standort & Branche"
+            eyebrow="NEUE KUNDEN · GEMEINSAME KUNDENAKTE"
           >
             <div className="form-grid">
               <button className="secondary route-gps-button" type="button" disabled={!!busy} onClick={() => void useMyLocation()}>
@@ -239,15 +243,7 @@ export function Routes() {
                   <option value="vape">Kioske, Tabak & Vapes</option>
                 </select>
               </Field>
-              <Field label="Leads zuordnen">
-                <select
-                  value={division}
-                  onChange={(e) => setDivision(e.target.value as Division)}
-                >
-                  <option value="sumup">SumUp</option>
-                  <option value="vape">Vapes</option>
-                </select>
-              </Field>
+
             </div>
             <div className="button-row">
               <button
@@ -274,6 +270,8 @@ export function Routes() {
                 </External>
               )}
             </div>
+            <p className="hint">Recherchetreffer werden zentral unter „Kunden & Leads“ gespeichert. Jeder Kunde kann anschließend sowohl SumUp- als auch Vape-Angebote erhalten.</p>
+            <details className="route-search-help"><summary>Hinweise zur öffentlichen Suche & Datenquelle</summary>
             <p className="hint">
               Ortssuche nur auf deinen Klick, maximal eine Anfrage pro Sekunde,
               keine automatische Massensuche. Nur öffentliche Geschäftsorte
@@ -294,16 +292,31 @@ export function Routes() {
             <External href="https://www.openstreetmap.org/copyright">
               © OpenStreetMap-Mitwirkende · ODbL
             </External>
+            </details>
           </Card>
           {message && (
             <p className="notice" role="status">
               {message}
             </p>
           )}
+          {center && <Card title="2 · Standort auf der Karte" eyebrow="KARTENAUSSCHNITT · SUCHGEBIET">
+            <div className="route-map-header">
+              <div><strong>{selectedProspect ? results.find(p=>p.id===selectedProspect)?.name||center.city : center.city}</strong>
+                <p className="hint">{selectedProspect?"Ausgewähltes Geschäft mit Standortmarker":"Suchmittelpunkt mit Standortmarker"} · Umkreis der Suche: {radius} km</p></div>
+              {selectedProspect && <button className="secondary" onClick={()=>setSelectedProspect(null)}>Gesamtes Suchgebiet</button>}
+            </div>
+            <iframe title={"OpenStreetMap: "+(selectedProspect?results.find(p=>p.id===selectedProspect)?.name||center.city:center.city)}
+              src={osmEmbed(center,radius,results.find(p=>p.id===selectedProspect))}
+              className="route-map-frame" loading="lazy" referrerPolicy="no-referrer"
+              allowFullScreen />
+            <div className="route-map-footer"><span>© OpenStreetMap-Mitwirkende</span>
+              <External href={osmLocation(results.find(p=>p.id===selectedProspect)?.lat??center.lat,
+                results.find(p=>p.id===selectedProspect)?.lng??center.lng)}>Große Karte öffnen</External></div>
+          </Card>}
           {results.length > 0 && (
-            <Card title={`${results.length} Recherchetreffer`}>
+            <Card title={`3 · ${results.length} Recherchetreffer`}>
               {results.map((p) => (
-                <div className="prospect" key={p.id}>
+                <div className={"prospect route-prospect"+(selectedProspect===p.id?" route-prospect-active":"")} key={p.id}>
                   <div className="grow">
                     <strong>{p.name}</strong>
                     <small>
@@ -319,6 +332,7 @@ export function Routes() {
                           " km Luftlinie"}
                     </small>
                     <div className="button-row">
+                      <button className="secondary" onClick={()=>setSelectedProspect(p.id)}><MapPin size={15}/> Auf Karte</button>
                       <External
                         href={mapSearch(
                           p.name +
@@ -340,13 +354,13 @@ export function Routes() {
                     disabled={!!busy}
                     onClick={() => void importLead(p)}
                   >
-                    <Plus size={15} /> Lead + Route
+                    <Plus size={15} /> Zentral speichern + Route
                   </button>
                 </div>
               ))}
             </Card>
           )}
-          <Card title="Deine Kunden einplanen">
+          <Card title="4 · Kunden zur Route hinzufügen">
             <select
               value={filter}
               aria-label="Routenkunden filtern"
