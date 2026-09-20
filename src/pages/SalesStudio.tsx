@@ -123,28 +123,16 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     if(!estimate.data)return "";
     const a=estimate.data;
     return [
-      "SumUp-Vergleichsangebot · indikative Modellrechnung; Konditionen vor Abschluss prüfen.",
-      "IST-BESTAND",
-      "Anbieter: "+(provider||"nicht angegeben"),
-      "Terminal: "+(hardware==="Sonstiges"?otherHardware||"Sonstiges":hardware||"nicht angegeben"),
-      "Kartenumsatz pro Monat: "+money(current.volume)+" · Transaktionen: "+current.transactions,
-      "EC/Debit "+current.debitShare+" % zu "+current.debitRate+" % · Kredit/Premium inkl. Amex "+(100-current.debitShare)+" % zu "+current.creditRate+" %",
-      "Servicegebühr: "+money(current.serviceFee)+" / Monat · Terminalgebühr: "+money(current.terminalFee)+" / Monat · pro Transaktion: "+money(current.perTransaction),
-      "Rechnerische Ist-Gesamtgebühren: "+money(a.calculatedOld)+" / Monat",
-      current.confirmedTotal!==null?"Bestätigte Ist-Gesamtgebühren aus Händlerangabe/Abrechnung: "+money(current.confirmedTotal)+" / Monat":"",
+      "Zahlungskonditionen und direkte Monats-/Jahreskostenvergleichstabelle siehe Angebotsabschnitt „Bisheriger Anbieter / SumUp“.",
+      "Bestandsgerät: "+(hardware==="Sonstiges"?otherHardware||"Sonstiges":hardware||"nicht angegeben"),
+      "Servicegebühr: "+money(current.serviceFee)+" / Monat · Terminalgebühr: "+money(current.terminalFee)+" / Monat · Entgelt pro Transaktion: "+money(current.perTransaction),
+      current.confirmedTotal!==null?"Für den Ist-Vergleich wurden die geprüften Gesamtgebühren von "+money(current.confirmedTotal)+" / Monat verwendet.":"Für den Ist-Vergleich wurden die Gebühren aus den angegebenen Sätzen, Grundgebühren und Transaktionsentgelten berechnet.",
       "Vertragslaufzeit / Kündigung: "+(contract||"noch nicht erfasst"),
-      "Auszahlung bisher: "+(payLabel[payout]||payout),
+      "Bisheriger Auszahlungsturnus: "+(payLabel[payout]||payout),
       "Zukunftswunsch: "+(future||needs.join(", ")||"noch offen"),
-      "SUMUP-VERGLEICH",
-      "Tarif: "+(selectedPlan==="plus"?"Zahlungen Plus (Monatsmodell)":"Umsatzbasiertes Zahlen"),
-      "SumUp Debit: "+a.sumupDebit+" % · Kredit/Premium modellhaft "+a.sumupCredit+" % (Kartentypen im Einzelfall prüfen)",
-      "SumUp Grundgebühr: "+money(a.sumupBase)+" / Monat",
-      "SumUp variable Gebühren: "+money(a.sumupVariable)+" / Monat",
-      "SumUp Gesamtgebühren: "+money(a.sumupTotal)+" / Monat",
-      "Differenz bisher / SumUp: "+money(a.monthlyDifference)+" / Monat · "+money(a.annualDifference)+" / Jahr",
-      "Hardware: "+selectedHardware.name+" · "+quantity+" × "+money(selectedHardware.price||0)+" netto (regulärer Referenzpreis)",
-      "Gewünschter Auszahlungsturnus: "+(needs.includes("Auszahlung")?"häufigere Auszahlungen":"noch nicht verbindlich festgelegt")+"; tatsächliche Verfügbarkeit und Auszahlungsweg gesondert prüfen.",
-      a.note,
+      "Gewünschte SumUp-Hardware: "+selectedHardware.name+" · "+quantity+" × "+money(selectedHardware.price||0)+" netto (regulärer Hardwarepreis).",
+      "Differenz: "+money(a.monthlyDifference)+" / Monat bzw. "+money(a.annualDifference)+" / Jahr. Das ist eine unverbindliche Modellrechnung ohne eventuelle Wechselkosten.",
+      "Preisstand "+catalogCheckedAt+" · Offizielle Konditionen: "+catalogSource,
       notes
     ].filter(Boolean).join("\n");
   };
