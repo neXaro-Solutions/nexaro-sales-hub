@@ -38,6 +38,11 @@ export function extractStatement(text: string) {
       const match = patterns[key].exec(line);
       if (!match || (key === "volume" && /online/i.test(line))) continue;
       const tail = line.slice(match.index + match[0].length);
+      if (
+        /[-−]\s*\d/.test(tail) ||
+        (key === "transactions" && /%|\d[./-]\d{1,2}[./-]\d/.test(tail))
+      )
+        continue;
       // German money format only. Do not confuse percentages, dates or IDs with amounts.
       const tokens =
         key === "transactions"

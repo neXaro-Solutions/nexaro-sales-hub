@@ -77,17 +77,19 @@ export function Settings() {
         </Card>
         <Card title="Datensicherung">
           <p>
-            Exportiere regelmäßig eine vollständige Kopie deiner CRM-Daten und
-            bewahre sie geschützt auf. Die Datei enthält auch Kontaktdaten und
+            Exportiere regelmäßig eine Kopie deiner CRM-Datensätze und bewahre
+            sie geschützt auf. Die Datei enthält auch Kontaktdaten und
             Einkaufspreise.
           </p>
           <button className="primary" onClick={backup}>
             <Download size={16} /> JSON-Sicherung herunterladen
           </button>
           <p className="hint">
-            Der Export ersetzt keine automatisch überwachte Datenbanksicherung.
-            Wiederherstellung und Datenbank-Backups sind im Betriebsleitfaden
-            beschrieben.
+            Hochgeladene Dokumente sind nicht in dieser JSON-Datei enthalten.
+            Sichere diese zusätzlich aus den Kundenakten bzw. dem privaten
+            Storage-Bucket. Der Export ersetzt keine automatisch überwachte
+            Datenbanksicherung. Wiederherstellung und Datenbank-Backups sind im
+            Betriebsleitfaden beschrieben.
           </p>
           <External href="https://github.com/neXaro-Solutions/nexaro-sales-hub/blob/main/docs/OPERATIONS.md">
             Betriebsleitfaden

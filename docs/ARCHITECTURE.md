@@ -32,6 +32,8 @@ Dies ist Missbrauchsbegrenzung, kein Nachweis, dass ein Mensch absendet. Ein Ang
 
 ## Bestehendes Projekt
 
+Aktualisierung 20.09.2026: Die ältere Staff-Autorisierung ist nun strikt an die aktive Auth-Benutzer-ID gebunden. Unnötige direkte Browser-Aufrufrechte auf Triggerfunktionen wurden entfernt; drei vorhandene geschützte RPCs sind nicht mehr anonym aufrufbar. Die private Dokumentenablage wird zusätzlich durch bereichsspezifische RLS-Policies geschützt. Details und verbliebene Warnungen: [Systemprüfung](SYSTEM-CHECK-2026-09-20.md).
+
 Das Supabase-Projekt enthält ältere Händlerportal-Funktionen außerhalb des neuen `nx_*`-Schemas. Der Security Advisor meldete öffentlich aufrufbare SECURITY-DEFINER-Funktionen und deaktivierten Schutz vor kompromittierten Passwörtern. Diese vorhandenen Portalabläufe wurden nicht verändert. Der Hub behauptet deshalb keine vollständige Sicherheitsfreigabe des gesamten Projekts.
 
 Die fehlenden RLS-Policies auf `nx_intake_limits` und `nx_intake_receipts` sind absichtlich: Clients haben keine Tabellenrechte, RLS verweigert zusätzlich jeden Zugriff. Nur der Backend-Service verarbeitet diese Tabellen.

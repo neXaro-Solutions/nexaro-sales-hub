@@ -92,7 +92,9 @@ test("demo isolates data, creates linked customers, routes and offers", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Schließen", exact: true }).click();
   await navigate(page, "SumUp Vertrieb");
-  await page.getByRole("button", { name: "Analyse & Foto", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Analyse & Foto", exact: true })
+    .click();
   await page
     .getByLabel("Analyse einer Kundenakte zuordnen")
     .selectOption({ label: "Teststandort" });
@@ -148,41 +150,215 @@ test("authenticated data is unavailable on public landing", async ({
     "password",
   );
 });
-test("catalog import supports supplier mapping and margin calculation", async ({
+test("neutral dealer contacts keep notes, appointments and private documents together", async ({
   page,
 }) => {
   await page.goto("/?demo=1");
-  await navigate(page, "Vapes & Trends");
+  await navigate(page, "Händlerverwaltung");
+  await expect(
+    page.getByRole("button", { name: "Preisliste importieren" }),
+  ).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Preisliste importieren", exact: true })
+    .getByRole("button", { name: "Neuer Standort", exact: true })
     .click();
-  await page.locator("input[type=file]").setInputFiles({
-    name: "prices.csv",
-    mimeType: "text/csv",
-    buffer: Buffer.from(
-      "sku;name;ek_net;vk_net;ean;stock;pack_size\nP-01;Test Pod;4,00;8,00;00123;100;10",
-    ),
+  await expect(
+    page.getByRole("combobox", { name: "Vertriebsbereich", exact: true }),
+  ).toHaveValue("vape");
+  await page.getByLabel("Unternehmen *").fill("Kontakt Test GmbH");
+  await page.getByLabel("Ort *").fill("Berlin");
+  await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Kontakt Test GmbH", exact: true })
+    .click();
+  await page
+    .getByLabel("Gesprächsnotiz", { exact: true })
+    .fill("Ansprechpartner ist dienstags erreichbar.");
+  await page
+    .getByRole("button", { name: "Notiz speichern", exact: true })
+    .click();
+  await expect(page.getByLabel("Gesprächsnotiz", { exact: true })).toHaveValue(
+    "",
+  );
+  await expect(page.locator("dialog")).toContainText(
+    "Ansprechpartner ist dienstags erreichbar.",
+  );
+  await page
+    .getByRole("button", { name: "Wiedervorlage", exact: true })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Art des Eintrags", exact: true })
+    .selectOption("Termin");
+  await page
+    .getByLabel("Was steht an? *", { exact: true })
+    .fill("Kontaktgespräch Dienstag");
+  await page
+    .getByLabel("Fällig am * (deutsche Ortszeit)", { exact: true })
+    .fill("2026-09-22T14:30");
+  await page
+    .getByLabel("Termin- / Aufgabenhinweise")
+    .fill("Vorher kurz anrufen.");
+  await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(page.locator("dialog")).toContainText("14:30");
+  await page.getByLabel("Dokument auswählen").setInputFiles({
+    name: "Kontaktprotokoll.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("Neutraler Kontaktvermerk"),
   });
-  await expect(
-    page.getByRole("heading", { name: "Vorschau · 1 Produkte" }),
-  ).toBeVisible();
   await page
-    .getByRole("button", { name: "1 Produkte übernehmen", exact: true })
+    .getByRole("button", { name: "Dokument hochladen", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Test Pod", exact: true }),
+    page.getByRole("button", {
+      name: "Kontaktprotokoll.txt herunterladen",
+      exact: true,
+    }),
   ).toBeVisible();
-  await page.getByLabel("Test Pod vergleichen", { exact: true }).check();
+  const download = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Produktvergleich (1)", exact: true })
+    .getByRole("button", {
+      name: "Kontaktprotokoll.txt herunterladen",
+      exact: true,
+    })
+    .click();
+  expect((await download).suggestedFilename()).toBe("Kontaktprotokoll.txt");
+  page.once("dialog", (d) => d.dismiss());
+  await page
+    .getByRole("button", { name: "Kontaktprotokoll.txt löschen", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Produkte & Lieferanten vergleichen" }),
+    page.getByRole("button", {
+      name: "Kontaktprotokoll.txt herunterladen",
+      exact: true,
+    }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Kalkulation übernehmen" }).click();
+  await page.screenshot({
+    path: `test-results/dealers-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Schließen", exact: true }).click();
+  await navigate(page, "Kunden & Leads");
+  await page
+    .getByRole("button", { name: "Kontakt Test GmbH", exact: true })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "Marge & Abnahmepotenzial" }),
+    page.getByRole("button", {
+      name: "Kontaktprotokoll.txt herunterladen",
+      exact: true,
+    }),
   ).toBeVisible();
+  page.once("dialog", (d) => d.accept());
+  await page
+    .getByRole("button", { name: "Kontaktprotokoll.txt löschen", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", {
+      name: "Kontaktprotokoll.txt herunterladen",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Schließen", exact: true }).click();
+  await navigate(page, "Händlerverwaltung");
+  await page
+    .getByRole("button", { name: "Termine & Wiedervorlagen", exact: true })
+    .click();
+  await expect(
+    page.getByText("Kontaktgespräch Dienstag", { exact: true }),
+  ).toBeVisible();
+});
+
+test("sales studio keeps customer state separate and saves zero-cost totals", async ({
+  page,
+}) => {
+  await page.goto("/?demo=1");
+  await navigate(page, "SumUp Vertrieb");
+  await page
+    .getByLabel("Analyse einer Kundenakte zuordnen")
+    .selectOption({ label: "Café Morgenrot" });
+  await page.getByLabel("Aktueller Anbieter (optional)").fill("Testanbieter A");
+  await page
+    .getByRole("button", { name: "Analyse & Foto", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Vertriebsstudio", exact: true })
+    .click();
+  await expect(page.getByLabel("Aktueller Anbieter (optional)")).toHaveValue(
+    "Testanbieter A",
+  );
+  await page.getByLabel("Ist-Kosten verwenden").selectOption("total");
+  await page
+    .getByLabel("Ist-Gesamtkosten / Monat (€)", { exact: true })
+    .fill("0");
+  await expect(
+    page.getByLabel("Monatliche Fixkosten (€)", { exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Vertriebsstudio speichern", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("gespeichert");
+  await page
+    .getByLabel("Analyse einer Kundenakte zuordnen")
+    .selectOption({ label: "Studio West" });
+  await expect(page.getByLabel("Aktueller Anbieter (optional)")).toHaveValue(
+    "",
+  );
+  await page
+    .getByLabel("Analyse einer Kundenakte zuordnen")
+    .selectOption({ label: "Café Morgenrot" });
+  await expect(page.getByLabel("Aktueller Anbieter (optional)")).toHaveValue(
+    "Testanbieter A",
+  );
+  await expect(page.getByLabel("Ist-Kosten verwenden")).toHaveValue("total");
+  await expect(
+    page.getByLabel("Ist-Gesamtkosten / Monat (€)", { exact: true }),
+  ).toHaveValue("0");
+});
+
+test("weather handles failure and retry with mocked responses", async ({
+  page,
+}) => {
+  await page.route("https://geocoding-api.open-meteo.com/**", (route) =>
+    route.fulfill({
+      json: {
+        results: [
+          {
+            name: "Berlin",
+            country: "Deutschland",
+            latitude: 52.52,
+            longitude: 13.405,
+          },
+        ],
+      },
+    }),
+  );
+  let calls = 0;
+  await page.route("https://api.open-meteo.com/**", (route) => {
+    calls++;
+    return route.fulfill(
+      calls === 1
+        ? { status: 503, body: "Unavailable" }
+        : {
+            json: {
+              current: {
+                temperature_2m: 21,
+                apparent_temperature: 20,
+                weather_code: 0,
+                wind_speed_10m: 8,
+              },
+            },
+          },
+    );
+  });
+  await page.goto("/?demo=1");
+  await page.getByLabel("Wetterstandort").fill("Berlin");
+  await page.getByRole("button", { name: "Anzeigen", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Wetterdaten momentan nicht erreichbar",
+  );
+  await page
+    .getByRole("button", { name: "Wetter aktualisieren", exact: true })
+    .click();
+  await expect(page.getByText("21 °C", { exact: true })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
 test("real local photo OCR feeds reviewed totals and hardware advice", async ({
@@ -199,7 +375,9 @@ test("real local photo OCR feeds reviewed totals and hardware advice", async ({
   });
   await page.goto("/?demo=1");
   await navigate(page, "SumUp Vertrieb");
-  await page.getByRole("button", { name: "Analyse & Foto", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Analyse & Foto", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Abrechnung fotografieren / hochladen" })
     .click();

@@ -1,13 +1,13 @@
 # neXaro Sales Hub
 
-Ein zentraler, geschützter Arbeitsbereich für einen Inhaber: **SumUp Vertrieb** und **Vapes & Trendartikel**. Schwarz, Orange und Weiß orientieren sich am neXaro-Flyer.
+Ein zentraler, geschützter Arbeitsbereich für einen Inhaber: **SumUp Vertrieb** und **neutrale Händlerverwaltung**. Schwarz, Orange und Weiß orientieren sich am neXaro-Flyer.
 
 ## Funktionen
 
 - Zentrale Kundenakte, getrennte Verkaufschancen, Gesprächshistorie, Aufgaben und Dashboard.
 - SumUp-Kostenvergleich mit lokaler Foto-Texterkennung, Belegprüfung, Kartenmix und Online-Zahlungen. Bedarfsabhängiger Hardwarevorschlag sowie Monats-/optionaler Jahresabo-Vergleich; Leitfaden und Angebot.
-- Lieferantenverwaltung, manuelle Produktpflege und CSV/TSV-Import mit Spaltenzuordnung, Vorschau, Gebinden und atomarem Import.
-- EK/VK, Handelsspanne, Aufschlag, Versand, Produkt-/Lieferantenvergleich und Absatzpotenzial.
+- Neutrale Händlerkontakte, Gesprächsnotizen, Termine und Wiedervorlagen mit deutscher Ortszeit, zentrale Kundenhistorie.
+- Private Dokumentenablage je Kunde: PDF, JPG, PNG, WebP und TXT bis 10 MB. Kein öffentlicher Dateilink; keine produktbezogene Katalog-/Angebotsfunktion in dieser Ansicht. Bestehende Altdaten werden nicht gelöscht.
 - Öffentliche OSM-Recherche, Google Maps / Street View, manuelle Tagesrouten und Sortierung nach Luftlinie. Navigation in mobilen Etappen ohne verlorene Zwischenstopps.
 - Angebotsnummern, Kunden-/Berechnungssnapshots, serverseitige Gesamtsummen, Druck-/PDF-Ansicht ohne Einkaufspreise.
 - Öffentliches Kontaktformular: geprüfte Eingaben → Kunde → passende Verkaufschancen → Wiedervorlagen. Doppelte Übermittlung derselben Anfrage wird nur einmal verarbeitet.
@@ -40,6 +40,8 @@ Produktiv verwendet die App das vorhandene Supabase-Projekt. Die öffentliche Pr
 ## Datenbank / Betrieb
 
 Zur Fotoanalyse siehe [Bedienung und Grenzen](docs/STATEMENT-OCR.md).
+
+Zur Händlerverwaltung und aktuellen Systemprüfung siehe [Prüfung vom 20.09.2026](docs/SYSTEM-CHECK-2026-09-20.md).
 
 Siehe [Betriebsleitfaden](docs/OPERATIONS.md), [Architektur und Sicherheit](docs/ARCHITECTURE.md), [Prüfprotokoll](docs/VERIFICATION.md) und [öffentliche Quellen](docs/SOURCES.md).
 

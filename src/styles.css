@@ -2149,6 +2149,33 @@ dialog::backdrop {
   }
 }
 
+.document-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.document-row strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.document-row small,
+.history > small,
+.history > strong {
+  display: block;
+}
+@media (max-width: 640px) {
+  .document-row > .grow,
+  .document-row > .button-row {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+}
+.document-row .button-row {
+  flex-wrap: wrap;
+}
 .statement-preview {
   display: block;
   max-width: 100%;
@@ -2189,7 +2216,6 @@ progress {
   accent-color: #ff671b;
 }
 
-
 /* SumUp sales studio: prevent native date inputs and long labels from
    overflowing into the adjacent field on narrow iPhone screens. */
 .sales-studio,
@@ -2201,7 +2227,9 @@ progress {
   min-width: 0;
   max-width: 100%;
 }
-.sales-studio .field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.sales-studio
+  .field
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 .sales-studio .field select,
 .sales-studio .field textarea {
   display: block;
@@ -2244,7 +2272,8 @@ progress {
 /* iOS Safari zooms form controls smaller than 16px and makes a two-column
    form appear horizontally shifted while the numeric keyboard is open. */
 @media (max-width: 700px) {
-  .sales-studio input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .sales-studio
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   .sales-studio select,
   .sales-studio textarea {
     font-size: 16px;
@@ -2253,10 +2282,24 @@ progress {
 
 /* Keep GPS action and its confirmation readable in the routes two-column form. */
 .route-gps-button,
-.route-gps-hint { grid-column: 1 / -1; min-width: 0; }
-.route-gps-button { justify-self: start; width: auto; max-width: 100%; }
-.route-gps-hint { overflow-wrap: anywhere; }
+.route-gps-hint {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.route-gps-button {
+  justify-self: start;
+  width: auto;
+  max-width: 100%;
+}
+.route-gps-hint {
+  overflow-wrap: anywhere;
+}
 @media (max-width: 700px) {
-  .route-grid .form-grid { grid-template-columns: minmax(0, 1fr); }
-  .route-gps-button { width: 100%; font-size: 16px; }
+  .route-grid .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .route-gps-button {
+    width: 100%;
+    font-size: 16px;
+  }
 }

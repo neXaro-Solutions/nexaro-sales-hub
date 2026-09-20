@@ -1,5 +1,7 @@
 # Prüfprotokoll · 19.09.2026
 
+Aktuelle Erweiterung und Systemprüfung: [20.09.2026](SYSTEM-CHECK-2026-09-20.md). Die nachfolgenden Abschnitte dokumentieren den früheren Stand.
+
 ## Ausgeführt
 
 - `npm run check`: 15 Unit-Tests bestanden, TypeScript-Prüfung und Produktionsbuild erfolgreich. Geprüft sind Gebühren/Kartenmix, Margen, CSV-Validierung, Routenteilung und Validierung öffentlicher Anfragen.

@@ -108,7 +108,13 @@ export function StatementCapture({
               const result = await recognizeStatement(
                 file,
                 controller.signal,
-                setProgress,
+                (value) => {
+                  if (
+                    abortRef.current === controller &&
+                    !controller.signal.aborted
+                  )
+                    setProgress(value);
+                },
               );
               if (!controller.signal.aborted) {
                 setText(result.text);
@@ -118,7 +124,7 @@ export function StatementCapture({
             } catch (e) {
               if (!controller.signal.aborted) setError((e as Error).message);
             } finally {
-              setBusy(false);
+              if (abortRef.current === controller) setBusy(false);
             }
           }}
         />

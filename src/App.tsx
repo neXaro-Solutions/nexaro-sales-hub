@@ -23,7 +23,7 @@ import { CustomerForm, TaskForm } from "./components/Forms";
 import { Dashboard } from "./pages/Dashboard";
 import { Customers } from "./pages/Customers";
 import { Sumup } from "./pages/Sumup";
-import { Vapes } from "./pages/Vapes";
+import { Dealers } from "./pages/Dealers";
 import { Routes } from "./pages/Routes";
 import { Tasks } from "./pages/Tasks";
 import { Offers } from "./pages/Offers";
@@ -34,7 +34,7 @@ const nav = [
   { id: "tasks", label: "Aufgaben", icon: CheckSquare },
   { id: "routes", label: "Gebiet & Tagesroute", icon: Map },
   { id: "sumup", label: "SumUp Vertrieb", icon: CreditCard },
-  { id: "vape", label: "Vapes & Trends", icon: Package },
+  { id: "vape", label: "Händlerverwaltung", icon: Users },
   { id: "offers", label: "Angebote", icon: FileText },
   { id: "settings", label: "System & Sicherung", icon: SettingsIcon },
 ];
@@ -220,7 +220,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               )}{" "}
               {page === "customers" && <Customers />}
               {page === "sumup" && <Sumup />}
-              {page === "vape" && <Vapes />}
+              {page === "vape" && <Dealers />}
               {page === "tasks" && <Tasks />}
               {page === "routes" && <Routes />}
               {page === "offers" && <Offers />}

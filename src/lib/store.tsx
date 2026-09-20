@@ -11,6 +11,13 @@ import { client } from "./client";
 import { emptyData, type Data, type Entity, type Row } from "./types";
 import { demoData } from "./demo";
 import { offerTotals } from "./calculations";
+import {
+  DOCUMENT_BUCKET,
+  documentFolder,
+  checkDocumentPath,
+  validateDocument,
+  type ClientDocument,
+} from "./documents";
 type Store = {
   data: Data;
   demo: boolean;
@@ -23,6 +30,10 @@ type Store = {
   ) => Promise<Row<K>>;
   remove: (entity: Entity, id: string) => Promise<void>;
   importProducts: (products: Partial<Row<"products">>[]) => Promise<void>;
+  listDocuments: (customerId: string) => Promise<ClientDocument[]>;
+  uploadDocument: (customerId: string, file: File) => Promise<ClientDocument>;
+  downloadDocument: (customerId: string, path: string) => Promise<Blob>;
+  removeDocument: (customerId: string, path: string) => Promise<void>;
 };
 const Context = createContext<Store | null>(null);
 export function DataProvider({
@@ -37,6 +48,9 @@ export function DataProvider({
     [error, setError] = useState("");
   const alive = useRef(true);
   const generation = useRef(0);
+  const demoDocuments = useRef(
+    new Map<string, { record: ClientDocument; file: File }>(),
+  );
   const refresh = useCallback(async () => {
     if (demo) return;
     const g = ++generation.current;
@@ -62,12 +76,12 @@ export function DataProvider({
         setError("");
       }
     } catch {
-      if (alive.current)
+      if (alive.current && g === generation.current)
         setError(
           "Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.",
         );
     } finally {
-      if (alive.current) setLoading(false);
+      if (alive.current && g === generation.current) setLoading(false);
     }
   }, [demo]);
   useEffect(() => {
@@ -228,6 +242,100 @@ export function DataProvider({
       );
     await refresh();
   }
+  function requireCustomer(id: string) {
+    documentFolder(id, demo);
+    if (!data.customers.some((c) => c.id === id))
+      throw Error("Kundenakte nicht geladen. Bitte Daten neu laden.");
+  }
+  async function listDocuments(customerId: string) {
+    requireCustomer(customerId);
+    if (demo)
+      return [...demoDocuments.current.values()]
+        .map((v) => v.record)
+        .filter((r) => r.path.startsWith(customerId + "/"));
+    const result: ClientDocument[] = [];
+    for (let offset = 0; ; offset += 100) {
+      const { data: rows, error } = await client.storage
+        .from(DOCUMENT_BUCKET)
+        .list(customerId, {
+          limit: 100,
+          offset,
+          sortBy: { column: "name", order: "asc" },
+        });
+      if (error)
+        throw Error(
+          "Dokumentenliste nicht verfügbar. Verbindung prüfen und erneut laden.",
+        );
+      for (const r of rows || [])
+        if (r.id)
+          result.push({
+            path: customerId + "/" + r.name,
+            name: r.name.replace(/^[0-9a-f-]{36}--/i, ""),
+            size: Number(r.metadata?.size || 0),
+            created_at: r.created_at || new Date(0).toISOString(),
+          });
+      if (!rows || rows.length < 100) break;
+    }
+    return result.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+  async function uploadDocument(customerId: string, file: File) {
+    requireCustomer(customerId);
+    const { mime, name } = await validateDocument(file);
+    const record: ClientDocument = {
+      path: customerId + "/" + crypto.randomUUID() + "--" + name,
+      name,
+      size: file.size,
+      created_at: new Date().toISOString(),
+    };
+    if (demo) demoDocuments.current.set(record.path, { record, file });
+    else {
+      const { error } = await client.storage
+        .from(DOCUMENT_BUCKET)
+        .upload(record.path, file, {
+          contentType: mime,
+          upsert: false,
+          cacheControl: "0",
+        });
+      if (error)
+        throw Error(
+          "Upload nicht bestätigt. Bitte Liste neu laden, bevor du erneut hochlädst.",
+        );
+    }
+    return record;
+  }
+  async function downloadDocument(
+    customerId: string,
+    path: string,
+  ): Promise<Blob> {
+    requireCustomer(customerId);
+    checkDocumentPath(customerId, path, demo);
+    if (demo) {
+      const value = demoDocuments.current.get(path);
+      if (!value) throw Error("Datei nicht gefunden.");
+      return value.file;
+    }
+    const { data: blob, error } = await client.storage
+      .from(DOCUMENT_BUCKET)
+      .download(path);
+    if (error || !blob)
+      throw Error(
+        "Download fehlgeschlagen. Datei oder Berechtigung nicht verfügbar.",
+      );
+    return blob;
+  }
+  async function removeDocument(customerId: string, path: string) {
+    requireCustomer(customerId);
+    checkDocumentPath(customerId, path, demo);
+    if (demo) {
+      demoDocuments.current.delete(path);
+      return;
+    }
+    const { data: removed, error } = await client.storage
+      .from(DOCUMENT_BUCKET)
+      .remove([path]);
+    if (error || !removed?.length)
+      throw Error("Löschen nicht bestätigt. Bitte Dokumentenliste neu laden.");
+  }
   return (
     <Context.Provider
       value={{
@@ -239,6 +347,10 @@ export function DataProvider({
         save,
         remove,
         importProducts,
+        listDocuments,
+        uploadDocument,
+        downloadDocument,
+        removeDocument,
       }}
     >
       {children}

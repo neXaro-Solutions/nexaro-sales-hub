@@ -34,7 +34,9 @@ export function Dashboard({
   newTask: () => void;
 }) {
   const { data, save } = useStore();
-  const [quote] = useState(() => motivation[Math.floor(Math.random() * motivation.length)]);
+  const [quote] = useState(
+    () => motivation[Math.floor(Math.random() * motivation.length)],
+  );
   const [error, setError] = useState(""),
     [busy, setBusy] = useState("");
   const now = today();
@@ -42,18 +44,31 @@ export function Dashboard({
     .filter((t) => !t.done && dayKey(t.due_at) <= now)
     .sort((a, b) => a.due_at.localeCompare(b.due_at));
   const open = data.opportunities.filter(
-    (o) => !["Gewonnen", "Verloren"].includes(o.stage),
+    (o) =>
+      o.division === "sumup" && !["Gewonnen", "Verloren"].includes(o.stage),
   );
-  const closing = data.offers.filter(o => o.status === "Gesendet" && o.valid_until >= now)
+  const closing = data.offers
+    .filter(
+      (o) =>
+        o.division === "sumup" &&
+        o.status === "Gesendet" &&
+        o.valid_until >= now,
+    )
     .sort((a, b) => a.valid_until.localeCompare(b.valid_until));
-  const offerOpportunities = open.filter(o => o.stage === "Angebot" &&
-    !closing.some(offer => offer.customer_id === o.customer_id && offer.division === o.division));
+  const offerOpportunities = open.filter(
+    (o) =>
+      o.stage === "Angebot" &&
+      !closing.some(
+        (offer) =>
+          offer.customer_id === o.customer_id && offer.division === o.division,
+      ),
+  );
   const sumup = open
       .filter((o) => o.division === "sumup")
       .reduce((n, o) => n + o.potential, 0),
-    vape = open
-      .filter((o) => o.division === "vape")
-      .reduce((n, o) => n + o.potential, 0);
+    dealerCount = data.opportunities.filter(
+      (o) => o.division === "vape",
+    ).length;
   async function done(t: Task) {
     setBusy(t.id);
     try {
@@ -116,9 +131,9 @@ export function Dashboard({
           icon={<Target size={17} />}
         />
         <Metric
-          label="Vapes · Umsatzpotenzial"
-          value={money(vape)}
-          detail="Monatlicher Nettoumsatz offener Chancen"
+          label="Händlerkontakte"
+          value={dealerCount}
+          detail="Neutrale Betreuung und Dokumentation"
         />
       </div>
       <div className="dashboard-grid">
@@ -172,23 +187,52 @@ export function Dashboard({
             </div>
           ) : closing.length || offerOpportunities.length ? (
             <div className="task-list">
-              <p className="hint">Keine fälligen Aufgaben. Diese Angebote und Abschlusschancen verdienen deine Aufmerksamkeit:</p>
-              {closing.slice(0, 4).map(offer => <div className="task-row" key={offer.id}>
-                <Target size={17} />
-                <div className="grow"><strong>{data.customers.find(c => c.id === offer.customer_id)?.company || "Kunde"} · Angebot {offer.number}</strong>
-                  <small>Gesendet · gültig bis {dateLabel(offer.valid_until)}</small></div>
-                <DivisionBadge division={offer.division} />
-              </div>)}
-              {offerOpportunities.slice(0, Math.max(0, 4 - closing.length)).map(o => <div className="task-row" key={o.id}>
-                <Target size={17} />
-                <div className="grow"><strong>{data.customers.find(c => c.id === o.customer_id)?.company || "Kunde"}</strong>
-                  <small>Verkaufschance in Phase Angebot · Abschluss nachfassen</small></div>
-                <DivisionBadge division={o.division} />
-              </div>)}
-              <button className="secondary" onClick={() => navigate("offers")}>Angebote öffnen <ArrowRight size={16} /></button>
+              <p className="hint">
+                Keine fälligen Aufgaben. Diese Angebote und Abschlusschancen
+                verdienen deine Aufmerksamkeit:
+              </p>
+              {closing.slice(0, 4).map((offer) => (
+                <div className="task-row" key={offer.id}>
+                  <Target size={17} />
+                  <div className="grow">
+                    <strong>
+                      {data.customers.find((c) => c.id === offer.customer_id)
+                        ?.company || "Kunde"}{" "}
+                      · Angebot {offer.number}
+                    </strong>
+                    <small>
+                      Gesendet · gültig bis {dateLabel(offer.valid_until)}
+                    </small>
+                  </div>
+                  <DivisionBadge division={offer.division} />
+                </div>
+              ))}
+              {offerOpportunities
+                .slice(0, Math.max(0, 4 - closing.length))
+                .map((o) => (
+                  <div className="task-row" key={o.id}>
+                    <Target size={17} />
+                    <div className="grow">
+                      <strong>
+                        {data.customers.find((c) => c.id === o.customer_id)
+                          ?.company || "Kunde"}
+                      </strong>
+                      <small>
+                        Verkaufschance in Phase Angebot · Abschluss nachfassen
+                      </small>
+                    </div>
+                    <DivisionBadge division={o.division} />
+                  </div>
+                ))}
+              <button className="secondary" onClick={() => navigate("offers")}>
+                Angebote öffnen <ArrowRight size={16} />
+              </button>
             </div>
           ) : (
-            <Empty title="Alles im Blick">Keine fälligen Aufgaben oder offenen Angebote. Plane deinen nächsten Kundenkontakt.</Empty>
+            <Empty title="Alles im Blick">
+              Keine fälligen Aufgaben oder offenen Angebote. Plane deinen
+              nächsten Kundenkontakt.
+            </Empty>
           )}
           <button className="card-footer" onClick={() => navigate("tasks")}>
             Alle Aufgaben ansehen <ArrowRight size={16} />
@@ -215,8 +259,8 @@ export function Dashboard({
           <button className="division-card" onClick={() => navigate("vape")}>
             <span className="division-icon vape-icon">V</span>
             <div className="grow">
-              <strong>Vapes & Trendartikel</strong>
-              <small>{data.products.length} Produkte · Sortiment & Marge</small>
+              <strong>Händlerverwaltung</strong>
+              <small>{dealerCount} Kontakte · Termine & Dokumente</small>
             </div>
             <ArrowRight size={19} />
           </button>
@@ -250,7 +294,7 @@ export function Dashboard({
           {["Neu", "Kontaktiert", "Termin", "Angebot", "Gewonnen"].map(
             (stage, i) => {
               const count = data.opportunities.filter(
-                (o) => o.stage === stage,
+                (o) => o.division === "sumup" && o.stage === stage,
               ).length;
               return (
                 <div key={stage}>

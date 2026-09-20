@@ -37,6 +37,8 @@ export type Opportunity = Base & {
   details: Record<string, unknown>;
 };
 export type Task = Base & {
+  kind?: "Aufgabe" | "Termin" | "Wiedervorlage";
+  notes?: string;
   customer_id: string | null;
   division: Division | null;
   title: string;

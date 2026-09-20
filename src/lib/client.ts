@@ -7,13 +7,16 @@ export const publishableKey =
   "sb_publishable_zoRbvS06zi6X4_shxXQkMg_O7h0Go6r";
 export const client = createClient(supabaseUrl, publishableKey, {
   global: {
-    fetch: (input, init) =>
-      fetch(input, {
+    fetch: (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const timeout = url.includes("/storage/v1/") ? 120000 : 15000;
+      return fetch(input, {
         ...init,
         signal: init?.signal
-          ? AbortSignal.any([init.signal, AbortSignal.timeout(15000)])
-          : AbortSignal.timeout(15000),
-      }),
+          ? AbortSignal.any([init.signal, AbortSignal.timeout(timeout)])
+          : AbortSignal.timeout(timeout),
+      });
+    },
   },
   auth: {
     storage: window.sessionStorage,

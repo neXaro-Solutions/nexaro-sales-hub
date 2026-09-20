@@ -23,13 +23,16 @@ import {
 import { CustomerForm, TaskForm } from "../components/Forms";
 import { address, dateLabel, mapSearch, money } from "../lib/calculations";
 import { stages, type Customer, type Division, type Stage } from "../lib/types";
+import type { Task } from "../lib/types";
+import { Documents } from "../components/Documents";
+import { appointmentLabel } from "../lib/appointments";
 export function Customers({ division }: { division?: Division }) {
   const { data, save, refresh } = useStore();
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all"),
     [selected, setSelected] = useState<string | null>(null),
     [edit, setEdit] = useState<Customer | true | null>(null),
-    [task, setTask] = useState(false),
+    [task, setTask] = useState<Task | true | null>(null),
     [error, setError] = useState("");
   const customer = data.customers.find((c) => c.id === selected);
   const rows = data.customers.filter(
@@ -51,8 +54,16 @@ export function Customers({ division }: { division?: Division }) {
     <>
       <div className="section-intro">
         <div>
-          <h1>{division ? "Händler & Leads" : "Deine Standorte"}</h1>
-          <p>Eine Kundenakte. Alle Kontakte, Chancen und nächsten Schritte.</p>
+          <h1>
+            {division === "vape"
+              ? "Händlerkontakte"
+              : division
+                ? "Händler & Leads"
+                : "Deine Standorte"}
+          </h1>
+          <p>
+            Eine Kundenakte. Kontakte, Gesprächsnotizen, Termine und Unterlagen.
+          </p>
         </div>
         <button className="primary" onClick={() => setEdit(true)}>
           <Plus size={17} /> Neuer Standort
@@ -77,7 +88,7 @@ export function Customers({ division }: { division?: Division }) {
             >
               <option value="all">Alle Bereiche</option>
               <option value="sumup">SumUp</option>
-              <option value="vape">Vapes</option>
+              <option value="vape">Händlerverwaltung</option>
             </select>
           )}
           <Badge>{rows.length} Standorte</Badge>
@@ -127,7 +138,11 @@ export function Customers({ division }: { division?: Division }) {
                             .map((o) => (
                               <span key={o.id}>
                                 <DivisionBadge division={o.division} />{" "}
-                                <small className="inline">{o.stage}</small>
+                                <small className="inline">
+                                  {o.division === "vape"
+                                    ? "Kontaktakte"
+                                    : o.stage}
+                                </small>
                               </span>
                             ))}
                         </div>
@@ -136,7 +151,7 @@ export function Customers({ division }: { division?: Division }) {
                         {next ? (
                           <>
                             <span>{next.title}</span>
-                            <small>{dateLabel(next.due_at)}</small>
+                            <small>{appointmentLabel(next.due_at)}</small>
                           </>
                         ) : (
                           <small>Noch keine Wiedervorlage</small>
@@ -164,7 +179,14 @@ export function Customers({ division }: { division?: Division }) {
         )}
       </Card>
       {customer && (
-        <Modal title={customer.company} onClose={() => setSelected(null)}>
+        <Modal
+          title={customer.company}
+          onClose={() => {
+            setSelected(null);
+            setTask(null);
+            setError("");
+          }}
+        >
           <div className="customer-summary">
             <p>
               <MapPin size={16} /> {address(customer) || "Adresse ergänzen"}
@@ -210,7 +232,32 @@ export function Customers({ division }: { division?: Division }) {
               return (
                 <div className="detail-block" key={d}>
                   <DivisionBadge division={d} />
-                  {opportunity ? (
+                  {d === "vape" ? (
+                    opportunity ? (
+                      <p>
+                        Händlerkontakt · allgemeine Betreuung und Dokumentation.
+                      </p>
+                    ) : (
+                      <button
+                        className="text-button"
+                        onClick={async () => {
+                          try {
+                            await save("opportunities", {
+                              customer_id: customer.id,
+                              division: "vape",
+                              stage: "Neu",
+                              potential: 0,
+                              details: {},
+                            });
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      >
+                        Zur Händlerverwaltung zuordnen
+                      </button>
+                    )
+                  ) : opportunity ? (
                     <AsyncForm
                       label="Chance aktualisieren"
                       onSubmit={async (f) => {
@@ -274,6 +321,7 @@ export function Customers({ division }: { division?: Division }) {
             <h3>Gespräch dokumentieren</h3>
             <AsyncForm
               label="Notiz speichern"
+              resetOnSuccess
               onSubmit={async (f) => {
                 await save("events", {
                   customer_id: customer.id,
@@ -291,7 +339,11 @@ export function Customers({ division }: { division?: Division }) {
           </div>
           <h3>Kundenhistorie</h3>
           {data.events
-            .filter((e) => e.customer_id === customer.id)
+            .filter(
+              (e) =>
+                e.customer_id === customer.id &&
+                (!division || !e.division || e.division === division),
+            )
             .sort((a, b) => b.created_at.localeCompare(a.created_at))
             .map((e) => (
               <div className="history" key={e.id}>
@@ -301,27 +353,58 @@ export function Customers({ division }: { division?: Division }) {
                 <p>{e.description}</p>
               </div>
             ))}
-          <h3>Angebote</h3>
-          {data.offers
-            .filter((o) => o.customer_id === customer.id)
-            .map((o) => (
-              <p key={o.id}>
-                {o.number} · {o.status} · {money(o.net)} netto
-              </p>
+          <h3>Termine & Wiedervorlagen</h3>
+          {data.tasks
+            .filter(
+              (t) =>
+                t.customer_id === customer.id &&
+                !t.done &&
+                (!division || !t.division || t.division === division),
+            )
+            .sort((a, b) => a.due_at.localeCompare(b.due_at))
+            .map((t) => (
+              <div className="history" key={t.id}>
+                <strong>{t.title}</strong>
+                <small>
+                  {appointmentLabel(t.due_at)} · {t.kind || "Aufgabe"}
+                </small>
+                {t.notes && <p className="prewrap">{t.notes}</p>}
+                <button
+                  className="text-button"
+                  onClick={() => setTask(t)}
+                  aria-label={t.title + " bearbeiten"}
+                >
+                  Bearbeiten
+                </button>
+              </div>
             ))}
+          <Documents key={customer.id} customerId={customer.id} />
+          {division !== "vape" && <h3>SumUp-Angebote</h3>}
+          {division !== "vape" &&
+            data.offers
+              .filter(
+                (o) => o.customer_id === customer.id && o.division === "sumup",
+              )
+              .map((o) => (
+                <p key={o.id}>
+                  {o.number} · {o.status} · {money(o.net)} netto
+                </p>
+              ))}
         </Modal>
       )}
       {edit && (
         <CustomerForm
+          division={division}
           customer={edit === true ? undefined : edit}
           onClose={() => setEdit(null)}
         />
       )}{" "}
       {task && customer && (
         <TaskForm
+          task={task === true ? undefined : task}
           customerId={customer.id}
           division={division}
-          onClose={() => setTask(false)}
+          onClose={() => setTask(null)}
         />
       )}
     </>

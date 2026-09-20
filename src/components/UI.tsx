@@ -139,25 +139,35 @@ export function AsyncForm({
   onSubmit,
   children,
   label = "Speichern",
+  resetOnSuccess = false,
 }: {
   onSubmit: (data: FormData) => Promise<void>;
   children: ReactNode;
   label?: string;
+  resetOnSuccess?: boolean;
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const submitting = useRef(false);
+  const [success, setSuccess] = useState(false);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (busy) return;
-    const form = new FormData(e.currentTarget);
+    if (submitting.current) return;
+    submitting.current = true;
+    const element = e.currentTarget;
+    const form = new FormData(element);
+    setSuccess(false);
     setBusy(true);
     setError("");
     try {
       await onSubmit(form);
+      if (resetOnSuccess) element.reset();
+      setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Vorgang fehlgeschlagen.");
     } finally {
       setBusy(false);
+      submitting.current = false;
     }
   }
   return (
@@ -167,6 +177,11 @@ export function AsyncForm({
         {error && (
           <p className="error" role="alert">
             {error}
+          </p>
+        )}
+        {success && resetOnSuccess && (
+          <p className="notice" role="status">
+            Gespeichert.
           </p>
         )}
         <div className="form-actions">

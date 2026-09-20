@@ -214,9 +214,15 @@ export function Sumup() {
               }}
             />
           )}
-          {tab === "studio" && (
-            <SalesStudio customerId={customer} onOffer={setDraft} photoInput={p} photoAvailable={Boolean(statement)} />
-          )}
+          <div hidden={tab !== "studio"}>
+            <SalesStudio
+              key={customer || "free"}
+              customerId={customer}
+              onOffer={setDraft}
+              photoInput={p}
+              photoAvailable={Boolean(statement)}
+            />
+          </div>
           {tab === "analysis" && (
             <>
               <Card

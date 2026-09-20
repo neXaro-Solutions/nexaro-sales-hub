@@ -4,14 +4,24 @@ import { useStore } from "../lib/store";
 import { Card, DivisionBadge, Empty } from "../components/UI";
 import { TaskForm } from "../components/Forms";
 import { dateLabel, today, dayKey } from "../lib/calculations";
-import type { Task } from "../lib/types";
-export function Tasks() {
+import type { Task, Division } from "../lib/types";
+import { appointmentLabel } from "../lib/appointments";
+export function Tasks({ division }: { division?: Division }) {
   const { data, save } = useStore();
   const [filter, setFilter] = useState("open"),
     [edit, setEdit] = useState<Task | true | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState("");
   const rows = data.tasks
+    .filter(
+      (t) =>
+        !division ||
+        t.division === division ||
+        (!t.division &&
+          data.opportunities.some(
+            (o) => o.customer_id === t.customer_id && o.division === division,
+          )),
+    )
     .filter(
       (t) =>
         filter === "all" ||
@@ -24,7 +34,7 @@ export function Tasks() {
     <>
       <div className="section-intro">
         <div>
-          <h1>Aufgaben & Wiedervorlagen</h1>
+          <h1>Termine & Wiedervorlagen</h1>
           <p>Aus jedem Kontakt wird ein konkreter nächster Schritt.</p>
         </div>
         <button className="primary" onClick={() => setEdit(true)}>
@@ -80,8 +90,9 @@ export function Tasks() {
                 <small>
                   {data.customers.find((c) => c.id === t.customer_id)
                     ?.company || "Allgemein"}{" "}
-                  · {dateLabel(t.due_at)}
+                  · {appointmentLabel(t.due_at)} · {t.kind || "Aufgabe"}
                 </small>
+                {t.notes && <p className="prewrap">{t.notes}</p>}
               </div>
               {t.division && <DivisionBadge division={t.division} />}
               <button
@@ -100,6 +111,7 @@ export function Tasks() {
       {edit && (
         <TaskForm
           task={edit === true ? undefined : edit}
+          division={division}
           onClose={() => setEdit(null)}
         />
       )}

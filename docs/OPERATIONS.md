@@ -18,6 +18,8 @@ Keine Quellcode-Neuveröffentlichung ist erforderlich, um den heutigen Hub zu be
 
 Die Migration unter `supabase/migrations` ist auf dem vorhandenen Projekt angewendet. Neue Funktionen verwenden RLS und erlauben den öffentlichen Eingang nur über eine servicegeschützte Transaktion. Die produktiven alten Tabellen sind davon unabhängig.
 
+Die Erweiterungen vom 20.09.2026 ergänzen Aufgabenart/-hinweise und den privaten Bucket `nx-client-documents`. Sie müssen vor Veröffentlichung der neuen Händleransicht angewendet sein. Die separate Legacy-Härtungsmigration ist für das bestehende Projekt mit seinen vorhandenen Portal-Funktionen gedacht, nicht für eine leere Datenbank.
+
 Bei einer neuen Umgebung: vorhandene `staff_users`-Tabelle mit genau einem aktiven Administrator erforderlich oder den Seed-Abschnitt durch eine explizite, verifizierte Owner-Zuweisung ersetzen. SQL-Migration zuerst in einer Testumgebung prüfen. Keine Produktions-Tabellen zurücksetzen, um einen Fehler zu beseitigen.
 
 ## Formular / Edge Function
@@ -31,6 +33,8 @@ Logs enthalten keine bewusst ausgegebenen Payloads. Edge-Provider können techni
 ## Backups und Wiederherstellung
 
 Die Anwendung hat JSON-Export. Ob automatische Datenbank-Backups/PITR verfügbar sind, hängt vom vorhandenen Supabase-Tarif ab; das wurde nicht als garantiert eingerichtet.
+
+Dokumentdateien aus `nx-client-documents` sind nicht im JSON-Export enthalten. Sie benötigen eine zusätzliche Dateisicherung; Datenbank-Backups enthalten nicht automatisch die tatsächlichen Storage-Dateien. Einzeldownloads stehen in der jeweiligen Kundenakte zur Verfügung. Kein Virenscanner ist integriert. Nur vertrauenswürdige, zuvor geprüfte Kontaktunterlagen hochladen.
 
 - Vor umfangreichen Importen exportieren. Exporte enthalten Kundendaten und Einkaufspreise und gehören in geschützte Aufbewahrung, niemals ins öffentliche GitHub.
 - Regelmäßige Datenbank-Sicherung im Supabase-Dashboard prüfen und aktivieren, falls im bestehenden Tarif möglich. Kein kostenpflichtiges Upgrade wurde ausgeführt.

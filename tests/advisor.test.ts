@@ -3,6 +3,14 @@ import { extractStatement, normalizeStatement } from "../src/lib/statement";
 import { recommendHardware, defaultNeeds } from "../src/lib/payment-advisor";
 import { paymentAnalysis } from "../src/lib/calculations";
 describe("Statement review", () => {
+  it("never turns negative counts or Unicode-negative fees into positive suggestions", () => {
+    expect(
+      extractStatement(
+        "Anzahl Transaktionen: - 200\nTransaktionen: 20.09.2026\nGesamtkosten: − 12,00",
+      ).transactions,
+    ).toEqual([]);
+    expect(extractStatement("Gesamtkosten: − 12,00").costs).toEqual([]);
+  });
   it("extracts labelled German money without treating payout as turnover", () => {
     const c = extractStatement(
       "Kartenumsatz vor Ort: 5.123,45 EUR\nOnline-Umsatz: 100,00 EUR\nAnzahl Transaktionen: 240\nGesamtkosten netto: 85,50 EUR\nAuszahlungsbetrag: 5.137,95 EUR",

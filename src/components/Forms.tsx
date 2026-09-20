@@ -2,11 +2,14 @@ import { useStore } from "../lib/store";
 import { Modal, AsyncForm, Field, value } from "./UI";
 import { today } from "../lib/calculations";
 import type { Customer, Task, Division } from "../lib/types";
+import { appointmentTime, berlinDateTime } from "../lib/appointments";
 export function CustomerForm({
   customer,
+  division,
   onClose,
 }: {
   customer?: Customer;
+  division?: Division;
   onClose: () => void;
 }) {
   const { save, refresh } = useStore();
@@ -103,9 +106,9 @@ export function CustomerForm({
           </Field>
           {!customer && (
             <Field label="Vertriebsbereich">
-              <select name="interest">
+              <select name="interest" defaultValue={division || "sumup"}>
                 <option value="sumup">SumUp</option>
-                <option value="vape">Vapes & Trendartikel</option>
+                <option value="vape">Händlerverwaltung</option>
                 <option value="both">Beide Bereiche</option>
               </select>
             </Field>
@@ -146,19 +149,28 @@ export function TaskForm({
             title: value(f, "title"),
             customer_id: value(f, "customer_id") || null,
             division: (value(f, "division") || null) as Division | null,
-            due_at: new Date(value(f, "due_at")).toISOString(),
+            due_at: appointmentTime(value(f, "due_at")),
+            kind: value(f, "kind") as Task["kind"],
+            notes: value(f, "notes"),
             done: task?.done ?? false,
           });
           onClose();
         }}
       >
+        <Field label="Art des Eintrags">
+          <select name="kind" defaultValue={task?.kind || "Wiedervorlage"}>
+            <option>Wiedervorlage</option>
+            <option>Termin</option>
+            <option>Aufgabe</option>
+          </select>
+        </Field>
         <Field label="Was steht an? *">
           <input
             name="title"
             required
             maxLength={240}
             defaultValue={task?.title}
-            placeholder="Zum Beispiel: Angebot telefonisch nachfassen"
+            placeholder="Zum Beispiel: Ansprechpartner zurückrufen"
           />
         </Field>
         <div className="form-grid">
@@ -182,27 +194,27 @@ export function TaskForm({
             >
               <option value="">Zentral</option>
               <option value="sumup">SumUp</option>
-              <option value="vape">Vapes</option>
+              <option value="vape">Händlerverwaltung</option>
             </select>
           </Field>
-          <Field label="Fällig am *">
+          <Field label="Fällig am * (deutsche Ortszeit)">
             <input
               name="due_at"
               type="datetime-local"
               required
               defaultValue={
-                task
-                  ? new Date(
-                      new Date(task.due_at).getTime() -
-                        new Date(task.due_at).getTimezoneOffset() * 60000,
-                    )
-                      .toISOString()
-                      .slice(0, 16)
-                  : today() + "T10:00"
+                task ? berlinDateTime(task.due_at) : today() + "T10:00"
               }
             />
           </Field>
         </div>
+        <Field label="Termin- / Aufgabenhinweise">
+          <textarea
+            name="notes"
+            maxLength={3000}
+            defaultValue={task?.notes || ""}
+          />
+        </Field>
       </AsyncForm>
     </Modal>
   );
