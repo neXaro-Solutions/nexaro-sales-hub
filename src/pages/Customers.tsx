@@ -29,26 +29,14 @@ import { appointmentLabel } from "../lib/appointments";
 export function Customers({ division }: { division?: Division }) {
   const { data, save, refresh } = useStore();
   const [search, setSearch] = useState(""),
-    [filter, setFilter] = useState("all"),
     [selected, setSelected] = useState<string | null>(null),
     [edit, setEdit] = useState<Customer | true | null>(null),
     [task, setTask] = useState<Task | true | null>(null),
     [error, setError] = useState("");
   const customer = data.customers.find((c) => c.id === selected);
-  const rows = data.customers.filter(
-    (c) =>
-      (!division ||
-        data.opportunities.some(
-          (o) => o.customer_id === c.id && o.division === division,
-        )) &&
-      [c.company, c.contact, c.city, c.zip]
-        .join(" ")
-        .toLowerCase()
-        .includes(search.toLowerCase()) &&
-      (filter === "all" ||
-        data.opportunities.some(
-          (o) => o.customer_id === c.id && o.division === filter,
-        )),
+  const rows = data.customers.filter(c =>
+    [c.company,c.contact,c.city,c.zip,c.street].join(" ").toLowerCase()
+      .includes(search.toLowerCase().trim())
   );
   return (
     <>
@@ -59,14 +47,14 @@ export function Customers({ division }: { division?: Division }) {
               ? "Händlerkontakte"
               : division
                 ? "Händler & Leads"
-                : "Deine Standorte"}
+                : "Alle Kunden & Leads"}
           </h1>
           <p>
-            Eine Kundenakte. Kontakte, Gesprächsnotizen, Termine und Unterlagen.
+            Einmal zentral anlegen – SumUp und Vape greifen auf denselben Kunden, dieselben Notizen und Dokumente zu.
           </p>
         </div>
         <button className="primary" onClick={() => setEdit(true)}>
-          <Plus size={17} /> Neuer Standort
+          <Plus size={17} /> Neuer Kunde
         </button>
       </div>
       <Card>
@@ -80,17 +68,6 @@ export function Customers({ division }: { division?: Division }) {
               placeholder="Unternehmen, Kontakt oder Ort suchen …"
             />
           </div>
-          {!division && (
-            <select
-              aria-label="Bereich filtern"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            >
-              <option value="all">Alle Bereiche</option>
-              <option value="sumup">SumUp</option>
-              <option value="vape">Händlerverwaltung</option>
-            </select>
-          )}
           <Badge>{rows.length} Standorte</Badge>
         </div>
         {rows.length ? (
@@ -140,7 +117,7 @@ export function Customers({ division }: { division?: Division }) {
                                 <DivisionBadge division={o.division} />{" "}
                                 <small className="inline">
                                   {o.division === "vape"
-                                    ? "Kontaktakte"
+                                    ? "Vape"
                                     : o.stage}
                                 </small>
                               </span>
@@ -254,7 +231,7 @@ export function Customers({ division }: { division?: Division }) {
                           }
                         }}
                       >
-                        Zur Händlerverwaltung zuordnen
+                        Vape-Verkaufschance anlegen
                       </button>
                     )
                   ) : opportunity ? (
