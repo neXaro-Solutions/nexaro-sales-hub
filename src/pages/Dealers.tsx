@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useStore } from "../lib/store";
 import { Customers } from "./Customers";
 import { Tasks } from "./Tasks";
-import { VapeCatalog } from "./VapeCatalog";
+import { VapeShop } from "./VapeShop";
+import { OfferForm, type OfferDraft } from "./Offers";
 import { VapeReviewCatalog } from "./VapeReviewCatalog";
 import { Metric } from "../components/UI";
 import { dayKey, today } from "../lib/calculations";
 export function Dealers() {
   const { data, demo } = useStore();
-  const [tab, setTab] = useState("contacts");
+  const [tab, setTab] = useState("shop");
+  const [offer, setOffer] = useState<OfferDraft | null>(null);
   const ids = new Set(
     data.opportunities
       .filter((o) => o.division === "vape")
@@ -24,12 +26,9 @@ export function Dealers() {
     <>
       <div className="section-intro">
         <div>
-          <span className="eyebrow">KONTAKTE. TERMINE. UNTERLAGEN.</span>
-          <h1>Händlerverwaltung</h1>
-          <p>
-            Deine bekannten Händler betreuen – getrennte Kontaktansicht,
-            gemeinsame Zentrale.
-          </p>
+          <span className="eyebrow">PRODUKTE. HÄNDLER. ABSCHLÜSSE.</span>
+          <h1>Vape</h1>
+          <p>Produkt fotografieren, im freigegebenen B2B-Katalog finden und direkt ein Angebot erstellen. Deine Kundenakte bleibt zentral.</p>
         </div>
       </div>
       <div className="metrics">
@@ -50,18 +49,9 @@ export function Dealers() {
         />
       </div>
       <div className="tabs">
-        <button
-          className={tab === "contacts" ? "active" : ""}
-          onClick={() => setTab("contacts")}
-        >
-          Kontakte & Dokumente
-        </button>
-        <button className={tab === "catalog" ? "active" : ""} onClick={() => setTab("catalog")}>
-          Alter Produktstamm
-        </button>
-        <button className={tab === "review" ? "active" : ""} onClick={() => setTab("review")}>
-          Vape-Produktkatalog
-        </button>
+        <button className={tab === "shop" ? "active" : ""} onClick={() => setTab("shop")}>Produkte & Foto-Suche</button>
+        <button className={tab === "contacts" ? "active" : ""} onClick={() => setTab("contacts")}>Meine Händler</button>
+        <button className={tab === "review" ? "active" : ""} onClick={() => setTab("review")}>Artikel freigeben & Bilder verwalten</button>
         <button
           className={tab === "tasks" ? "active" : ""}
           onClick={() => setTab("tasks")}
@@ -69,15 +59,16 @@ export function Dealers() {
           Termine & Wiedervorlagen
         </button>
       </div>
-      {tab === "contacts" ? (
+      {tab === "shop" ? (
+        <VapeShop demo={demo} onOffer={setOffer} />
+      ) : tab === "contacts" ? (
         <Customers division="vape" />
-      ) : tab === "catalog" ? (
-        <VapeCatalog demo={demo} />
       ) : tab === "review" ? (
         <VapeReviewCatalog demo={demo} />
       ) : (
         <Tasks division="vape" />
       )}
+      {offer && <OfferForm draft={offer} onClose={() => setOffer(null)} />}
     </>
   );
 }
