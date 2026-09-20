@@ -46,6 +46,7 @@ export function OfferForm({
       draft?.lines || [{ name: "", quantity: 1, price: 0, vat: 19 }],
   );
   const customers = data.customers;
+  const [customerId, setCustomerId] = useState(offer?.customer_id || draft?.customer_id || "");
   let total = { net: 0, gross: 0, vat: 0 };
   try {
     total = offerTotals(lines);
@@ -62,32 +63,28 @@ export function OfferForm({
       <AsyncForm
         label="Angebot speichern"
         onSubmit={async (f) => {
-          const customer_id = value(f, "customer_id");
-          const c = data.customers.find((c) => c.id === customer_id);
+          const customer_id = customerId || null;
+          const c = data.customers.find((item) => item.id === customer_id);
           offerTotals(lines);
-          if (!c)
-            throw Error(
-              "Bitte zuerst einen Kunden im gewählten Bereich anlegen.",
-            );
-          if (!data.opportunities.some((o) => o.customer_id === customer_id && o.division === division)) {
+          const status = value(f, "status") as Offer["status"];
+          if (customer_id && !c) throw Error("Ausgewählte Kundenakte nicht gefunden.");
+          if (!c && status !== "Entwurf")
+            throw Error("Ohne Kundenauswahl kannst du das Angebot als Entwurf speichern. Kunde vor Versand zuordnen.");
+          if (c && !data.opportunities.some((o) => o.customer_id === customer_id && o.division === division)) {
             await save("opportunities", { customer_id, division, stage: "Neu", potential: 0, details: {} });
           }
           await save("offers", {
             ...offer,
             division,
             customer_id,
-            status: value(f, "status") as Offer["status"],
+            status,
             valid_until: value(f, "valid_until"),
             lines,
             notes: value(f, "notes"),
-            snapshot: offer?.snapshot || {
+            snapshot: {
+              ...offer?.snapshot,
               ...draft?.snapshot,
-              customer: {
-                company: c.company,
-                contact: c.contact,
-                address: customerSnapshot(c).address,
-                email: c.email,
-              },
+              customer: c ? customerSnapshot(c) : {},
             },
           });
           onClose();
@@ -104,27 +101,19 @@ export function OfferForm({
               <option value="vape">Vapes & Trendartikel</option>
             </select>
           </Field>
-          <Field label="Kunde *">
+          <Field label="Kunde (für Entwurf optional)">
             <select
               name="customer_id"
-              required
-              defaultValue={offer?.customer_id || draft?.customer_id || ""}
-              disabled={!!offer}
+              value={customerId}
+              onChange={(event) => setCustomerId(event.target.value)}
             >
-              <option value="">Kunde auswählen</option>
+              <option value="">Noch keinem Kunden zugeordnet · Entwurf speichern</option>
               {customers.map((c) => (
                 <option value={c.id} key={c.id}>
                   {c.company}
                 </option>
               ))}
             </select>
-            {offer && (
-              <input
-                name="customer_id"
-                type="hidden"
-                value={offer.customer_id}
-              />
-            )}
           </Field>
           <Field label="Gültig bis *">
             <input
@@ -138,13 +127,15 @@ export function OfferForm({
             />
           </Field>
           <Field label="Status">
-            <select name="status" defaultValue={offer?.status || "Entwurf"}>
+            <select name="status" defaultValue={offer?.status || "Entwurf"}
+              key={offer?.id || "new"} >
               {["Entwurf", "Gesendet", "Angenommen", "Abgelehnt"].map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} disabled={!customerId && s !== "Entwurf"}>{s}</option>
               ))}
             </select>
           </Field>
         </div>
+        {!customerId && <p className="notice" role="status">Ohne Kundenakte wird das Angebot mit Nummer als Entwurf zentral gespeichert. Kunden später im Angebot zuordnen, bevor du es versendest oder in eine Rechnung umwandelst.</p>}
         {division === "vape" && <VapeOfferPicker onAdd={line => setLines(current => {
           const blank = current.length === 1 && !current[0].name.trim() && current[0].price === 0;
           const next = blank ? [line] : [...current, line];
@@ -266,11 +257,11 @@ export function Offers() {
         <thead><tr><th>Angebot</th><th>Kunde</th><th>Bereich</th><th>Netto</th><th>Status</th><th>Aktionen</th></tr></thead>
         <tbody>{[...data.offers].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map((o)=><tr key={o.id}>
           <td><button className="customer-link" onClick={() => setEdit(o)}>{o.number}</button><small>Gültig bis {dateLabel(o.valid_until)}</small></td>
-          <td>{data.customers.find((c)=>c.id===o.customer_id)?.company || String((o.snapshot.customer as {company?: string}|undefined)?.company || "")}</td>
+          <td>{data.customers.find((c)=>c.id===o.customer_id)?.company || String((o.snapshot.customer as {company?: string}|undefined)?.company || "Ohne Kunden · Entwurf")}</td>
           <td><DivisionBadge division={o.division}/></td><td>{money(o.net)}</td><td>{o.status}</td>
           <td><div className="button-row">
             <button className="secondary" aria-label={o.number+" PDF ansehen"} onClick={()=>setPrint(o)}><Printer size={16}/> PDF</button>
-            <button className="secondary" aria-label={o.number+" in Rechnung umwandeln"} onClick={()=>{setInvoiceForm({offer:o});setTab("invoices");}}><ArrowRight size={16}/> Rechnung</button>
+            <button className="secondary" disabled={!o.customer_id} title={!o.customer_id?"Vor Rechnung Kunden zuordnen":undefined} aria-label={o.number+" in Rechnung umwandeln"} onClick={()=>{setInvoiceForm({offer:o});setTab("invoices");}}><ArrowRight size={16}/> Rechnung</button>
           </div></td>
         </tr>)}</tbody>
       </table></div> : <Empty title="Noch keine Angebote">Erstelle dein erstes Angebot manuell oder über den SumUp-Vergleich.</Empty>
