@@ -449,33 +449,24 @@ export function SalesStudio({
                   onChange={(e) => update("hardware", input.hardware.map((x) =>
                     x.id === selected.id ? { ...x, quantity: num(e.target.value) } : x))} />
               </Field>
-              <Field label="Bestätigter Stückpreis netto (€)">
-                <EditableNumberInput min="0" step=".01" value={selected.price ?? ""} placeholder="Preis prüfen"
-                  onChange={(e) => update("hardware", input.hardware.map((x) =>
-                    x.id === selected.id ? { ...x, price: e.target.value === "" ? null : num(e.target.value) } : x))} />
+              <Field label="Regulärer Stückpreis netto (€)">
+                {item?.price != null ? (
+                  <strong>{money(item.price)} · Festpreis, keine Rabattaktion</strong>
+                ) : (
+                  <EditableNumberInput min="0" step=".01" value={selected.price ?? ""} placeholder="Regulären Preis prüfen"
+                    onChange={(e) => update("hardware", input.hardware.map((x) =>
+                      x.id === selected.id ? { ...x, price: e.target.value === "" ? null : num(e.target.value) } : x))} />
+                )}
               </Field>
             </div>
           </div>;
         })}
-        <Field label={`Hardware-Rabatt: ${input.hardwareDiscount} % (0–25 %)`}>
-          <input
-            type="range"
-            min="0"
-            max="25"
-            step="1"
-            value={input.hardwareDiscount}
-            onChange={(e) => update("hardwareDiscount", num(e.target.value))}
-          />
-        </Field>
+        <p className="hint">Hardware ausschließlich zu regulären Nettopreisen, keine Aktionen und keine Rabatte.</p>
         <External href={catalogHardwareSource}>
           Hardware-Preise nachprüfen
         </External>
         {result && (
           <div className="mini-stats">
-            <div>
-              <span>Rabattbetrag</span>
-              <b>{money(result.hardwareSaving)}</b>
-            </div>
             <div>
               <span>Hardware einmalig netto</span>
               <b>{money(result.hardwareNet)}</b>
@@ -635,9 +626,7 @@ export function SalesStudio({
                         hardwareCatalog.find((x) => x.id === h.id)?.name ||
                         h.id,
                       quantity: h.quantity,
-                      price: round(
-                        (h.price || 0) * (1 - input.hardwareDiscount / 100),
-                      ),
+                      price: round(hardwareCatalog.find((x) => x.id === h.id)?.price ?? h.price ?? 0),
                       vat: 19,
                     })),
                     notes: `Unverbindliche Modellrechnung vom ${catalogCheckedAt}. Tarif: ${selected.title}. Gebühren ${money(selected.monthly)}/Monat inkl. gewählter Lizenzen; Zahlungskosten werden von SumUp erhoben und nicht als einmalige Angebotsposition berechnet. Startdatum: ${start || "offen"}. Anbieter: ${provider || "nicht angegeben"}. Auszahlung: ${payout || "offen"}. Interesse: ${productInterest.join(", ") || "nicht angegeben"}. ${notes}`,
