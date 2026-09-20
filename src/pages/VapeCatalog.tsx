@@ -64,7 +64,7 @@ export function VapeCatalog({ demo }: { demo: boolean }) {
 
   return <section className="card" aria-label="Vape Produktkatalog">
     <div className="card-head"><h2>Vape-Produktkatalog</h2></div>
-    <p>Interner B2B-Katalog · Einkaufspreise nur für die Inhaberansicht. Vor einem Kundenangebot die aktuellen Händlerpreise und Verpackungseinheiten prüfen.</p>
+    <p>Interner B2B-Katalog · Verkauf ausschließlich in vollständigen Verpackungseinheiten (VE). Bestellmenge 1 = 1 vollständige VE, Mindestmenge 1 VE, nur ganzzahlige VE. Der alte Produktstamm ist noch nicht mit dem Händlerexport abgeglichen: EK und VE vor jedem Angebot verifizieren.</p>
     <div className="form-grid">
       <label className="field">Suche nach Produkt, Artikelnummer, EAN oder Variante
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Produkt suchen …" />
@@ -89,12 +89,13 @@ export function VapeCatalog({ demo }: { demo: boolean }) {
     {demo && <p>In der Demo werden keine echten Händler- oder Einkaufspreise geladen.</p>}
     {!loading && !demo && <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-        <thead><tr><th>Produkt</th><th>Kategorie</th><th>EK netto</th><th>VK netto</th><th>VK brutto (19 %)</th></tr></thead>
+        <thead><tr><th>Produkt</th><th>Kategorie</th><th>VE laut Altstamm</th><th>EK netto (ungeprüft)</th><th>VK netto (Entwurf)</th><th>VK brutto (Entwurf, 19 %)</th></tr></thead>
         <tbody>{filtered.map(p => {
           const net = vapeSaleNet(Number(p.ek_net), margin);
           return <tr key={p.id}>
             <td><strong>{p.name}</strong><br /><small>{p.article_no}{p.variant ? ` · ${p.variant}` : ""}{p.packaging_unit ? ` · ${p.packaging_unit}` : ""}</small></td>
             <td>{p.category || "Ohne Kategorie"}</td>
+            <td>{p.packaging_unit || "VE noch nicht bestätigt"}</td>
             <td>{euro(Number(p.ek_net))}</td>
             <td><strong>{euro(net)}</strong></td>
             <td>{euro(Math.round((net * 1.19 + Number.EPSILON) * 100) / 100)}</td>
