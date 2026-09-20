@@ -145,7 +145,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
     setBusy(false);
   }
   const edit = (id: string, field: "ve" | "pieces" | "single", value: string) =>
-    setDrafts(current => ({ ...current, [id]: { ve: "", pieces: "", single: "", ...current[id], [field]: value } }));
+    setDrafts(current => ({ ...current, [id]: { ...(current[id] || { ve: "", pieces: "", single: "" }), [field]: value } }));
 
   return <section className="card" aria-label="Vape Händlerimport und Freigaben">
     <div className="card-head"><h2>Händlerimport & Produktfreigabe</h2></div>
