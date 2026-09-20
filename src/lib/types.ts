@@ -85,6 +85,21 @@ export type Offer = Base & {
   net: number;
   gross: number;
 };
+export type Invoice = Base & {
+  customer_id: string;
+  offer_id: string | null;
+  division: Division;
+  number: string;
+  status: "Entwurf" | "Offen" | "Bezahlt" | "Storniert";
+  issue_date: string;
+  service_date: string;
+  due_date: string;
+  lines: OfferLine[];
+  notes: string;
+  snapshot: Record<string, unknown>;
+  net: number;
+  gross: number;
+};
 export type Stop = {
   id: string;
   company: string;
@@ -111,6 +126,7 @@ export type Data = {
   suppliers: Supplier[];
   products: Product[];
   offers: Offer[];
+  invoices: Invoice[];
   routes: Route[];
   events: Event[];
 };
@@ -123,6 +139,7 @@ export const emptyData: Data = {
   suppliers: [],
   products: [],
   offers: [],
+  invoices: [],
   routes: [],
   events: [],
 };
