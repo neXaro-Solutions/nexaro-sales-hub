@@ -67,7 +67,14 @@ export function Routes() {
       setMyPosition(p);
       setSearchFromGps(true);
       setResults([]);
-      setMessage("GPS-Standort als Mittelpunkt der Umkreissuche übernommen. Jetzt „Standorte suchen“ wählen.");
+      const gpsCenter = { lat: p.lat, lng: p.lng, city: "GPS-Standort" };
+      setCenter(gpsCenter);
+      setBusy("search");
+      const nearby = await findProspects(gpsCenter, radius, category);
+      setResults(nearby);
+      setMessage(nearby.length
+        ? `${nearby.length} Standorte im Umkreis von ${radius} km gefunden (GPS-Genauigkeit ca. ${Math.round(p.accuracy)} m).`
+        : "Keine Treffer an deinem aktuellen Standort. Bitte Branche oder Radius anpassen.");
     } catch (e) { setMessage((e as Error).message); }
     finally { setBusy(""); }
   }
@@ -197,7 +204,7 @@ export function Routes() {
           >
             <div className="form-grid">
               <button className="secondary route-gps-button" type="button" disabled={!!busy} onClick={() => void useMyLocation()}>
-                <MapPin size={15} /> {busy === "location" ? "Standort wird ermittelt …" : "Meinen Standort ermitteln"}
+                <MapPin size={15} /> {busy === "location" ? "Standort wird ermittelt …" : busy === "search" ? "Standorte werden gesucht …" : "Meinen Standort ermitteln & suchen"}
               </button>
               {myPosition && <p className="hint route-gps-hint">Aktueller Standort erkannt (Genauigkeit ca. {Math.round(myPosition.accuracy)} m). {searchFromGps ? "Mittelpunkt der Umkreissuche, Navigation und Routensortierung." : "Für Navigation und Routensortierung verfügbar; die Ortssuche nutzt die eingegebene PLZ."} Nicht in der Kundenakte gespeichert.</p>}
               <Field label="PLZ / Ort">
