@@ -1,3 +1,4 @@
+import { EditableNumberInput } from "./EditableNumberInput";
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../lib/client";
 import { vapeSaleNet, vapeSaleGross } from "../lib/vapePricing";
@@ -79,7 +80,7 @@ export function VapeOfferPicker({ onAdd }: { onAdd: (line: OfferLine) => void })
         </select>
       </label>
       <label className="field">Bestellmenge in {unit}
-        <input type="number" min="1" max="1000000" step="1" value={quantity}
+        <EditableNumberInput min="1" max="1000000" step="1" value={quantity}
           onChange={e => setQuantity(Number(e.target.value))} />
       </label>
       <label className="field">Marge: {margin} %
