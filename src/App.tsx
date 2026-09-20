@@ -36,7 +36,7 @@ const nav = [
   { id: "tasks", label: "Aufgaben", icon: CheckSquare },
   { id: "routes", label: "Gebiet & Tagesroute", icon: Map },
   { id: "sumup", label: "SumUp Vertrieb", icon: CreditCard },
-  { id: "vape", label: "Händlerverwaltung", icon: Users },
+  { id: "vape", label: "Vape", icon: Users },
   { id: "offers", label: "Angebote", icon: FileText },
   { id: "knowledge", label: "Wissensdatenbank", icon: BookOpen },
   { id: "settings", label: "System & Sicherung", icon: SettingsIcon },
