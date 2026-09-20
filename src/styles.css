@@ -2864,3 +2864,31 @@ progress {
 .nx-document .sumup-benefits-header>span:last-child{background:#dae6d3}
 @media(max-width:600px){.sumup-benefits-row>span{padding:9px 5px;font-size:10px;line-height:1.4}}
 @media print{.sumup-benefits-row{break-inside:avoid}.nx-document .sumup-benefits-row>span{font-size:8px}}
+
+
+/* Central prospect discovery: compact search, real location map, readable list. */
+.route-grid,.route-grid>div,.route-grid .card{min-width:0}
+#route-search-map{scroll-margin-top:20px;min-width:0}
+.route-map-header{display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap;margin-bottom:11px}
+.route-map-header>div{min-width:0;flex:1}
+.route-map-header strong{font-size:16px;overflow-wrap:anywhere}
+.route-map-header .hint{margin:5px 0;line-height:1.45}
+.route-map-header button{min-height:40px;white-space:normal}
+.route-map-frame{display:block;width:100%;height:min(46vh,450px);min-height:270px;border:1px solid #626b53;border-radius:10px;background:#283322}
+.route-map-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:12px}
+.route-map-footer span{font-size:11px;color:var(--muted)}
+.route-prospect{min-width:0}
+.route-prospect-active{border-color:var(--orange)!important;background:#29291e}
+.route-prospect .button-row{flex-wrap:wrap;gap:8px}
+.route-search-help{padding:12px 0 0;border-top:1px solid var(--border);margin-top:12px}
+.route-search-help summary{cursor:pointer;font-weight:650;font-size:12px;color:var(--orange-light)}
+.route-search-help .hint{font-size:11px;line-height:1.55}
+@media(max-width:700px){
+ .route-grid{display:flex;flex-direction:column;gap:12px}
+ .route-grid .card{padding:16px}
+ .route-map-frame{height:330px;min-height:240px}
+ .route-prospect{display:flex;flex-wrap:wrap;gap:10px}
+ .route-prospect>.grow{min-width:0;flex:1 1 100%}
+ .route-prospect>button{min-height:46px;width:100%}
+ .route-map-header button{width:100%}
+}
