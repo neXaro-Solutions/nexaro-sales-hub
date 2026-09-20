@@ -15,7 +15,7 @@ describe("Vape price calculation for confirmed sale unit", () => {
     expect(veNet).toBe(66.67);
     expect(vapeIndicativePieceNet(veNet, 10)).toBe(6.67);
     expect(vapeSaleGross(veNet / 10)).toBe(7.93);
-    expect(vapeIndicativePieceNet(vapeSaleNet(50, 15), 10)).toBe(5.89);
+    expect(vapeIndicativePieceNet(vapeSaleNet(50, 15), 10)).toBe(5.88);
   });
   it("does not calculate an indicative piece value from an unknown pack size", () => {
     expect(() => vapeIndicativePieceNet(66.67, 0)).toThrow();
