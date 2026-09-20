@@ -162,8 +162,7 @@ export function compareOffers(input: ComparisonInput) {
     throw Error(
       "Beträge und Kartenumsätze müssen gültige, nichtnegative Zahlen sein.",
     );
-  if (input.hardwareDiscount > 25)
-    throw Error("Hardware-Rabatt darf maximal 25 % betragen.");
+  // Hardware is always calculated at its un-discounted reference price.
   if (input.currentVariablePercent > 100)
     throw Error("Ist-Gebühr darf maximal 100 % betragen.");
   if (
@@ -218,7 +217,7 @@ export function compareOffers(input: ComparisonInput) {
     input.hardware.reduce(
       (sum, h) =>
         sum +
-        h.quantity * round((h.price || 0) * (1 - input.hardwareDiscount / 100)),
+        h.quantity * round(h.price || 0),
       0,
     ),
   );
