@@ -33,10 +33,12 @@ export function OfferForm({
   offer,
   draft,
   onClose,
+  onSaved,
 }: {
   offer?: Offer;
   draft?: OfferDraft;
   onClose: () => void;
+  onSaved?: (saved: Offer) => void;
 }) {
   const { data, save } = useStore();
   const [division, setDivision] = useState<Division>(
@@ -99,7 +101,7 @@ export function OfferForm({
               ...originalStudio as Record<string,unknown>,hardwareDiscount,
               hardwarePricing:updatedHardware,quantity:lines[hardwareIndex].quantity
             }}:baseSnapshot;
-          await save("offers", {
+          const saved = await save("offers", {
             ...offer,
             division,
             customer_id,
@@ -113,6 +115,7 @@ export function OfferForm({
             },
           });
           onClose();
+          onSaved?.(saved);
         }}
       >
         <div className="form-grid">
