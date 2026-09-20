@@ -166,7 +166,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   function createOffer(){
     if(!good||!estimate.data)return;
     onOffer({
-      division:"sumup",customer_id:customerId,
+      division:"sumup",...(customerId?{customer_id:customerId}:{}),
       lines:[{name:"SumUp "+selectedHardware.name+" · regulärer Hardwarepreis",quantity,
         price:round(selectedHardware.price||0),vat:19}],
       notes:offerNotes(),
@@ -326,11 +326,11 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
         <div className="button-row field-actions">
           <button className="secondary" onClick={()=>setStep(2)}><ArrowLeft size={15}/> Ist-Bestand ändern</button>
           <button className="secondary" disabled={!customerId||saving} onClick={()=>void persist()}><Save size={15}/> Speichern</button>
-          <button className="primary" disabled={!customerId||!good} onClick={createOffer}>
+          <button className="primary" disabled={!good} onClick={createOffer}>
             <FileText size={17}/> Vergleichsangebot übernehmen
           </button>
         </div>
-        {!customerId&&<p className="notice">Für ein speicherbares Angebot oben zuerst den Kunden auswählen. Der Vergleich ist auch ohne Kundenakte möglich.</p>}
+        {!customerId&&<p className="notice">Auch ohne Kundenakte: Vergleichsangebot öffnen und als Entwurf mit automatischer Nummer speichern. Kunden später zuordnen.</p>}
         {notice&&<p role="status" className="notice">{notice}</p>}
       </Card>
     </>}
