@@ -1,4 +1,5 @@
 import { EditableNumberInput } from "./EditableNumberInput";
+import { SumupOfferComparison } from "./SumupOfferComparison";
 import { useState } from "react";
 import { Plus, Printer, Trash2 } from "lucide-react";
 import { AsyncForm, Field, Modal } from "../components/UI";
@@ -123,6 +124,7 @@ export function DocumentPreview({ document, onClose }: { document: Offer | Invoi
         {vatGroups.map((rate) => <div key={rate}><span>Umsatzsteuer {rate} %</span><b>{money(document.lines.filter((l)=>l.vat===rate).reduce((sum,l)=>{const net=Math.round(l.quantity*l.price*100)/100;return sum+Math.round(net*rate)/100;},0))}</b></div>)}
         <div className="nx-document-grand"><span>Gesamtbetrag</span><strong>{money(document.gross)}</strong></div>
       </div>
+      {!invoice && document.division === "sumup" && <SumupOfferComparison snapshot={document.snapshot} />}
       {invoice && <div className="nx-document-payment"><b>Zahlungsinformationen</b><p>{invoiceTerms}<br/>Bank: {issuer.bank} · IBAN: {issuer.iban}<br/>Verwendungszweck: {document.number}</p></div>}
       {document.notes && <div className="nx-document-notes"><b>Hinweise</b><p className="prewrap">{document.notes}</p></div>}
       <footer className="nx-document-footer">
