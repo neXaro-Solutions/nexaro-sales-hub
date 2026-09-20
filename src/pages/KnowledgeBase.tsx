@@ -49,6 +49,7 @@ export function KnowledgeBase() {
           <select aria-label="Thema filtern" value={group} onChange={(event) => setGroup(event.target.value)}>{groups.map((item) => <option key={item} value={item}>{item}</option>)}</select>
         </div>
         <p className="hint">Vertriebsreferenz · Preise und vertragliche Konditionen vor einem verbindlichen Angebot anhand der offiziellen SumUp-Seiten prüfen. Hardware stets ohne Aktionspreise.</p>
+        <a className="secondary" href="./testabrechnung.html" target="_blank" rel="noopener noreferrer">Testabrechnung öffnen und drucken</a>
         <p role="status" className="hint">{filtered.length} von {articles.length} Einträgen</p>
       </Card>
       {filtered.length === 0 ? <Card><p>Keine Treffer. Suchbegriff oder Filter ändern.</p></Card> : filtered.map((article) => (
