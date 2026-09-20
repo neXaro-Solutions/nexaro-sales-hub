@@ -102,13 +102,14 @@ describe("Sales studio regressions", () => {
       90,
     );
   });
-  it("rounds discounted unit prices before multiplying just like the offer", () => {
+  it("uses regular catalog hardware prices even for stale discounts and edited prices", () => {
     const result = compareOffers({
       ...input,
       hardware: [{ id: "solo", quantity: 3, price: 0.05 }],
       hardwareDiscount: 25,
     });
-    expect(result.hardwareNet).toBe(0.12);
+    expect(result.hardwareNet).toBe(237);
+    expect(result.hardwareSaving).toBe(0);
   });
   it("does not silently price unknown selected hardware", () => {
     expect(() =>
