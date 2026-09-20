@@ -64,7 +64,7 @@ export function SumupOfferComparison({snapshot,compact=false}:{
           <tr><th scope="row">Variable Kartenkosten / Monat</th><td>{money(a.variableOld)}</td><td>{money(a.sumupVariable)}</td></tr>
           <tr><th scope="row">Grundgebühr / Service / Terminal / Transaktionen</th>
             <td>{money(a.fixedOld)} insgesamt</td><td>{money(a.sumupBase)} Tarifgrundgebühr</td></tr>
-          {c.confirmedTotal!==null&&<tr><th scope="row">Geprüfte Ist-Gesamtgebühr laut Abrechnung</th>
+          {c.confirmedTotal!=null&&<tr><th scope="row">Geprüfte Ist-Gesamtgebühr laut Abrechnung</th>
             <td>{money(c.confirmedTotal)}</td><td>–</td></tr>}
           <tr className="sumup-offer-total"><th scope="row">Gesamtkosten / Monat</th>
             <td>{money(a.oldTotal)}</td><td>{money(a.sumupTotal)}</td></tr>
