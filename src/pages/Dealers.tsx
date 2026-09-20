@@ -33,9 +33,9 @@ export function Dealers() {
       </div>
       <div className="metrics">
         <Metric
-          label="Händlerkontakte"
-          value={ids.size}
-          detail="Verknüpft mit der zentralen Kundenakte"
+          label="Zentrale Kunden"
+          value={data.customers.length}
+          detail="Gemeinsame Kundenakte für SumUp & Vape"
         />
         <Metric
           label="Offene Wiedervorlagen"
@@ -50,7 +50,7 @@ export function Dealers() {
       </div>
       <div className="tabs">
         <button className={tab === "shop" ? "active" : ""} onClick={() => setTab("shop")}>Produkte & Foto-Suche</button>
-        <button className={tab === "contacts" ? "active" : ""} onClick={() => setTab("contacts")}>Meine Händler</button>
+        <button className={tab === "contacts" ? "active" : ""} onClick={() => setTab("contacts")}>Alle Kunden</button>
         <button className={tab === "review" ? "active" : ""} onClick={() => setTab("review")}>Artikel freigeben & Bilder verwalten</button>
         <button
           className={tab === "tasks" ? "active" : ""}
@@ -62,7 +62,7 @@ export function Dealers() {
       {tab === "shop" ? (
         <VapeShop demo={demo} onOffer={setOffer} />
       ) : tab === "contacts" ? (
-        <Customers division="vape" />
+        <Customers />
       ) : tab === "review" ? (
         <VapeReviewCatalog demo={demo} />
       ) : (
