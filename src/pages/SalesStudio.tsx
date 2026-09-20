@@ -1,678 +1,344 @@
-import { EditableNumberInput } from "../components/EditableNumberInput";
 import { useEffect, useMemo, useState } from "react";
-import type { StatementReview } from "../components/StatementCapture";
+import { Camera, ArrowRight, ArrowLeft, Save, FileText } from "lucide-react";
+import { EditableNumberInput } from "../components/EditableNumberInput";
 import { Card, Field, External } from "../components/UI";
-import { money, round, type PaymentInput } from "../lib/calculations";
-import {
-  catalogCheckedAt,
-  catalogSource,
-  catalogHardwareSource,
-  compareOffers,
-  emptyMix,
-  hardwareCatalog,
-  subscriptions,
-  type CardMix,
-  type ComparisonInput,
-  type HardwareSelection,
-  type SubscriptionSelection,
-} from "../lib/sumup-sales";
-import type { OfferDraft } from "./Offers";
+import type { PaymentInput } from "../lib/calculations";
+import { money, round } from "../lib/calculations";
+import type { StatementReview } from "../components/StatementCapture";
+import { compareFieldSales, type ExistingProviderInput, type SumupPlan } from "../lib/fieldSalesComparison";
+import { hardwareCatalog, catalogCheckedAt, catalogSource, catalogHardwareSource } from "../lib/sumup-sales";
 import { useStore } from "../lib/store";
+import type { OfferDraft } from "./Offers";
 
-const keys: { key: keyof CardMix; label: string }[] = [
-  { key: "domesticDebit", label: "Domestic Debit" },
-  { key: "domesticCredit", label: "Domestic Credit" },
-  { key: "international", label: "International" },
-  { key: "corporate", label: "Corporate" },
-  { key: "premium", label: "Premium" },
-  { key: "cardNotPresent", label: "Card Not Present / Online" },
-  { key: "amex", label: "Amex" },
-  { key: "unknown", label: "Unbekannt" },
-  { key: "sumupCard", label: "Private SumUp Karten (0 %)" },
-];
-const initial: ComparisonInput = {
-  monthlyVolume: 5000,
-  currentMode: "formula",
-  currentMonthly: 0,
-  currentFixed: 15,
-  currentVariablePercent: 1.5,
-  currentTransactionCount: 0,
-  currentPerTransaction: 0,
-  mix: { ...emptyMix, domesticDebit: 4000, domesticCredit: 1000 },
-  splitConfirmed: false,
-  hardware: [],
-  hardwareDiscount: 0,
-  subscriptions: [],
+const defaultCurrent: ExistingProviderInput = {
+  volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
+  serviceFee: 0, terminalFee: 0, perTransaction: 0, confirmedTotal: null,
 };
-const num = (v: string) => Number(v);
-function MultiChoiceDropdown<T extends string>({
-  label, options, selected, onToggle,
-}: {
-  label: string;
-  options: { value: T; label: string }[];
-  selected: T[];
-  onToggle: (value: T) => void;
-}) {
-  return (
-    <details className="multi-choice-dropdown">
-      <summary aria-label={label}>
-        {label} · {selected.length ? `${selected.length} ausgewählt` : "Bitte auswählen"}
-      </summary>
-      <div className="multi-choice-options" role="group" aria-label={label}>
-        {options.map((option) => (
-          <label className="checkbox-field" key={option.value}>
-            <input
-              type="checkbox"
-              checked={selected.includes(option.value)}
-              onChange={() => onToggle(option.value)}
-            />
-            {option.label}
-          </label>
-        ))}
-      </div>
-    </details>
-  );
-}
-/** Keep the in-progress text separate from the numeric calculation.
- * Otherwise deleting the last digit immediately renders 0 again on iOS. */
-export function SalesStudio({
-  customerId,
-  onOffer,
-  photoInput,
-  photoAvailable,
-  photoReview,
-  onCapture,
-}: {
-  customerId: string;
-  onOffer: (draft: OfferDraft) => void;
-  photoInput: PaymentInput;
-  photoAvailable: boolean;
-  photoReview: StatementReview | null;
-  onCapture: () => void;
-}) {
-  const { data, save } = useStore();
-  const opportunity = data.opportunities.find(
-    (o) => o.customer_id === customerId && o.division === "sumup",
-  );
-  const saved = opportunity?.details.salesStudio as
-    | {
-        input?: ComparisonInput;
-        provider?: string;
-        start?: string;
-        productInterest?: string[];
-        payout?: string;
-        planId?: string;
-        notes?: string;
-      }
-    | undefined;
-  const [input, setInput] = useState<ComparisonInput>(saved?.input || initial);
-  const [manualMixOpen, setManualMixOpen] = useState(false);
-  const [mixOrigin, setMixOrigin] = useState<"default" | "photo" | "manual">("default");
-  const [provider, setProvider] = useState(saved?.provider || "");
-  const [start, setStart] = useState(saved?.start || "");
-  const [productInterest, setProductInterest] = useState<string[]>(
-    saved?.productInterest || [],
-  );
-  const [payout, setPayout] = useState(saved?.payout || "");
-  const [planId, setPlanId] = useState(saved?.planId || "");
-  const [notes, setNotes] = useState(saved?.notes || "");
-  const [saveMessage, setSaveMessage] = useState(""),
-    [saving, setSaving] = useState(false);
-  const calculation = useMemo(() => {
-    try {
-      return { result: compareOffers(input), error: "" };
-    } catch (e) {
-      return { result: null, error: (e as Error).message };
-    }
-  }, [input]);
-  const update = <K extends keyof ComparisonInput>(
-    key: K,
-    value: ComparisonInput[K],
-  ) =>
-    setInput((old) => ({
-      ...old,
-      [key]: value,
-      ...(key === "monthlyVolume" && mixOrigin === "default"
-        ? {
-            mix: {
-              ...emptyMix,
-              domesticDebit: round((value as number) * 0.8),
-              domesticCredit: round((value as number) - round((value as number) * 0.8)),
-            },
-          }
-        : {}),
-      ...(["mix", "monthlyVolume"].includes(key)
-        ? { splitConfirmed: false }
-        : {}),
-    }));
-  useEffect(() => {
-    if (!photoAvailable || !photoReview) return;
-    const volume = photoInput.volume + photoInput.onlineVolume;
-    const eligible = photoReview.eligibleVolume;
-    const other = photoReview.otherVolume;
-    const hasBreakdown = eligible !== undefined || other !== undefined;
-    const knownEligible = eligible ?? 0;
-    const knownOther = other ?? 0;
-    const mix = hasBreakdown
-      ? {
-          ...emptyMix,
-          domesticDebit: knownEligible,
-          unknown: Math.max(0, photoInput.volume - knownEligible),
-          cardNotPresent: photoInput.onlineVolume,
-        }
-      : {
-          ...emptyMix,
-          domesticDebit: round(photoInput.volume * 0.8),
-          unknown: round(photoInput.volume * 0.2),
-          cardNotPresent: photoInput.onlineVolume,
-        };
-    setInput((old) => ({
-      ...old,
-      monthlyVolume: volume,
-      currentMode: photoInput.currentTotal !== undefined ? "total" : "formula",
-      currentMonthly: photoInput.currentTotal ?? 0,
-      currentFixed: photoInput.currentTotal === undefined ? photoInput.currentFixed : 0,
-      currentVariablePercent: photoInput.currentTotal === undefined ? photoInput.currentRate : 0,
-      currentTransactionCount: photoInput.currentTotal === undefined ? photoInput.transactions : 0,
-      currentPerTransaction: photoInput.currentTotal === undefined ? photoInput.currentPerTransaction : 0,
-      mix,
-      splitConfirmed: hasBreakdown && eligible !== undefined && other !== undefined &&
-        Math.abs(knownEligible + knownOther - photoInput.volume) <= 0.01,
-    }));
-    setMixOrigin("photo");
-  }, [photoReview?.confirmedAt, photoAvailable]);
+const competitorHardware = [
+  ["", "Bitte Bestandsgerät auswählen"],
+  ["Ingenico Move/5000", "Ingenico Move/5000 · mobil"],
+  ["Ingenico Desk/5000", "Ingenico Desk/5000 · stationär"],
+  ["Ingenico AXIUM DX8000", "Ingenico AXIUM DX8000 · SmartPOS"],
+  ["Verifone V400m", "Verifone V400m · mobil"],
+  ["Verifone V200c", "Verifone V200c · stationär"],
+  ["Verifone P400", "Verifone P400 · PIN-Pad"],
+  ["PAX A920", "PAX A920 · SmartPOS"],
+  ["PAX A920 Pro", "PAX A920 Pro · SmartPOS"],
+  ["PAX A77", "PAX A77 · mobil"],
+  ["Nexgo N86", "Nexgo N86 · SmartPOS"],
+  ["Zettle Reader 2", "Zettle Reader 2 · Smartphone-Leser"],
+  ["Zettle Terminal", "Zettle Terminal · eigenständig"],
+  ["myPOS Go 2", "myPOS Go 2 · mobil"],
+  ["myPOS Pro", "myPOS Pro · SmartPOS"],
+  ["Worldline Saturn 1000F2", "Worldline Saturn 1000F2 · stationär"],
+  ["Telefon / Tap to Pay", "Telefon / Tap to Pay"],
+  ["Kein Terminal", "Noch kein Terminal vorhanden"],
+  ["Sonstiges", "Sonstiges / unbekanntes Gerät"]
+] as const;
+const allowedHardware = hardwareCatalog.filter(h=>["tap","lite","solo","terminal","dock","pos"].includes(h.id));
+type HardwareId = typeof allowedHardware[number]["id"];
+type Wish = "Drucker"|"Ohne Smartphone"|"Kasse"|"Mobil"|"Kosten"|"Auszahlung";
+const wishes: {id:Wish;label:string}[] = [
+  {id:"Drucker",label:"Papierbelege / integrierter Drucker"},
+  {id:"Ohne Smartphone",label:"Ohne Smartphone kassieren"},
+  {id:"Kasse",label:"Kassen- und Artikelverwaltung"},
+  {id:"Mobil",label:"Mobil und unterwegs kassieren"},
+  {id:"Kosten",label:"Monatliche Kosten senken"},
+  {id:"Auszahlung",label:"Häufigere Auszahlungen"}
+];
+const payLabel: Record<string,string> = {
+  daily:"Täglich",weekly:"Wöchentlich",fortnightly:"Alle zwei Wochen",monthly:"Einmal im Monat",unknown:"Noch offen"
+};
+const suggest = (existing:string, needs:Wish[]):HardwareId => {
+  if(needs.includes("Kasse")) return "pos";
+  if(needs.includes("Drucker") || /a920|dx8000|n86|terminal|mypos pro/i.test(existing)) return "terminal";
+  if(/reader|p400|pin-pad/i.test(existing) && !needs.includes("Ohne Smartphone")) return "lite";
+  if(/tap to pay|telefon/i.test(existing) && !needs.includes("Ohne Smartphone")) return "tap";
+  return "solo";
+};
+type SavedStudio = {
+  current?:ExistingProviderInput; provider?:string; competitorHardware?:string;
+  otherHardware?:string; contract?:string; payout?:string; future?:string;
+  wishes?:Wish[]; plan?:SumupPlan; hardwareId?:HardwareId; quantity?:number;
+  notes?:string;
+};
+const numeric=(s:string)=>Number(s);
+const editable=(value:number,onChange:(v:number)=>void,props:{step?:string;min?:string;max?:string}={})=>
+  <EditableNumberInput min={props.min??"0"} max={props.max} step={props.step??".01"}
+    value={value} onChange={event=>onChange(numeric(event.target.value))}/>;
 
-  const toggleHardware = (id: HardwareSelection["id"]) => {
-    setInput((old) => ({
-      ...old,
-      hardware: old.hardware.some((x) => x.id === id)
-        ? old.hardware.filter((x) => x.id !== id)
-        : [
-            ...old.hardware,
-            {
-              id,
-              quantity: 1,
-              price: hardwareCatalog.find((x) => x.id === id)?.price ?? null,
-            },
-          ],
-    }));
+export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,onCapture,onOffer}:{
+  customerId:string;photoInput:PaymentInput;photoAvailable:boolean;photoReview:StatementReview|null;
+  onCapture:()=>void;onOffer:(draft:OfferDraft)=>void;
+}) {
+  const {data,save}=useStore();
+  const opportunity=data.opportunities.find(o=>o.customer_id===customerId&&o.division==="sumup");
+  const saved=(opportunity?.details.salesStudio||{}) as SavedStudio;
+  const [step,setStep]=useState<1|2|3>(1);
+  const [current,setCurrent]=useState<ExistingProviderInput>(()=>({...defaultCurrent,...saved.current}));
+  const [provider,setProvider]=useState(saved.provider||"");
+  const [hardware,setHardware]=useState(saved.competitorHardware||"");
+  const [otherHardware,setOtherHardware]=useState(saved.otherHardware||"");
+  const [contract,setContract]=useState(saved.contract||"");
+  const [payout,setPayout]=useState(saved.payout||"unknown");
+  const [future,setFuture]=useState(saved.future||"");
+  const [needs,setNeeds]=useState<Wish[]>(saved.wishes||[]);
+  const [plan,setPlan]=useState<SumupPlan| "">(saved.plan||"");
+  const [hardwareId,setHardwareId]=useState<HardwareId| "">(saved.hardwareId||"");
+  const [quantity,setQuantity]=useState(saved.quantity||1);
+  const [notes,setNotes]=useState(saved.notes||"");
+  const [saving,setSaving]=useState(false);
+  const [notice,setNotice]=useState("");
+  const [readReview,setReadReview]=useState("");
+  const update=<K extends keyof ExistingProviderInput>(key:K,value:ExistingProviderInput[K])=>
+    setCurrent(old=>({...old,[key]:value}));
+  useEffect(()=>{
+    if(!photoAvailable||!photoReview)return;
+    const volume=round((photoInput.volume||0)+(photoInput.onlineVolume||0));
+    setCurrent(old=>({...old,volume,transactions:photoInput.transactions??old.transactions,
+      debitShare:old.debitShare===80?80:old.debitShare,
+      confirmedTotal:photoInput.currentTotal===undefined?old.confirmedTotal:photoInput.currentTotal}));
+    setReadReview("Die geprüften Belegwerte wurden übernommen. Kartenmix 80/20 und Wettbewerber-Gebührensätze bitte mit dem Originalbeleg abgleichen.");
+    setStep(2);
+  },[photoReview?.confirmedAt,photoAvailable]);
+  const selectedPlan:SumupPlan=plan||(
+    current.volume>0&&(()=>{
+      try{return compareFieldSales(current,"plus").sumupTotal<compareFieldSales(current,"standard").sumupTotal;}catch{return false;}
+    })()?"plus":"standard");
+  const suggestedHardware=suggest(hardware+" "+otherHardware,needs);
+  const selectedHardware=allowedHardware.find(h=>h.id===(hardwareId||suggestedHardware)) || allowedHardware.find(h=>h.id==="solo")!;
+  const estimate=useMemo(()=>{
+    try{return {data:compareFieldSales(current,selectedPlan),error:""};}
+    catch(e){return {data:null,error:e instanceof Error?e.message:"Ungültige Eingabe"};}
+  },[current,selectedPlan]);
+  const standard=useMemo(()=>{
+    try{return compareFieldSales(current,"standard");}catch{return null;}
+  },[current]);
+  const plus=useMemo(()=>{
+    try{return compareFieldSales(current,"plus");}catch{return null;}
+  },[current]);
+  const good=!!(estimate.data&&current.volume>0&&selectedHardware.price!==null&&
+    Number.isSafeInteger(quantity)&&quantity>0&&quantity<=100);
+  const offerNotes=()=>{
+    if(!estimate.data)return "";
+    const a=estimate.data;
+    return [
+      "SumUp-Vergleichsangebot · indikative Modellrechnung; Konditionen vor Abschluss prüfen.",
+      "IST-BESTAND",
+      "Anbieter: "+(provider||"nicht angegeben"),
+      "Terminal: "+(hardware==="Sonstiges"?otherHardware||"Sonstiges":hardware||"nicht angegeben"),
+      "Kartenumsatz pro Monat: "+money(current.volume)+" · Transaktionen: "+current.transactions,
+      "EC/Debit "+current.debitShare+" % zu "+current.debitRate+" % · Kredit/Premium inkl. Amex "+(100-current.debitShare)+" % zu "+current.creditRate+" %",
+      "Servicegebühr: "+money(current.serviceFee)+" / Monat · Terminalgebühr: "+money(current.terminalFee)+" / Monat · pro Transaktion: "+money(current.perTransaction),
+      "Rechnerische Ist-Gesamtgebühren: "+money(a.calculatedOld)+" / Monat",
+      current.confirmedTotal!==null?"Bestätigte Ist-Gesamtgebühren aus Händlerangabe/Abrechnung: "+money(current.confirmedTotal)+" / Monat":"",
+      "Vertragslaufzeit / Kündigung: "+(contract||"noch nicht erfasst"),
+      "Auszahlung bisher: "+(payLabel[payout]||payout),
+      "Zukunftswunsch: "+(future||needs.join(", ")||"noch offen"),
+      "SUMUP-VERGLEICH",
+      "Tarif: "+(selectedPlan==="plus"?"Zahlungen Plus (Monatsmodell)":"Umsatzbasiertes Zahlen"),
+      "SumUp Debit: "+a.sumupDebit+" % · Kredit/Premium modellhaft "+a.sumupCredit+" % (Kartentypen im Einzelfall prüfen)",
+      "SumUp Grundgebühr: "+money(a.sumupBase)+" / Monat",
+      "SumUp variable Gebühren: "+money(a.sumupVariable)+" / Monat",
+      "SumUp Gesamtgebühren: "+money(a.sumupTotal)+" / Monat",
+      "Differenz bisher / SumUp: "+money(a.monthlyDifference)+" / Monat · "+money(a.annualDifference)+" / Jahr",
+      "Hardware: "+selectedHardware.name+" · "+quantity+" × "+money(selectedHardware.price||0)+" netto (regulärer Referenzpreis)",
+      "Gewünschter Auszahlungsturnus: "+(needs.includes("Auszahlung")?"häufigere Auszahlungen":"noch nicht verbindlich festgelegt")+"; tatsächliche Verfügbarkeit und Auszahlungsweg gesondert prüfen.",
+      a.note,
+      notes
+    ].filter(Boolean).join("\n");
   };
-  const toggleSubscription = (id: string) =>
-    setInput((old) => ({
-      ...old,
-      subscriptions: old.subscriptions.some((s) => s.id === id)
-        ? old.subscriptions.filter((s) => s.id !== id)
-        : [
-            ...old.subscriptions,
-            {
-              id,
-              monthly:
-                id === "accountplus"
-                  ? null
-                  : (subscriptions.find((x) => x.id === id)?.monthly ?? null),
-            },
-          ],
-    }));
-  const result = calculation.result;
-  const totalMode =
-    input.currentMode === "total" ||
-    (input.currentMode === undefined && input.currentMonthly > 0);
-  const selected = result?.plans.find(
-    (p) => p.id === (planId || result.best.id),
-  );
-  const offerReady = Boolean(
-    customerId &&
-    result &&
-    selected &&
-    !result.warning &&
-    input.hardware.length,
-  );
-  return (
-    <div className="sales-studio">
-      <div className="section-intro">
-        <div>
-          <h2>SumUp · Vertriebsstudio</h2>
-          <p>
-            Ist-Situation erfassen → Produkt wählen → Gebühren vergleichen →
-            Angebot vorbereiten.
-          </p>
-        </div>
-        <External href={catalogSource}>SumUp Konditionen</External>
-      </div>
-      <p className="hint">
-        Reguläre Referenzpreise für Deutschland · Stand {catalogCheckedAt}.
-        Keine Aktionspreise oder individuellen Gebühren als reguläre Konditionen
-        ausgewiesen. Hardware netto; Preis und Verfügbarkeit vor Versand des
-        Angebots verifizieren.
-      </p>
-      <div className="recommendation">
-        <button className="primary" onClick={onCapture}>📷 Händlerabrechnung fotografieren / hochladen</button>
-        <p className="hint">Erster Schritt: Beleg erfassen, Werte prüfen und automatisch in Kartenmix und Kostenvergleich übernehmen.</p>
-      </div>
-      <Card title="01 · Händler und Bedarf" eyebrow="QUALIFIZIERUNG">
-        <div className="form-grid">
-          <Field label="Erwartetes Startdatum (optional)">
-            <input
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
-          </Field>
-          <Field label="Aktueller Anbieter (optional)">
-            <input
-              placeholder="Name des Anbieters"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-            />
-          </Field>
-          <Field label="Voraussichtliches monatliches TPV (€)">
-            <EditableNumberInput
-              min="0"
-              step=".01"
-              value={input.monthlyVolume}
-              onChange={(e) => update("monthlyVolume", num(e.target.value))}
-            />
-          </Field>
-          <Field label="Auszahlungsfrequenz">
-            <select value={payout} onChange={(e) => setPayout(e.target.value)}>
-              <option value="">Bitte auswählen</option>
-              <option>SumUp Geschäftskonto · Folgetag</option>
-              <option>Externes Auszahlungskonto · abhängig vom Bankweg</option>
-            </select>
-          </Field>
-        </div>
-        <h3>Produktinteresse</h3>
-        <MultiChoiceDropdown
-          label="Produktinteresse auswählen"
-          options={["POS", "Kiosk", "Bank Account", "Another Product"].map((x) => ({ value: x, label: x }))}
-          selected={productInterest}
-          onToggle={(value) => setProductInterest((old) =>
-            old.includes(value) ? old.filter((x) => x !== value) : [...old, value]
-          )}
-        />
-        {productInterest.map((x) => (
-          <div className="recommendation" key={x}>
-            <strong>{x}</strong>
-            <button type="button" className="text-link"
-              onClick={() => setProductInterest((old) => old.filter((y) => y !== x))}>
-              Entfernen
-            </button>
-          </div>
-        ))}
-        <Field label="Gesprächsnotizen / offener Bedarf">
-          <textarea
-            value={notes}
-            rows={3}
-            maxLength={3000}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </Field>
-      </Card>
-      <div className="analysis-grid">
-        <Card title="02 · Bestand" eyebrow="IST-KOSTEN PRO MONAT">
-          <Field label="Ist-Kosten verwenden">
-            <select
-              value={
-                input.currentMode ||
-                (input.currentMonthly > 0 ? "total" : "formula")
-              }
-              onChange={(e) =>
-                update("currentMode", e.target.value as "formula" | "total")
-              }
-            >
-              <option value="formula">Aus Gebührenformel berechnen</option>
-              <option value="total">Geprüfte Gesamtkosten (auch 0 €)</option>
-            </select>
-          </Field>
-          <p className="hint">
-            Entweder die vollständigen monatlichen Ist-Kosten eingeben oder aus
-            den einzelnen Konditionen berechnen lassen. Nicht doppelt erfassen.
-          </p>
-          <div className="form-grid">
-            <Field label="Ist-Gesamtkosten / Monat (€)">
-              <EditableNumberInput
-                min="0"
-                step=".01"
-                disabled={!totalMode}
-                value={input.currentMonthly}
-                onChange={(e) => update("currentMonthly", num(e.target.value))}
-              />
-            </Field>
-            <Field label="Monatliche Fixkosten (€)">
-              <EditableNumberInput
-                min="0"
-                step=".01"
-                value={input.currentFixed}
-                disabled={totalMode}
-                onChange={(e) => update("currentFixed", num(e.target.value))}
-              />
-            </Field>
-            <Field label="Bestandsgebühr (%)">
-              <EditableNumberInput
-                min="0"
-                max="100"
-                step=".01"
-                value={input.currentVariablePercent}
-                disabled={totalMode}
-                onChange={(e) =>
-                  update("currentVariablePercent", num(e.target.value))
-                }
-              />
-            </Field>
-            <Field label="Transaktionen / Monat">
-              <EditableNumberInput
-                min="0"
-                step="1"
-                value={input.currentTransactionCount}
-                disabled={totalMode}
-                onChange={(e) =>
-                  update("currentTransactionCount", num(e.target.value))
-                }
-              />
-            </Field>
-            <Field label="Kosten je Transaktion (€)">
-              <EditableNumberInput
-                min="0"
-                step=".01"
-                value={input.currentPerTransaction}
-                disabled={totalMode}
-                onChange={(e) =>
-                  update("currentPerTransaction", num(e.target.value))
-                }
-              />
-            </Field>
-          </div>
-        </Card>
-        <Card title="03 · Kartenmix" eyebrow="STANDARD 80 / 20 · BELEG HAT VORRANG">
-          <button className="primary" onClick={onCapture}>
-            📷 Händlerabrechnung fotografieren / hochladen
-          </button>
-          <p className="hint">
-            Standard: 80 % für Zahlungen Plus geeignete inländische Debit-/Kreditkarten,
-            20 % andere Karten (konservativ mit 1,39 %). Das ist eine Schätzung,
-            keine bestätigte Händlerangabe.
-          </p>
-          {mixOrigin === "photo" && (
-            <p className="notice" role="status">
-              {input.splitConfirmed
-                ? "Geprüfte Kartenanteile aus der Foto-Abrechnung übernommen."
-                : "Belegumsatz übernommen. Ohne vollständige Kartenarten-Aufteilung bleibt der Kartenmix eine Schätzung bzw. ein unbekannter Anteil."}
-            </p>
-          )}
-          <div className="mini-stats">
-            <div><span>Für Zahlungen Plus geeignete Karten</span><b>{input.monthlyVolume > 0 ? round((input.mix.domesticDebit + input.mix.domesticCredit) / input.monthlyVolume * 100) : 0} %</b></div>
-            <div><span>Andere / unbekannte Karten inkl. Online</span><b>{input.monthlyVolume > 0 ? round((input.monthlyVolume - input.mix.domesticDebit - input.mix.domesticCredit) / input.monthlyVolume * 100) : 0} %</b></div>
-          </div>
-          <details open={manualMixOpen} onToggle={(e) => setManualMixOpen(e.currentTarget.open)}>
-            <summary>Manuelle Kartendaten erfassen / korrigieren</summary>
-            <p className="hint">Beträge pro Monat in Euro. Die Summe darf den gesamten Kartenumsatz nicht übersteigen.</p>
-            <div className="form-grid">
-              {keys.map(({ key, label }) => (
-                <Field key={key} label={label + " (€)"}>
-                  <EditableNumberInput min="0" step=".01" value={input.mix[key]}
-                    onChange={(e) => {
-                      setMixOrigin("manual");
-                      update("mix", { ...input.mix, [key]: num(e.target.value) });
-                    }} />
-                </Field>
-              ))}
-            </div>
-            <label className="checkbox-field">
-              <input type="checkbox" checked={input.splitConfirmed}
-                onChange={(e) => update("splitConfirmed", e.target.checked)} />
-              Vollständigen Kartenmix anhand der Abrechnung oder Händlerangabe geprüft
-            </label>
-          </details>
-          {result && result.missingMix > 0 && (
-            <p className="notice">Noch nicht aufgeteilt: {money(result.missingMix)} des TPV.</p>
-          )}
-        </Card>
-      </div>
-      <Card title="04 · Hardware" eyebrow="REGULÄRE NETTOPREISE">
-        <MultiChoiceDropdown
-          label="Hardware auswählen"
-          options={hardwareCatalog.map((item) => ({
-            value: item.id,
-            label: `${item.name} · ${item.price === null ? "Preis prüfen" : money(item.price) + " netto"}`,
-          }))}
-          selected={input.hardware.map((item) => item.id)}
-          onToggle={toggleHardware}
-        />
-        {input.hardware.map((selected) => {
-          const item = hardwareCatalog.find((x) => x.id === selected.id);
-          return <div className="recommendation" key={selected.id}>
-            <strong>{item?.name}</strong>
-            <button type="button" className="text-link" onClick={() => toggleHardware(selected.id)}>Entfernen</button>
-            <div className="form-grid">
-              <Field label="Menge">
-                <EditableNumberInput min="1" max="100" step="1" value={selected.quantity}
-                  onChange={(e) => update("hardware", input.hardware.map((x) =>
-                    x.id === selected.id ? { ...x, quantity: num(e.target.value) } : x))} />
-              </Field>
-              <Field label="Regulärer Stückpreis netto (€)">
-                {item?.price != null ? (
-                  <strong>{money(item.price)} · Festpreis, keine Rabattaktion</strong>
-                ) : (
-                  <EditableNumberInput min="0" step=".01" value={selected.price ?? ""} placeholder="Regulären Preis prüfen"
-                    onChange={(e) => update("hardware", input.hardware.map((x) =>
-                      x.id === selected.id ? { ...x, price: e.target.value === "" ? null : num(e.target.value) } : x))} />
-                )}
-              </Field>
-            </div>
-          </div>;
-        })}
-        <p className="hint">Hardware ausschließlich zu regulären Nettopreisen, keine Aktionen und keine Rabatte.</p>
-        <External href={catalogHardwareSource}>
-          Hardware-Preise nachprüfen
-        </External>
-        {result && (
-          <div className="mini-stats">
-            <div>
-              <span>Hardware einmalig netto</span>
-              <b>{money(result.hardwareNet)}</b>
-            </div>
-          </div>
-        )}
-      </Card>
-      <Card
-        title="05 · Lizenzen"
-        eyebrow="WIEDERKEHRENDE NETTOKOSTEN, SOWEIT AUSGEWIESEN"
-      >
-        <MultiChoiceDropdown
-          label="Lizenzen auswählen"
-          options={subscriptions.map((item) => ({
-            value: item.id,
-            label: `${item.name} · ${item.monthly === null ? "Preis prüfen" : money(item.monthly) + " / Monat"}`,
-          }))}
-          selected={input.subscriptions.map((item) => item.id)}
-          onToggle={toggleSubscription}
-        />
-        {input.subscriptions.map((chosen) => {
-          const license = subscriptions.find((s) => s.id === chosen.id);
-          return <div className="recommendation" key={chosen.id}>
-            <strong>{license?.name}</strong>
-            <button type="button" className="text-link" onClick={() => toggleSubscription(chosen.id)}>Entfernen</button>
-            <Field label="Bestätigte Monatskosten netto (€)">
-              <EditableNumberInput min="0" step=".01" value={chosen.monthly ?? ""} placeholder="Preis prüfen"
-                onChange={(e) => update("subscriptions", input.subscriptions.map((x) =>
-                  x.id === chosen.id ? { ...x, monthly: e.target.value === "" ? null : num(e.target.value) } : x))} />
-            </Field>
-          </div>;
-        })}
-        <p className="hint">
-          Geschäftskonto Plus ist öffentlich mit 25 € inkl. MwSt. ausgewiesen;
-          vor einem Netto-Angebot steuerliche Behandlung gesondert prüfen.
-          Jahres-, KDS- und Beauty-Preise nur nach Bestätigung eintragen.
-        </p>
-      </Card>
-      <Card
-        title="06 · Konditionen und Ergebnis"
-        eyebrow="TRANSPARENTER 12-MONATS-VERGLEICH"
-      >
-        {calculation.error && (
-          <p className="error" role="alert">
-            {calculation.error}
-          </p>
-        )}
-        {result && (
-          <>
-            {result.warning && (
-              <p className="notice">
-                Vorläufige Modellrechnung: Kartenmix nicht vollständig und
-                bestätigt. Vor einer verbindlichen Einsparungszusage
-                aufschlüsseln.
-              </p>
-            )}
-            {result.customOffer && (
-              <p className="notice">
-                Ab 10.000 € TPV monatlich kann ein individuelles SumUp-Angebot
-                angefragt werden; nicht in den Standardtarifen berechnet.
-              </p>
-            )}
-            <div className="cost-row">
-              <span>Bestand inkl. monatlicher Kosten</span>
-              <strong>{money(result.current)} / Monat</strong>
-            </div>
-            <div className="cost-row">
-              <span>Zusätzliche SumUp Lizenzen</span>
-              <strong>{money(result.fixedSubs)} / Monat</strong>
-            </div>
-            <Field label="SumUp-Tarif auswählen">
-              <select value={planId || result.best.id} onChange={(e) => setPlanId(e.target.value)}>
-                {result.plans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>{plan.title}{plan.id === result.best.id ? " · niedrigste 12-Monats-Kosten" : ""}</option>
-                ))}
-              </select>
-            </Field>
-            {result.plans.map((plan) => (
-              <div className="cost-row" key={plan.id}>
-                <span>{plan.title}</span>
-                <strong>{money(plan.monthly)} / Monat<br /><small>Jahr 1 inkl. Hardware: {money(plan.year)}</small></strong>
-              </div>
-            ))}
-            {selected && (
-              <div className="recommendation">
-                <h3>{selected.title}</h3>
-                <div className="mini-stats">
-                  <div>
-                    <span>Monatliche Differenz zum Bestand</span>
-                    <b>{money(selected.savingsMonthly)}</b>
-                  </div>
-                  <div>
-                    <span>Jährliche Differenz inkl. Hardware</span>
-                    <b>{money(selected.savingsYear)}</b>
-                  </div>
-                  <div>
-                    <span>
-                      Erster Monat inkl. Einmalkosten und Jahresabo ggf. vorab
-                    </span>
-                    <b>{money(selected.firstMonth)}</b>
-                  </div>
-                </div>
-                <p>
-                  Gebühren nach erfasstem Karteneinsatz, keine Zusage über
-                  künftige Umsatz- oder Kostenentwicklung. Jahresabo: 199 €
-                  vorab, für Vergleich auf zwölf Monate verteilt.
-                </p>
-              </div>
-            )}
-            <div className="button-row">
-              <button
-                className="secondary"
-                disabled={!opportunity || !result || saving}
-                onClick={async () => {
-                  if (!opportunity || !result) return;
-                  setSaving(true);
-                  setSaveMessage("");
-                  try {
-                    await save("opportunities", {
-                      ...opportunity,
-                      details: {
-                        ...opportunity.details,
-                        salesStudio: {
-                          input,
-                          provider,
-                          start,
-                          productInterest,
-                          payout,
-                          planId,
-                          notes,
-                          checkedAt: catalogCheckedAt,
-                        },
-                      },
-                    });
-                    setSaveMessage(
-                      "Vertriebsstudio in der Kundenakte gespeichert.",
-                    );
-                  } catch (e) {
-                    setSaveMessage((e as Error).message);
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-              >
-                Vertriebsstudio speichern
-              </button>
-              <button
-                className="primary"
-                disabled={!offerReady}
-                onClick={() => {
-                  if (!selected) return;
-                  onOffer({
-                    division: "sumup",
-                    customer_id: customerId,
-                    lines: input.hardware.map((h) => ({
-                      name:
-                        hardwareCatalog.find((x) => x.id === h.id)?.name ||
-                        h.id,
-                      quantity: h.quantity,
-                      price: round(hardwareCatalog.find((x) => x.id === h.id)?.price ?? h.price ?? 0),
-                      vat: 19,
-                    })),
-                    notes: `Unverbindliche Modellrechnung vom ${catalogCheckedAt}. Tarif: ${selected.title}. Gebühren ${money(selected.monthly)}/Monat inkl. gewählter Lizenzen; Zahlungskosten werden von SumUp erhoben und nicht als einmalige Angebotsposition berechnet. Startdatum: ${start || "offen"}. Anbieter: ${provider || "nicht angegeben"}. Auszahlung: ${payout || "offen"}. Interesse: ${productInterest.join(", ") || "nicht angegeben"}. ${notes}`,
-                    snapshot: {
-                      studio: input,
-                      comparison: result,
-                      plan: selected.id,
-                      provider,
-                      start,
-                      productInterest,
-                      payout,
-                      checkedAt: catalogCheckedAt,
-                      sources: [catalogSource, catalogHardwareSource],
-                    },
-                  });
-                }}
-              >
-                Angebot vorbereiten
-              </button>
-            </div>
-            {!customerId && (
-              <p className="hint">
-                Zum Erstellen zuerst oben eine Kundenakte auswählen.
-              </p>
-            )}
-            {!input.hardware.length && (
-              <p className="hint">
-                Für ein Hardwareangebot mindestens eine Hardwareposition
-                auswählen. Eine reine Tarifberatung kannst du in der Kundenakte
-                speichern.
-              </p>
-            )}
-            {saveMessage && (
-              <p role="status" className="notice">
-                {saveMessage}
-              </p>
-            )}
-            {result.warning && (
-              <p className="hint">
-                Für ein Angebot zuerst den Kartenmix vollständig aufteilen und
-                bestätigen.
-              </p>
-            )}
-          </>
-        )}
-      </Card>
+  async function persist(){
+    if(!customerId){setNotice("Bitte zuerst einen Kunden auswählen.");return;}
+    setSaving(true);setNotice("");
+    try{
+      const savedData={current,provider,competitorHardware:hardware,otherHardware,contract,payout,
+        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,notes};
+      await save("opportunities",{
+        ...opportunity,customer_id:customerId,division:"sumup",stage:opportunity?.stage||"Neu",
+        potential:current.volume,
+        details:{...(opportunity?.details||{}),salesStudio:savedData}
+      });
+      setNotice("Vertriebsstudio in der zentralen Kundenakte gespeichert.");
+    }catch(e){setNotice("Speichern fehlgeschlagen: "+(e instanceof Error?e.message:"Unbekannter Fehler"));}
+    finally{setSaving(false);}
+  }
+  function createOffer(){
+    if(!good||!estimate.data)return;
+    onOffer({
+      division:"sumup",customer_id:customerId,
+      lines:[{name:"SumUp "+selectedHardware.name+" · regulärer Hardwarepreis",quantity,
+        price:round(selectedHardware.price||0),vat:19}],
+      notes:offerNotes(),
+      snapshot:{salesStudio:{current,provider,competitorHardware:hardware,otherHardware,
+        contract,payout,future,wishes:needs,plan:selectedPlan,
+        sumupHardware:selectedHardware.name,quantity,
+        comparison:estimate.data,checkedAt:catalogCheckedAt,
+        source:catalogSource,hardwareSource:catalogHardwareSource}}
+    });
+  }
+  return <div className="sales-studio field-studio">
+    <div className="section-intro"><div>
+      <span className="eyebrow">NE X A R O · VERTRIEB VOR ORT</span>
+      <h2>SumUp Vertriebsstudio</h2>
+      <p>Foto importieren → Ist-Bestand aufnehmen → passendes Vergleichsangebot erstellen.</p>
+    </div><External href={catalogSource}>SumUp-Preise prüfen</External></div>
+    <div className="field-progress" role="navigation" aria-label="Vertriebsstudio Schritte">
+      {([1,2,3] as const).map(n=><button key={n} className={step===n?"active":""}
+        onClick={()=>setStep(n)} aria-current={step===n?"step":undefined}>
+        <b>{n}</b><span>{n===1?"Foto-Import":n===2?"Ist-Bestand":"Vergleichsangebot"}</span>
+      </button>)}
     </div>
-  );
+    {step===1&&<Card title="01 · Foto-Import" eyebrow="BELEG ZUERST · MANUELLE EINGABE ALTERNATIV">
+      <p>Vorhandene Händlerabrechnung hochladen oder direkt fotografieren. Erfasste Werte werden im zweiten Schritt überprüft und können dort jederzeit korrigiert werden.</p>
+      <button className="primary field-cta" type="button" onClick={onCapture}>
+        <Camera size={19}/> Foto / Abrechnung importieren
+      </button>
+      {photoAvailable&&photoReview&&<p role="status" className="notice">Beleg erfasst und vom Nutzer geprüft · {new Date(photoReview.confirmedAt).toLocaleDateString("de-DE")}</p>}
+      <p className="hint">Im Foto-Dialog gibt es getrennte Eingaben für „Datei/Galerie“ und „Kamera“. Der Belegtext bleibt lokal auf dem Gerät.</p>
+      <button className="secondary field-cta" onClick={()=>setStep(2)}>Ohne Foto manuell erfassen <ArrowRight size={17}/></button>
+      <a href="./testabrechnung.html" target="_blank" rel="noopener noreferrer" className="text-link">Testabrechnung öffnen</a>
+    </Card>}
+    {step===2&&<>
+      <Card title="02 · Ist-Bestand" eyebrow="AKTUELLER ANBIETER & KARTENZAHLUNGEN">
+        {readReview&&<p role="status" className="notice">{readReview}</p>}
+        <div className="form-grid">
+          <Field label="Aktueller Anbieter"><input value={provider} onChange={e=>setProvider(e.target.value)}
+            placeholder="z. B. VR Payment, TeleCash, Worldline …"/></Field>
+          <Field label="Monatlicher Kartenumsatz (€)">{editable(current.volume,v=>update("volume",v))}</Field>
+          <Field label="Transaktionen pro Monat">{editable(current.transactions,v=>update("transactions",v),{step:"1"})}</Field>
+          <Field label="Bestands-Hardware">
+            <select value={hardware} onChange={e=>setHardware(e.target.value)}>
+              {competitorHardware.map(([id,label])=><option key={id} value={id}>{label}</option>)}
+            </select>
+          </Field>
+          {hardware==="Sonstiges"&&<Field label="Gerät / Modell manuell ergänzen"><input value={otherHardware}
+            onChange={e=>setOtherHardware(e.target.value)} placeholder="Hersteller und Modell"/></Field>}
+        </div>
+      </Card>
+      <Card title="Kartenmix & Gebühren" eyebrow="VOREINGESTELLT · JEDERZEIT ÄNDERBAR">
+        <p className="hint">Das sind angenommene <strong>Gebührensätze des aktuellen Anbieters</strong>, keine SumUp-Sätze. Bei einer echten Händlerabrechnung die Werte korrigieren.</p>
+        <div className="form-grid">
+          <Field label="EC / Debit – Umsatzanteil (%)">{editable(current.debitShare,v=>update("debitShare",v),{step:"1",max:"100"})}</Field>
+          <Field label="Kredit- & Premiumkarten inkl. Amex – Anteil (%)"><strong className="field-computed">{round(100-current.debitShare)} %</strong></Field>
+          <Field label="EC / Debit – Faktor (%)">{editable(current.debitRate,v=>update("debitRate",v),{step:".01",max:"100"})}</Field>
+          <Field label="Kredit / Premium – Faktor (%)">{editable(current.creditRate,v=>update("creditRate",v),{step:".01",max:"100"})}</Field>
+          <Field label="Servicegebühr / Monat (€)">{editable(current.serviceFee,v=>update("serviceFee",v))}</Field>
+          <Field label="Terminalgebühr / Monat (€)">{editable(current.terminalFee,v=>update("terminalFee",v))}</Field>
+          <Field label="Gebühr je Transaktion (€)">{editable(current.perTransaction,v=>update("perTransaction",v))}</Field>
+        </div>
+        {estimate.data&&<div className="mini-stats">
+          <div><span>EC/Debit-Umsatz</span><b>{money(estimate.data.debit)}</b></div>
+          <div><span>Kredit-/Premium-Umsatz</span><b>{money(estimate.data.credit)}</b></div>
+          <div><span>Rechnerische Ist-Gesamtgebühren</span><b>{money(estimate.data.calculatedOld)} / Monat</b></div>
+        </div>}
+        <Field label="Gesamtgebühren laut Abrechnung / Monat (€) – optional">
+          <EditableNumberInput min="0" step=".01" value={current.confirmedTotal??""}
+            placeholder="Leer = automatisch berechnen"
+            onChange={e=>update("confirmedTotal",e.target.value===""?null:numeric(e.target.value))}/>
+        </Field>
+        <p className="hint">Ein hier eingegebener geprüfter Gesamtbetrag ersetzt die berechneten Ist-Gebühren – er wird nicht zusätzlich aufgeschlagen.</p>
+      </Card>
+      <Card title="Vertrag, Auszahlung & Zukunft" eyebrow="ENTSCHEIDUNGSKRITERIEN DES HÄNDLERS">
+        <div className="form-grid">
+          <Field label="Vertragslaufzeit / Kündigungsfrist">
+            <input value={contract} onChange={e=>setContract(e.target.value)}
+              placeholder="z. B. 24 Monate, 3 Monate Kündigungsfrist"/>
+          </Field>
+          <Field label="Aktueller Auszahlungsturnus">
+            <select value={payout} onChange={e=>setPayout(e.target.value)}>
+              <option value="unknown">Bitte auswählen</option>
+              <option value="daily">Täglich</option><option value="weekly">Wöchentlich</option>
+              <option value="fortnightly">Alle zwei Wochen</option><option value="monthly">Einmal im Monat</option>
+            </select>
+          </Field>
+        </div>
+        <Field label="Was wäre der Wunsch für die Zukunft?">
+          <textarea rows={3} maxLength={2500} value={future} onChange={e=>setFuture(e.target.value)}
+            placeholder="z. B. günstigere Gebühren, schnelle Auszahlung, weniger Geräte, Papierbelege …"/>
+        </Field>
+        <div className="field-wishes">
+          {wishes.map(w=><label key={w.id} className="checkbox-field">
+            <input type="checkbox" checked={needs.includes(w.id)} onChange={e=>
+              setNeeds(old=>e.target.checked?[...old,w.id]:old.filter(v=>v!==w.id))}/>
+            {w.label}</label>)}
+        </div>
+        {estimate.error&&<p className="error" role="alert">{estimate.error}</p>}
+        <div className="button-row field-actions">
+          <button className="secondary" onClick={()=>setStep(1)}><ArrowLeft size={15}/> Foto</button>
+          <button className="secondary" disabled={saving||!customerId} onClick={()=>void persist()}>
+            <Save size={15}/>{saving?"Speichern …":"Bestand speichern"}
+          </button>
+          <button className="primary" disabled={!estimate.data||current.volume<=0} onClick={()=>setStep(3)}>
+            Vergleichsangebot erstellen <ArrowRight size={17}/>
+          </button>
+        </div>
+        {notice&&<p role="status" className="notice">{notice}</p>}
+      </Card>
+    </>}
+    {step===3&&<>
+      <Card title="03 · Vergleichsangebot" eyebrow="IST-ANBIETER GEGEN SUMUP · MONATLICHE KOSTEN">
+        {!estimate.data?<p className="error" role="alert">{estimate.error}</p>:<>
+          <div className="field-compare">
+            <section><span className="eyebrow">BISHER</span><h3>{provider||"Aktueller Anbieter"}</h3>
+              <strong>{money(estimate.data.oldTotal)}</strong><small>Gebühren / Monat</small>
+              <p>{hardware==="Sonstiges"?otherHardware||"Sonstiges":hardware||"Bestandsgerät noch offen"}</p>
+              <p>EC/Debit {current.debitShare}% · {current.debitRate}%<br/>Kredit/Premium {round(100-current.debitShare)}% · {current.creditRate}%</p>
+              <p>Auszahlung: {payLabel[payout]}</p>
+            </section>
+            <section className="field-compare-new"><span className="eyebrow">ANGEBOT SUMUP</span><h3>{selectedPlan==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen"}</h3>
+              <strong>{money(estimate.data.sumupTotal)}</strong><small>Modellgebühren / Monat</small>
+              <p>Debit {estimate.data.sumupDebit}% · Kredit/Premium modellhaft {estimate.data.sumupCredit}%</p>
+              <p>Grundgebühr: {money(estimate.data.sumupBase)} / Monat</p>
+              <p>Regulärer Hardwarepreis separat</p>
+            </section>
+          </div>
+          <div className="field-difference"><span>Rechnerische Differenz bisher – SumUp / Monat</span>
+            <strong>{money(estimate.data.monthlyDifference)}</strong>
+            <small>Hochgerechnet auf 12 Monate: {money(estimate.data.annualDifference)} · negative Werte = höhere SumUp-Kosten</small>
+          </div>
+          <p className="hint">{estimate.data.note} Bestehende Vertragsbindung und etwaige Wechselkosten sind nicht eingerechnet.</p>
+        </>}
+      </Card>
+      <Card title="Tarif & vergleichbare SumUp-Hardware" eyebrow="VORSCHLAG · MANUELL ÄNDERBAR">
+        <div className="form-grid">
+          <Field label="SumUp-Tarif">
+            <select value={selectedPlan} onChange={e=>setPlan(e.target.value as SumupPlan)}>
+              <option value="standard">Umsatzbasiertes Zahlen · keine Grundgebühr</option>
+              <option value="plus">Zahlungen Plus · 19 € monatlich (Modell)</option>
+            </select>
+          </Field>
+          <Field label="Passende SumUp-Hardware">
+            <select value={selectedHardware.id} onChange={e=>setHardwareId(e.target.value as HardwareId)}>
+              {allowedHardware.map(h=><option key={h.id} value={h.id}>{h.name} · {h.price===null?"Preis prüfen":money(h.price)+" netto"}</option>)}
+            </select>
+          </Field>
+          <Field label="Stückzahl SumUp-Geräte">{editable(quantity,setQuantity,{step:"1",min:"1",max:"100"})}</Field>
+          <Field label="Hardware gesamt · netto">
+            <strong className="field-computed">{money((selectedHardware.price||0)*quantity)}</strong>
+          </Field>
+        </div>
+        <p className="hint">Hardware-Empfehlung aus Bestandsgerät und Zukunftswünschen abgeleitet. Änderungen an Tarif und Gerät aktualisieren den Vergleich. Es werden ausschließlich reguläre Hardwarepreise verwendet.</p>
+        {standard&&plus&&<div className="mini-stats">
+          <div><span>SumUp Standard / Monat</span><b>{money(standard.sumupTotal)}</b></div>
+          <div><span>SumUp Zahlungen Plus / Monat</span><b>{money(plus.sumupTotal)}</b></div>
+        </div>}
+        <External href={catalogHardwareSource}>Hardwarepreise offiziell prüfen</External>
+        <Field label="Weitere Gesprächsnotizen / Vereinbarung">
+          <textarea rows={3} maxLength={3000} value={notes} onChange={e=>setNotes(e.target.value)}
+            placeholder="Vereinbarte nächsten Schritte …"/>
+        </Field>
+        <div className="button-row field-actions">
+          <button className="secondary" onClick={()=>setStep(2)}><ArrowLeft size={15}/> Ist-Bestand ändern</button>
+          <button className="secondary" disabled={!customerId||saving} onClick={()=>void persist()}><Save size={15}/> Speichern</button>
+          <button className="primary" disabled={!customerId||!good} onClick={createOffer}>
+            <FileText size={17}/> Vergleichsangebot übernehmen
+          </button>
+        </div>
+        {!customerId&&<p className="notice">Für ein speicherbares Angebot oben zuerst den Kunden auswählen. Der Vergleich ist auch ohne Kundenakte möglich.</p>}
+        {notice&&<p role="status" className="notice">{notice}</p>}
+      </Card>
+    </>}
+    <p className="hint">SumUp-Referenzdaten: {catalogCheckedAt}. Tatsächliche Kartenarten, Auszahlungswege, Preise und Konditionen vor dem verbindlichen Angebot prüfen.</p>
+  </div>;
 }
