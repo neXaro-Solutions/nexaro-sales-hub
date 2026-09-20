@@ -5,6 +5,7 @@ import { InvoiceForm, DocumentPreview, customerSnapshot } from "../components/Bu
 import { useStore } from "../lib/store";
 import { VapeOfferPicker } from "../components/VapeOfferPicker";
 import { SumupOfferComparison } from "../components/SumupOfferComparison";
+import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
 import {
   Card,
   Empty,
@@ -45,6 +46,22 @@ export function OfferForm({
     offer?.lines ||
       draft?.lines || [{ name: "", quantity: 1, price: 0, vat: 19 }],
   );
+  const studio = (offer?.snapshot || draft?.snapshot)?.salesStudio as ({
+    sumupHardware?: string; hardwareDiscount?: number;
+    hardwarePricing?: {regularUnit:number;percent:number};
+  } | undefined);
+  const regularUnit=studio?.hardwarePricing?.regularUnit;
+  const [hardwareDiscount,setHardwareDiscount]=useState(studio?.hardwarePricing?.percent ?? studio?.hardwareDiscount ?? 0);
+  const hardwareIndex=typeof regularUnit==="number"&&Number.isFinite(regularUnit)
+    ?lines.findIndex(l=>l.name.startsWith("SumUp "+(studio?.sumupHardware||""))):-1;
+  function changeHardwareDiscount(next:number){
+    if(regularUnit===undefined||hardwareIndex<0||next<0||next>25)return;
+    setHardwareDiscount(next);
+    const net=hardwareOfferPrice(regularUnit,next).discountedUnit;
+    setLines(old=>old.map((l,i)=>i===hardwareIndex?{
+      ...l,price:net,name:l.name.replace(/ · \d+ % Nachlass$/,"")+(next?" · "+next+" % Nachlass":"")
+    }:l));
+  }
   const customers = data.customers;
   const [customerId, setCustomerId] = useState(offer?.customer_id || draft?.customer_id || "");
   let total = { net: 0, gross: 0, vat: 0 };
@@ -73,6 +90,15 @@ export function OfferForm({
           if (c && !data.opportunities.some((o) => o.customer_id === customer_id && o.division === division)) {
             await save("opportunities", { customer_id: c.id, division, stage: "Neu", potential: 0, details: {} });
           }
+          const updatedHardware=regularUnit!==undefined&&hardwareIndex>=0
+            ?hardwareOfferPrice(regularUnit,hardwareDiscount,lines[hardwareIndex].quantity):null;
+          const baseSnapshot={...offer?.snapshot,...draft?.snapshot};
+          const originalStudio=baseSnapshot.salesStudio;
+          const updatedSnapshot=updatedHardware&&originalStudio&&typeof originalStudio==="object"
+            ?{...baseSnapshot,salesStudio:{
+              ...originalStudio as Record<string,unknown>,hardwareDiscount,
+              hardwarePricing:updatedHardware,quantity:lines[hardwareIndex].quantity
+            }}:baseSnapshot;
           await save("offers", {
             ...offer,
             division,
@@ -82,8 +108,7 @@ export function OfferForm({
             lines,
             notes: value(f, "notes"),
             snapshot: {
-              ...offer?.snapshot,
-              ...draft?.snapshot,
+              ...updatedSnapshot,
               customer: c ? customerSnapshot(c) : {},
             },
           });
