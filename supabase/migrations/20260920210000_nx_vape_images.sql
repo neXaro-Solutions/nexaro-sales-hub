@@ -9,7 +9,16 @@ create policy nx_vape_images_owner_read on storage.objects
 create policy nx_vape_images_owner_insert on storage.objects
   for insert to authenticated
   with check (bucket_id='nx-vape-images'
-   and name ~ '^[0-9a-f-]{36}\\.(jpg|png|webp)$'
+   and name ~ '^[0-9a-f-]{36}[.](jpg|png|webp)
+   and exists(select 1 from public.nx_owner where user_id=(select auth.uid())));
+create policy nx_vape_images_owner_update on storage.objects
+  for update to authenticated
+  using (bucket_id='nx-vape-images' and exists(select 1 from public.nx_owner where user_id=(select auth.uid())))
+  with check (bucket_id='nx-vape-images' and exists(select 1 from public.nx_owner where user_id=(select auth.uid())));
+create policy nx_vape_images_owner_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id='nx-vape-images' and exists(select 1 from public.nx_owner where user_id=(select auth.uid())));
+
    and exists(select 1 from public.nx_owner where user_id=(select auth.uid())));
 create policy nx_vape_images_owner_update on storage.objects
   for update to authenticated
