@@ -2394,3 +2394,168 @@ progress {
   .nx-document-payment, .nx-document-notes, .nx-document-footer { break-inside: avoid; }
   .nx-document-footer { font-size: 9px; }
 }
+
+
+/* Responsive audit: keep every work area usable on phones/tablets without
+   shrinking the printable A4 document or breaking desktop grids. */
+@media screen and (max-width: 900px) {
+  .app-shell, .main-shell, main, .card, .section-intro, .toolbar,
+  .form-grid, .offer-line, .context-bar, .button-row, .total-strip {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .card, .field, .field > *, .form-grid > *, .offer-line > * {
+    min-width: 0;
+  }
+  .card, .section-intro, .document-row {
+    overflow-wrap: anywhere;
+  }
+  .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-wrap table {
+    width: max-content;
+    min-width: 100%;
+  }
+  .table-wrap td, .table-wrap th {
+    max-width: 22rem;
+    overflow-wrap: anywhere;
+  }
+  .table-wrap button, .button-row button {
+    white-space: normal;
+  }
+  .tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .tabs > button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  dialog {
+    box-sizing: border-box;
+    max-width: calc(100vw - 24px);
+    width: min(780px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+@media screen and (max-width: 700px) {
+  main {
+    min-width: 0;
+    padding-inline: clamp(12px, 4vw, 20px);
+  }
+  .form-grid, .sales-studio .form-grid, .route-grid .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .card {
+    padding: clamp(12px, 3.7vw, 18px);
+  }
+  .section-intro > div,
+  .section-intro > .button-row,
+  .section-intro > button,
+  .section-intro > a {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .button-row, .form-actions, .total-strip {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .button-row > *, .form-actions > * {
+    max-width: 100%;
+  }
+  .offer-line {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+  }
+  .offer-line > .field:first-child {
+    grid-column: 1 / -1;
+  }
+  .offer-line > .field {
+    min-width: 0;
+  }
+  .offer-line > .icon-button {
+    align-self: end;
+    justify-self: start;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .field select, .field textarea, .toolbar input, .toolbar select,
+  .offer-line input, .offer-line select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+  .field input[type="file"] {
+    overflow-wrap: anywhere;
+  }
+  button, .tabs button, summary {
+    touch-action: manipulation;
+  }
+  .tabs > button, .button-row button, .form-actions button {
+    min-height: 44px;
+  }
+  dialog {
+    padding: 16px 12px;
+  }
+  .nx-document {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nx-document-top, .nx-document-address {
+    flex-wrap: wrap;
+  }
+  .nx-document-topright, .nx-document-label {
+    text-align: left;
+  }
+  .nx-document-table {
+    min-width: 440px;
+  }
+  .nx-document-summary {
+    max-width: 100%;
+  }
+}
+@media screen and (max-width: 420px) {
+  .metrics, .metrics.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .topbar {
+    gap: 8px;
+  }
+  .topbar .breadcrumb {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .topbar .breadcrumb b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-right {
+    flex-shrink: 0;
+  }
+  .offer-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .offer-line > .field:first-child {
+    grid-column: auto;
+  }
+  .total-strip {
+    gap: 12px;
+  }
+}
