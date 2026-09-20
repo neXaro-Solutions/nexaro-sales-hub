@@ -5,6 +5,7 @@ import {
   type ReactNode,
   type FormEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { X, ArrowUpRight, CheckCircle2, LoaderCircle } from "lucide-react";
 export function Brand() {
   return (
@@ -113,7 +114,7 @@ export function Modal({
       document.body.style.overflow = old;
     };
   }, []);
-  return (
+  return createPortal(
     <dialog
       ref={ref}
       onCancel={onClose}
@@ -132,7 +133,8 @@ export function Modal({
         </button>
       </div>
       {children}
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
 export function AsyncForm({
