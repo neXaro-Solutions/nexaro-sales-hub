@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../lib/client";
+import { vapeSaleNet, vapeSaleGross } from "../lib/vapePricing";
 
 type SupplierDetail = {
   url: string; title?: string; articleNo?: string; ean?: string; category?: string;
@@ -16,7 +17,6 @@ type Draft = {
 };
 
 const euro = (v: number) => v.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
-const saleNet = (ek: number, margin: number) => Math.ceil((ek / (1 - margin / 100)) * 100 - 0.00000001) / 100;
 const amount = (v: string): number | null => {
   if (!v.trim()) return null;
   const n = Number(v.replace(",", "."));
@@ -212,8 +212,8 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
           </label>
         </div>
         {p.ve_approved && p.ve_ek_net !== null
-          ? <p>VE freigegeben · VK netto: <strong>{euro(saleNet(p.ve_ek_net, margin))}</strong> · brutto:
-            {" "}{euro(Math.round(saleNet(p.ve_ek_net, margin) * 119) / 100)}</p>
+          ? <p>VE freigegeben · VK netto: <strong>{euro(vapeSaleNet(p.ve_ek_net, margin))}</strong> · brutto:
+            {" "}{euro(vapeSaleGross(vapeSaleNet(p.ve_ek_net, margin)))}</p>
           : <p>VE noch nicht freigegeben.</p>}
         <button type="button" disabled={busy} onClick={() => void (p.ve_approved ? revoke(p, "ve") : save(p, "ve"))}>
           {p.ve_approved ? "VE-Freigabe zurücknehmen" : "VE nach Prüfung freigeben"}
@@ -229,8 +229,8 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
               onChange={e => edit(p.id, "single", e.target.value)} />
           </label>
           {p.single_approved && p.single_ek_net !== null
-            ? <p>Einzelstück freigegeben · VK netto: <strong>{euro(saleNet(p.single_ek_net, margin))}</strong>
-              {" · "}VK brutto: {euro(Math.round(saleNet(p.single_ek_net, margin) * 119) / 100)}</p>
+            ? <p>Einzelstück freigegeben · VK netto: <strong>{euro(vapeSaleNet(p.single_ek_net, margin))}</strong>
+              {" · "}VK brutto: {euro(vapeSaleGross(vapeSaleNet(p.single_ek_net, margin)))}</p>
             : <p>Einzelstückverkauf gesperrt.</p>}
           <button type="button" disabled={busy || (!p.supplier_single_available && !p.single_approved)}
             onClick={() => void (p.single_approved ? revoke(p, "single") : save(p, "single"))}>
