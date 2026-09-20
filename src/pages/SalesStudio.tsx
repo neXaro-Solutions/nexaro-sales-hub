@@ -10,6 +10,7 @@ import { hardwareCatalog, catalogCheckedAt, catalogSource, catalogHardwareSource
 import { useStore } from "../lib/store";
 import type { OfferDraft } from "./Offers";
 import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
+import { RangeNumber } from "../components/RangeNumber";
 
 const defaultCurrent: ExistingProviderInput = {
   volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
@@ -198,13 +199,13 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       </button>
     </Card>}
     {step===2&&<>
-      <Card title="02 · Ist-Bestand" eyebrow="AKTUELLER ANBIETER & KARTENZAHLUNGEN">
+      <Card title="02 · Händler & Umsatz" eyebrow="IST-BESTAND · AKTUELLER ANBIETER">
         {readReview&&<p role="status" className="notice">{readReview}</p>}
         <div className="form-grid">
           <Field label="Aktueller Anbieter"><input value={provider} onChange={e=>setProvider(e.target.value)}
             placeholder="z. B. VR Payment, TeleCash, Worldline …"/></Field>
-          <Field label="Monatlicher Kartenumsatz (€)">{editable(current.volume,v=>update("volume",v))}</Field>
-          <Field label="Transaktionen pro Monat">{editable(current.transactions,v=>update("transactions",v),{step:"1"})}</Field>
+          <RangeNumber label="Monatlicher Kartenumsatz" value={current.volume} onChange={v=>update("volume",v)} max={100000} step={100} unit="€" />
+          <RangeNumber label="Transaktionen pro Monat" value={current.transactions} onChange={v=>update("transactions",v)} max={5000} step={1} />
           <Field label="Bestands-Hardware">
             <select value={hardware} onChange={e=>setHardware(e.target.value)}>
               {competitorHardware.map(([id,label])=><option key={id} value={id}>{label}</option>)}
@@ -214,16 +215,20 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
             onChange={e=>setOtherHardware(e.target.value)} placeholder="Hersteller und Modell"/></Field>}
         </div>
       </Card>
-      <Card title="Kartenmix & Gebühren" eyebrow="VOREINGESTELLT · JEDERZEIT ÄNDERBAR">
+      <Card title="03 · Kartenmix & Gebühren" eyebrow="ANTEILE UND KARTENSÄTZE">
         <p className="hint">Das sind angenommene <strong>Gebührensätze des aktuellen Anbieters</strong>, keine SumUp-Sätze. Bei einer echten Händlerabrechnung die Werte korrigieren.</p>
-        <div className="form-grid">
-          <Field label="EC / Debit – Umsatzanteil (%)">{editable(current.debitShare,v=>update("debitShare",v),{step:"1",max:"100"})}</Field>
+        <div className="form-grid field-fees-grid">
+          <RangeNumber label="EC / Debit – Umsatzanteil" value={current.debitShare} onChange={v=>update("debitShare",v)} max={100} unit="%" />
           <Field label="Kredit- & Premiumkarten inkl. Amex – Anteil (%)"><strong className="field-computed">{round(100-current.debitShare)} %</strong></Field>
-          <Field label="EC / Debit – Faktor (%)">{editable(current.debitRate,v=>update("debitRate",v),{step:".01",max:"100"})}</Field>
-          <Field label="Kredit / Premium – Faktor (%)">{editable(current.creditRate,v=>update("creditRate",v),{step:".01",max:"100"})}</Field>
-          <Field label="Servicegebühr / Monat (€)">{editable(current.serviceFee,v=>update("serviceFee",v))}</Field>
-          <Field label="Terminalgebühr / Monat (€)">{editable(current.terminalFee,v=>update("terminalFee",v))}</Field>
-          <Field label="Gebühr je Transaktion (€)">{editable(current.perTransaction,v=>update("perTransaction",v))}</Field>
+          <RangeNumber label="EC / Debit – Faktor" value={current.debitRate} onChange={v=>update("debitRate",v)} max={5} step={0.01} unit="%" />
+          <RangeNumber label="Kredit / Premium – Faktor" value={current.creditRate} onChange={v=>update("creditRate",v)} max={5} step={0.01} unit="%" />
+        </div>
+      </Card>
+      <Card title="04 · Laufende Kosten" eyebrow="FESTE UND VARIABLE ENTGELTE">
+        <div className="form-grid field-fees-grid">
+          <RangeNumber label="Servicegebühr / Monat" value={current.serviceFee} onChange={v=>update("serviceFee",v)} max={200} step={0.5} unit="€" />
+          <RangeNumber label="Terminalgebühr / Monat" value={current.terminalFee} onChange={v=>update("terminalFee",v)} max={200} step={0.5} unit="€" />
+          <RangeNumber label="Gebühr je Transaktion" value={current.perTransaction} onChange={v=>update("perTransaction",v)} max={2} step={0.01} unit="€" />
         </div>
         {estimate.data&&<div className="mini-stats">
           <div><span>EC/Debit-Umsatz</span><b>{money(estimate.data.debit)}</b></div>
@@ -237,7 +242,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
         </Field>
         <p className="hint">Ein hier eingegebener geprüfter Gesamtbetrag ersetzt die berechneten Ist-Gebühren – er wird nicht zusätzlich aufgeschlagen.</p>
       </Card>
-      <Card title="Vertrag, Auszahlung & Zukunft" eyebrow="ENTSCHEIDUNGSKRITERIEN DES HÄNDLERS">
+      <Card title="05 · Vertrag & Wünsche" eyebrow="ENTSCHEIDUNGSKRITERIEN DES HÄNDLERS">
         <div className="form-grid">
           <Field label="Vertragslaufzeit / Kündigungsfrist">
             <input value={contract} onChange={e=>setContract(e.target.value)}
