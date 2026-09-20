@@ -74,7 +74,7 @@ export type OfferLine = {
   vat: number;
 };
 export type Offer = Base & {
-  customer_id: string;
+  customer_id: string | null;
   division: Division;
   number: string;
   status: "Entwurf" | "Gesendet" | "Angenommen" | "Abgelehnt";
