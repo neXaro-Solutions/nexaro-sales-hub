@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Modal, Field } from "./UI";
 import {
   extractStatement,
+  recognizedStatementValues,
   normalizeStatement,
   statementLabels,
   type StatementField,
@@ -13,15 +14,19 @@ export type StatementReview = {
   months: number;
   source: "photo" | "text";
   confidence: number | null;
+  verified?: boolean;
+  recognizedFields?: string[];
   eligibleVolume?: number;
   otherVolume?: number;
 };
 export function StatementCapture({
   onClose,
   onApply,
+  autoApply = false,
 }: {
   onClose: () => void;
   onApply: (p: Partial<PaymentInput>, review: StatementReview) => void;
+  autoApply?: boolean;
 }) {
   const [text, setText] = useState(""),
     [busy, setBusy] = useState(false),
@@ -119,9 +124,26 @@ export function StatementCapture({
                 },
               );
               if (!controller.signal.aborted) {
-                setText(result.text);
-                setConfidence(result.confidence);
-                parse(result.text);
+                if (autoApply) {
+                  const recognized = recognizedStatementValues(result.text);
+                  if (Object.keys(recognized).length === 0) {
+                    setError("Keine eindeutigen Belegwerte erkannt. Bitte ein schärferes Foto wählen oder Ist-Bestand manuell erfassen.");
+                    return;
+                  }
+                  onApply(recognized, {
+                    confirmedAt: new Date().toISOString(),
+                    months: 1,
+                    source: "photo",
+                    confidence: result.confidence,
+                    verified: false,
+                    recognizedFields: Object.keys(recognized),
+                  });
+                  onClose();
+                } else {
+                  setText(result.text);
+                  setConfidence(result.confidence);
+                  parse(result.text);
+                }
               }
             } catch (e) {
               if (!controller.signal.aborted) setError((e as Error).message);
@@ -131,11 +153,7 @@ export function StatementCapture({
   }
   return (
     <Modal title="Händlerabrechnung erfassen" onClose={onClose}>
-      <p>
-        Foto oder Kameraaufnahme wählen. Die Texterkennung läuft auf deinem
-        Gerät. Das Foto und der vollständige Belegtext werden nicht im CRM
-        gespeichert.
-      </p>
+      <p>{autoApply ? "Foto oder Datei auswählen. Sobald Werte erkannt sind, öffnet sich Ist-Bestand automatisch zur Korrektur." : "Foto oder Kameraaufnahme wählen. Die Texterkennung läuft auf deinem Gerät. Das Foto und der vollständige Belegtext werden nicht im CRM gespeichert."}</p>
       <p className="hint">Zwei getrennte Wege: Datei aus dem Gerätespeicher auswählen oder Kamera direkt öffnen. Die ursprüngliche Schaltfläche erzwang auf manchen Smartphones die Kamera.</p>
       <Field label="Abrechnung aus Dateien / Galerie auswählen (JPG, PNG, WebP)">
         <input
@@ -177,6 +195,7 @@ export function StatementCapture({
           </button>
         </div>
       )}
+      {!autoApply && <>
       <Field label="Erkannter Belegtext / Text manuell einfügen">
         <textarea
           rows={6}
@@ -318,6 +337,7 @@ export function StatementCapture({
           </button>
         </form>
       )}
+      </>}
       {error && (
         <p role="alert" className="error">
           {error}
