@@ -5,7 +5,6 @@ import type { Customer, Task, Division } from "../lib/types";
 import { appointmentTime, berlinDateTime } from "../lib/appointments";
 export function CustomerForm({
   customer,
-  division,
   onClose,
 }: {
   customer?: Customer;
@@ -15,7 +14,7 @@ export function CustomerForm({
   const { save, refresh } = useStore();
   return (
     <Modal
-      title={customer ? "Kundenakte bearbeiten" : "Neuen Standort erfassen"}
+      title={customer ? "Kundenakte bearbeiten" : "Neuen Kunden zentral erfassen"}
       onClose={onClose}
     >
       <AsyncForm
@@ -34,19 +33,13 @@ export function CustomerForm({
             notes: value(f, "notes"),
             lat: customer?.lat ?? null,
             lng: customer?.lng ?? null,
-            ...(!customer
-              ? {
-                  interests:
-                    value(f, "interest") === "both"
-                      ? (["sumup", "vape"] as Division[])
-                      : [value(f, "interest") as Division],
-                }
-              : {}),
+            ...(!customer ? { interests: ["sumup", "vape"] as Division[] } : {}),
           });
           await refresh();
           onClose();
         }}
       >
+        <p className="hint">Eine gemeinsame Kundenakte für SumUp und Vape. Eine Bereichsauswahl ist nicht erforderlich.</p>
         <div className="form-grid">
           <Field label="Unternehmen *">
             <input
@@ -104,15 +97,6 @@ export function CustomerForm({
               defaultValue={customer?.industry}
             />
           </Field>
-          {!customer && (
-            <Field label="Vertriebsbereich">
-              <select name="interest" defaultValue={division || "sumup"}>
-                <option value="sumup">SumUp</option>
-                <option value="vape">Händlerverwaltung</option>
-                <option value="both">Beide Bereiche</option>
-              </select>
-            </Field>
-          )}
         </div>
         <Field label="Notizen">
           <textarea
@@ -194,7 +178,7 @@ export function TaskForm({
             >
               <option value="">Zentral</option>
               <option value="sumup">SumUp</option>
-              <option value="vape">Händlerverwaltung</option>
+              <option value="vape">Vape</option>
             </select>
           </Field>
           <Field label="Fällig am * (deutsche Ortszeit)">
