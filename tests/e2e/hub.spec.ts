@@ -111,7 +111,7 @@ test("demo isolates data, creates linked customers, routes and offers", async ({
   await expect(page.locator("dialog")).toHaveCount(0);
   await navigate(page, "Angebote");
   await expect(
-    page.getByRole("button", { name: /ANG-\d{4}-00001/ }),
+    page.getByRole("button", { name: /^ANG-\d{4}-00001$/ }),
   ).toBeVisible();
   await page.getByRole("button", { name: /ANG-\d{4}-00001 PDF ansehen/ }).click();
   await expect(page.locator(".print-sheet")).toContainText("Teststandort");
