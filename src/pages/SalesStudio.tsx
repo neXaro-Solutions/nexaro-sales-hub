@@ -9,6 +9,7 @@ import { compareFieldSales, type ExistingProviderInput, type SumupPlan } from ".
 import { hardwareCatalog, catalogCheckedAt, catalogSource, catalogHardwareSource } from "../lib/sumup-sales";
 import { useStore } from "../lib/store";
 import type { OfferDraft } from "./Offers";
+import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
 
 const defaultCurrent: ExistingProviderInput = {
   volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
@@ -60,7 +61,7 @@ type SavedStudio = {
   current?:ExistingProviderInput; provider?:string; competitorHardware?:string;
   otherHardware?:string; contract?:string; payout?:string; future?:string;
   wishes?:Wish[]; plan?:SumupPlan; hardwareId?:HardwareId; quantity?:number;
-  notes?:string;
+  notes?:string; hardwareDiscount?:number;
 };
 const numeric=(s:string)=>Number(s);
 const editable=(value:number,onChange:(v:number)=>void,props:{step?:string;min?:string;max?:string}={})=>
@@ -86,6 +87,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const [plan,setPlan]=useState<SumupPlan| "">(saved.plan||"");
   const [hardwareId,setHardwareId]=useState<HardwareId| "">(saved.hardwareId||"");
   const [quantity,setQuantity]=useState(saved.quantity||1);
+  const [hardwareDiscount,setHardwareDiscount]=useState(saved.hardwareDiscount??0);
   const [notes,setNotes]=useState(saved.notes||"");
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState("");
@@ -129,6 +131,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const plus=useMemo(()=>{
     try{return compareFieldSales(current,"plus");}catch{return null;}
   },[current]);
+  const hardwarePrice=hardwareOfferPrice(selectedHardware.price??0,hardwareDiscount,quantity);
   const good=!!(estimate.data&&current.volume>0&&selectedHardware.price!==null&&
     Number.isSafeInteger(quantity)&&quantity>0&&quantity<=100);
   const offerNotes=()=>{
@@ -142,7 +145,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       "Vertragslaufzeit / Kündigung: "+(contract||"noch nicht erfasst"),
       "Bisheriger Auszahlungsturnus: "+(payLabel[payout]||payout),
       "Zukunftswunsch: "+(future||needs.join(", ")||"noch offen"),
-      "Gewünschte SumUp-Hardware: "+selectedHardware.name+" · "+quantity+" × "+money(selectedHardware.price||0)+" netto (regulärer Hardwarepreis).",
+      "Gewünschte SumUp-Hardware: "+selectedHardware.name+" · "+quantity+" × "+money(selectedHardware.price||0)+" netto regulär · "+hardwareDiscount+" % gewährter Rabatt · Angebot "+money(hardwarePrice.offerNet)+" netto.",
       "Differenz: "+money(a.monthlyDifference)+" / Monat bzw. "+money(a.annualDifference)+" / Jahr. Das ist eine unverbindliche Modellrechnung ohne eventuelle Wechselkosten.",
       "Preisstand "+catalogCheckedAt+" · Offizielle Konditionen: "+catalogSource,
       notes
@@ -153,7 +156,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     setSaving(true);setNotice("");
     try{
       const savedData={current,provider,competitorHardware:hardware,otherHardware,contract,payout,
-        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,notes};
+        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,hardwareDiscount,notes};
       await save("opportunities",{
         ...opportunity,customer_id:customerId,division:"sumup",stage:opportunity?.stage||"Neu",
         potential:current.volume,
@@ -167,12 +170,12 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     if(!good||!estimate.data)return;
     onOffer({
       division:"sumup",...(customerId?{customer_id:customerId}:{}),
-      lines:[{name:"SumUp "+selectedHardware.name+" · regulärer Hardwarepreis",quantity,
-        price:round(selectedHardware.price||0),vat:19}],
+      lines:[{name:"SumUp "+selectedHardware.name+" · Hardware"+(hardwareDiscount?" · "+hardwareDiscount+" % Nachlass":""),quantity,
+        price:hardwarePrice.discountedUnit,vat:19}],
       notes:offerNotes(),
       snapshot:{salesStudio:{current,provider,competitorHardware:hardware,otherHardware,
         contract,payout,future,wishes:needs,plan:selectedPlan,
-        sumupHardware:selectedHardware.name,quantity,
+        sumupHardware:selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:hardwarePrice,
         comparison:estimate.data,checkedAt:catalogCheckedAt,
         source:catalogSource,hardwareSource:catalogHardwareSource}}
     });
@@ -309,11 +312,17 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
             </select>
           </Field>
           <Field label="Stückzahl SumUp-Geräte">{editable(quantity,setQuantity,{step:"1",min:"1",max:"100"})}</Field>
-          <Field label="Hardware gesamt · netto">
-            <strong className="field-computed">{money((selectedHardware.price||0)*quantity)}</strong>
+          <Field label="Regulärer Hardwarepreis · netto">
+            <strong className="field-computed">{money(hardwarePrice.regularTotal)}</strong>
           </Field>
+          <Field label={"Gewährter Hardware-Rabatt · "+hardwareDiscount+" %"}>
+            <input aria-label="Hardware-Rabatt Prozent" type="range" min="0" max="25" step="1"
+              value={hardwareDiscount} onChange={e=>setHardwareDiscount(Number(e.target.value))}/>
+          </Field>
+          <Field label="Hardware-Nachlass · netto"><strong className="field-computed">{money(hardwarePrice.discountTotal)}</strong></Field>
+          <Field label="Hardware-Angebotspreis · netto"><strong className="field-computed">{money(hardwarePrice.offerNet)}</strong></Field>
         </div>
-        <p className="hint">Hardware-Empfehlung aus Bestandsgerät und Zukunftswünschen abgeleitet. Änderungen an Tarif und Gerät aktualisieren den Vergleich. Es werden ausschließlich reguläre Hardwarepreise verwendet.</p>
+        <p className="hint">Regulärer Hardwarepreis als Basis; dein individuell gewährter Nachlass beträgt standardmäßig 0 % und ist bis 25 % einstellbar. Monatliche Zahlgebühren bleiben separat.</p>
         {standard&&plus&&<div className="mini-stats">
           <div><span>SumUp Standard / Monat</span><b>{money(standard.sumupTotal)}</b></div>
           <div><span>SumUp Zahlungen Plus / Monat</span><b>{money(plus.sumupTotal)}</b></div>
