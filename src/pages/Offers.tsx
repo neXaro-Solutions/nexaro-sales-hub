@@ -4,6 +4,7 @@ import { Plus, Printer, Trash2, FileText, Receipt, ArrowRight } from "lucide-rea
 import { InvoiceForm, DocumentPreview, customerSnapshot } from "../components/BusinessDocuments";
 import { useStore } from "../lib/store";
 import { VapeOfferPicker } from "../components/VapeOfferPicker";
+import { SumupOfferComparison } from "../components/SumupOfferComparison";
 import {
   Card,
   Empty,
@@ -149,10 +150,10 @@ export function OfferForm({
           const next = blank ? [line] : [...current, line];
           return next.length > 100 ? current : next;
         })} />}
-        <p className="muted">
-          Positionspreise netto. Gebührenvergleiche gehören in die
-          Beratungsnotiz.
-        </p>
+        {division === "sumup" && <SumupOfferComparison
+          snapshot={offer?.snapshot || draft?.snapshot} compact />}
+        <p className="muted">Positionspreise netto. SumUp-Zahlungsgebühren erscheinen beim Vergleich separat
+          und werden nicht als Rechnungspositionen von neXaro berechnet.</p>
         {lines.map((l, i) => (
           <div className="offer-line" key={i}>
             <Field label="Bezeichnung *">
