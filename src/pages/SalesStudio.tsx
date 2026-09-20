@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type InputHTMLAttributes } from "react";
+import { EditableNumberInput } from "../components/EditableNumberInput";
+import { useEffect, useMemo, useState } from "react";
 import type { StatementReview } from "../components/StatementCapture";
 import { Card, Field, External } from "../components/UI";
 import { money, round, type PaymentInput } from "../lib/calculations";
@@ -74,36 +75,6 @@ function MultiChoiceDropdown<T extends string>({
 }
 /** Keep the in-progress text separate from the numeric calculation.
  * Otherwise deleting the last digit immediately renders 0 again on iOS. */
-function NumericInput({
-  value,
-  onChange,
-  onFocus,
-  onBlur,
-  ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, "value"> & {
-  value: number | string;
-}) {
-  const [draft, setDraft] = useState<string | null>(null);
-  return (
-    <input
-      {...props}
-      type="number"
-      value={draft ?? value}
-      onFocus={(e) => {
-        setDraft(Number(value) === 0 ? "" : String(value));
-        onFocus?.(e);
-      }}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        onChange?.(e);
-      }}
-      onBlur={(e) => {
-        setDraft(null);
-        onBlur?.(e);
-      }}
-    />
-  );
-}
 export function SalesStudio({
   customerId,
   onOffer,
@@ -295,7 +266,7 @@ export function SalesStudio({
             />
           </Field>
           <Field label="Voraussichtliches monatliches TPV (€)">
-            <NumericInput
+            <EditableNumberInput
               min="0"
               step=".01"
               value={input.monthlyVolume}
@@ -359,7 +330,7 @@ export function SalesStudio({
           </p>
           <div className="form-grid">
             <Field label="Ist-Gesamtkosten / Monat (€)">
-              <NumericInput
+              <EditableNumberInput
                 min="0"
                 step=".01"
                 disabled={!totalMode}
@@ -368,7 +339,7 @@ export function SalesStudio({
               />
             </Field>
             <Field label="Monatliche Fixkosten (€)">
-              <NumericInput
+              <EditableNumberInput
                 min="0"
                 step=".01"
                 value={input.currentFixed}
@@ -377,7 +348,7 @@ export function SalesStudio({
               />
             </Field>
             <Field label="Bestandsgebühr (%)">
-              <NumericInput
+              <EditableNumberInput
                 min="0"
                 max="100"
                 step=".01"
@@ -389,7 +360,7 @@ export function SalesStudio({
               />
             </Field>
             <Field label="Transaktionen / Monat">
-              <NumericInput
+              <EditableNumberInput
                 min="0"
                 step="1"
                 value={input.currentTransactionCount}
@@ -400,7 +371,7 @@ export function SalesStudio({
               />
             </Field>
             <Field label="Kosten je Transaktion (€)">
-              <NumericInput
+              <EditableNumberInput
                 min="0"
                 step=".01"
                 value={input.currentPerTransaction}
@@ -438,7 +409,7 @@ export function SalesStudio({
             <div className="form-grid">
               {keys.map(({ key, label }) => (
                 <Field key={key} label={label + " (€)"}>
-                  <NumericInput min="0" step=".01" value={input.mix[key]}
+                  <EditableNumberInput min="0" step=".01" value={input.mix[key]}
                     onChange={(e) => {
                       setMixOrigin("manual");
                       update("mix", { ...input.mix, [key]: num(e.target.value) });
@@ -474,12 +445,12 @@ export function SalesStudio({
             <button type="button" className="text-link" onClick={() => toggleHardware(selected.id)}>Entfernen</button>
             <div className="form-grid">
               <Field label="Menge">
-                <NumericInput min="1" max="100" step="1" value={selected.quantity}
+                <EditableNumberInput min="1" max="100" step="1" value={selected.quantity}
                   onChange={(e) => update("hardware", input.hardware.map((x) =>
                     x.id === selected.id ? { ...x, quantity: num(e.target.value) } : x))} />
               </Field>
               <Field label="Bestätigter Stückpreis netto (€)">
-                <NumericInput min="0" step=".01" value={selected.price ?? ""} placeholder="Preis prüfen"
+                <EditableNumberInput min="0" step=".01" value={selected.price ?? ""} placeholder="Preis prüfen"
                   onChange={(e) => update("hardware", input.hardware.map((x) =>
                     x.id === selected.id ? { ...x, price: e.target.value === "" ? null : num(e.target.value) } : x))} />
               </Field>
@@ -531,7 +502,7 @@ export function SalesStudio({
             <strong>{license?.name}</strong>
             <button type="button" className="text-link" onClick={() => toggleSubscription(chosen.id)}>Entfernen</button>
             <Field label="Bestätigte Monatskosten netto (€)">
-              <NumericInput min="0" step=".01" value={chosen.monthly ?? ""} placeholder="Preis prüfen"
+              <EditableNumberInput min="0" step=".01" value={chosen.monthly ?? ""} placeholder="Preis prüfen"
                 onChange={(e) => update("subscriptions", input.subscriptions.map((x) =>
                   x.id === chosen.id ? { ...x, monthly: e.target.value === "" ? null : num(e.target.value) } : x))} />
             </Field>
