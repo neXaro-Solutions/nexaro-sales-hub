@@ -33,7 +33,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [reviewFilter, setReviewFilter] = useState("all");
+  const [reviewFilter, setReviewFilter] = useState("ve");
   const [page, setPage] = useState(0);
   const [margin, setMargin] = useState(25);
   const [drafts, setDrafts] = useState<Record<string, { ve: string; pieces: string; single: string }>>({});
@@ -213,11 +213,16 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
     setDrafts(current => ({ ...current, [id]: { ...(current[id] || { ve: "", pieces: "", single: "" }), [field]: value } }));
 
   return <section className="card" aria-label="Vape Händlerimport und Freigaben">
-    <div className="card-head"><h2>Händlerimport & Produktfreigabe</h2></div>
-    <p>Inhaberansicht: VE standardmäßig · Einzelstückverkauf nur nach bestätigtem Einzelbezug und separater Freigabe.
-      Händler-Preiskandidaten sind keine freigegebenen Verkaufspreise.</p>
+    <div className="card-head"><h2>Dein Vape-Produktkatalog</h2></div>
+    <p>Freigegebene Verpackungseinheiten direkt in „Angebote & Rechnungen“ übernehmen. Einzelstücke sind optional.</p>
     {demo ? <p>In der Demo sind EK und Händlerimport deaktiviert.</p> : <>
-      <label className="field">Nur bei späteren Händlerexporten: neue Datei einlesen (dealer-products.json)
+      <div className="metrics">
+        <div className="card"><strong>{products.filter(p => p.ve_approved).length}</strong><p>Für VE-Angebote freigegeben</p></div>
+        <div className="card"><strong>{products.filter(p => !p.ve_approved && !p.single_approved).length}</strong><p>Weitere Händlerartikel</p></div>
+        <div className="card"><strong>{products.filter(p => p.single_approved).length}</strong><p>Einzelstück-Freigaben</p></div>
+      </div>
+      <details><summary>Verwaltung & zukünftige Händlerimporte (optional)</summary>
+      <label className="field">Neue Händlerdatei (dealer-products.json)
         <input type="file" accept=".json,application/json" disabled={busy} onChange={e => void readImport(e.target.files?.[0])} />
       </label>
       {pending && <button type="button" disabled={busy} onClick={() => void importDrafts()}>
@@ -251,6 +256,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
           {selectedBatch.length} ausgewählte VE-Artikel gemeinsam freigeben
         </button>
       </section>
+      </details>
       <div className="form-grid">
         <label className="field">Produkt oder EAN suchen
           <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Artikel suchen …" />
@@ -263,10 +269,10 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
         </label>
         <label className="field">Freigabestatus
           <select value={reviewFilter} onChange={e => { setReviewFilter(e.target.value); setPage(0); }}>
-            <option value="all">Alle Produkte</option>
-            <option value="pending">Ohne Freigabe</option>
-            <option value="ve">VE freigegeben</option>
-            <option value="single">Einzelstück freigegeben</option>
+            <option value="ve">Verkaufsfertige VE</option>
+            <option value="all">Alle Händlerartikel</option>
+            <option value="pending">Weitere Produkte (noch ohne VE-Preis)</option>
+            <option value="single">Freigegebene Einzelstücke</option>
           </select>
         </label>
         <label className="field">Marge: {margin} %
@@ -274,7 +280,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
             onChange={e => setMargin(Number(e.target.value))} />
         </label>
       </div>
-      <p role="status">{busy ? "Bearbeitung läuft …" : products.length + " Händlerartikel bereits im Sales Hub · " + filtered.length + " in der aktuellen Auswahl · " + products.filter(p => p.ve_approved).length + " VE-Freigaben · " + products.filter(p => p.single_approved).length + " Einzelstück-Freigaben"}</p>
+      <p role="status">{busy ? "Produkte werden geladen …" : filtered.length + " Produkte angezeigt"}</p>
       {notice && <p role="status">{notice}</p>}
       {error && <p role="alert" className="error">{error}</p>}
       {filtered.length > 25 && <div className="button-row">
@@ -284,9 +290,11 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
       </div>}
       {filtered.slice(currentPage * 25, currentPage * 25 + 25).map(p => <article className="card" key={p.id}>
         <h3>{p.name}</h3>
-        <small>{p.supplier_article_no || "Ohne Artikelnummer"} · {p.category || "Kategorie prüfen"} · {p.ean || "EAN fehlt"}</small>
-        <p>Händlerpreis-Kandidat netto: {p.supplier_price_candidate_net ? euro(p.supplier_price_candidate_net) : "fehlt"}
-          {" · "}{p.price_status}</p>
+        <small>{p.supplier_article_no || "Ohne Artikelnummer"} · {p.category || "Vape-Artikel"} {p.pieces_per_ve ? " · VE mit " + p.pieces_per_ve + " Stück" : ""}</small>
+        {p.ve_approved && p.ve_ek_net !== null && <p><strong>VK netto je VE: {euro(vapeSaleNet(p.ve_ek_net, margin))}</strong> · inkl. 19 % MwSt.: {euro(vapeSaleGross(vapeSaleNet(p.ve_ek_net, margin)))}</p>}
+        {!p.ve_approved && <p>Im Katalog vorhanden · Preis je Verkaufseinheit noch nicht zugeordnet.</p>}
+        <details><summary>Produkt bearbeiten / Einzelstückverkauf</summary>
+        <p>Händlerpreis-Kandidat netto: {p.supplier_price_candidate_net ? euro(p.supplier_price_candidate_net) : "fehlt"} · Preis je Verkaufseinheit prüfen</p>
         <div className="form-grid">
           <label className="field">Stück je vollständige VE
             <input type="number" min="1" step="1" disabled={busy || p.ve_approved}
@@ -324,6 +332,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
             onClick={() => void (p.single_approved ? revoke(p, "single") : save(p, "single"))}>
             {p.single_approved ? "Einzelstück-Freigabe zurücknehmen" : "Einzelstück nach Prüfung freigeben"}
           </button>
+        </details>
         </details>
       </article>)}
     </>}
