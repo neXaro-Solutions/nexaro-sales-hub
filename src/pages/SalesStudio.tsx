@@ -38,7 +38,7 @@ const initial: ComparisonInput = {
   currentVariablePercent: 1.5,
   currentTransactionCount: 0,
   currentPerTransaction: 0,
-  mix: { ...emptyMix, domesticDebit: 4000, unknown: 1000 },
+  mix: { ...emptyMix, domesticDebit: 4000, domesticCredit: 1000 },
   splitConfirmed: false,
   hardware: [],
   hardwareDiscount: 0,
@@ -137,7 +137,7 @@ export function SalesStudio({
             mix: {
               ...emptyMix,
               domesticDebit: round((value as number) * 0.8),
-              unknown: round((value as number) - round((value as number) * 0.8)),
+              domesticCredit: round((value as number) - round((value as number) * 0.8)),
             },
           }
         : {}),
