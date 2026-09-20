@@ -64,7 +64,7 @@ export function VapeCatalog({ demo }: { demo: boolean }) {
 
   return <section className="card" aria-label="Vape Produktkatalog">
     <div className="card-head"><h2>Vape-Produktkatalog</h2></div>
-    <p>Interner B2B-Katalog · Verkauf ausschließlich in vollständigen Verpackungseinheiten (VE). Bestellmenge 1 = 1 vollständige VE, Mindestmenge 1 VE, nur ganzzahlige VE. Der alte Produktstamm ist noch nicht mit dem Händlerexport abgeglichen: EK und VE vor jedem Angebot verifizieren.</p>
+    <p>Interner B2B-Katalog · Standardmäßig Verkauf in vollständigen Verpackungseinheiten (VE); Menge 1 = 1 VE. Einzelstückverkauf ausschließlich je Produkt nach bestätigter Einzelstück-Verfügbarkeit beim Großhändler, geprüftem Einzelstück-EK netto und ausdrücklicher Inhaberfreigabe. Die VE-Kalkulation ist nicht automatisch ein bestätigter Einzelstückpreis. Der Altstamm ist noch nicht mit dem Händlerexport abgeglichen: EK und VE vor jedem Angebot verifizieren.</p>
     <div className="form-grid">
       <label className="field">Suche nach Produkt, Artikelnummer, EAN oder Variante
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Produkt suchen …" />
