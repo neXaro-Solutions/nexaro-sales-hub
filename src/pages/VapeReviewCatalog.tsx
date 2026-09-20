@@ -38,6 +38,8 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
   const [margin, setMargin] = useState(25);
   const [drafts, setDrafts] = useState<Record<string, { ve: string; pieces: string; single: string }>>({});
   const [pending, setPending] = useState<SupplierDetail[] | null>(null);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [batchConfirmed, setBatchConfirmed] = useState(false);
 
   async function load() {
     setBusy(true);
@@ -65,6 +67,23 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
     [p.name, p.supplier_article_no, p.ean].some(s =>
       (s || "").toLocaleLowerCase("de-DE").includes(search.toLocaleLowerCase("de-DE").trim()))
   ), [products, search, category, reviewFilter]);
+  const groupCandidates = useMemo(() => products.filter(p =>
+    !p.ve_approved && p.pieces_per_ve !== null && p.pieces_per_ve > 0 &&
+    p.supplier_price_candidate_net !== null && p.supplier_price_candidate_net > 0 &&
+    /\\(VE\\s*=\\s*\\d+\\s*STK\\)/i.test(p.name) &&
+    !/\\b(BUNDLE|PROMO|AKTION)\\b/i.test(p.name)), [products]);
+  const veGroups = useMemo(() => {
+    const groups = new Map<string, { key: string; pieces: number; price: number; products: Draft[] }>();
+    for (const p of groupCandidates) {
+      const pieces = p.pieces_per_ve!;
+      const price = Number(p.supplier_price_candidate_net);
+      const key = pieces + ":" + price.toFixed(2);
+      if (!groups.has(key)) groups.set(key, { key, pieces, price, products: [] });
+      groups.get(key)!.products.push(p);
+    }
+    return [...groups.values()].sort((a, b) => a.pieces - b.pieces || a.price - b.price);
+  }, [groupCandidates]);
+  const selectedBatch = veGroups.filter(g => selectedGroups.includes(g.key)).flatMap(g => g.products);
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / 25) - 1));
 
   async function readImport(file: File | undefined) {
@@ -114,6 +133,47 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
     } catch (e) { setError("Import nicht abgeschlossen: " + (e instanceof Error ? e.message : "")); }
     finally { setBusy(false); }
   }
+  async function approveSelectedVE() {
+    if (!selectedBatch.length || !batchConfirmed || busy) return;
+    if (!window.confirm(
+      selectedBatch.length + " Produkte verbindlich für VE-Verkauf freigeben? " +
+      "Du bestätigst damit, dass der angezeigte Händler-EK netto den GESAMTPREIS der angegebenen VE darstellt. " +
+      "Einzelstückverkauf bleibt gesperrt."
+    )) return;
+    setBusy(true); setError(""); setNotice("");
+    let approved = 0;
+    try {
+      for (let i = 0; i < selectedBatch.length; i += 25) {
+        const group = selectedBatch.slice(i, i + 25);
+        // Match on both original candidate and VE size: do not approve a product whose
+        // price or pack size changed since the user reviewed it.
+        for (const p of group) {
+          const { data, error: dbError } = await client.from("nx_vape_catalog")
+            .update({
+              ve_ek_net: p.supplier_price_candidate_net,
+              ve_approved: true,
+              reviewed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", p.id)
+            .eq("ve_approved", false)
+            .eq("pieces_per_ve", p.pieces_per_ve!)
+            .eq("supplier_price_candidate_net", p.supplier_price_candidate_net!)
+            .select("id");
+          if (dbError) throw dbError;
+          if (data?.length === 1) approved++;
+        }
+      }
+      setSelectedGroups([]); setBatchConfirmed(false);
+      setNotice(approved + " VE-Artikel freigegeben. Einzelstücke und unklare Artikel bleiben gesperrt.");
+    } catch (e) {
+      setError(approved + " VE-Artikel gespeichert; weitere Freigaben abgebrochen: " +
+        (e instanceof Error ? e.message : "Unbekannter Datenbankfehler"));
+    } finally {
+      await load(); setBusy(false);
+    }
+  }
+
   async function save(p: Draft, field: "ve" | "single" | "supplier") {
     const v = drafts[p.id] || { ve: "", pieces: "", single: "" };
     const patch: Record<string, unknown> = { reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() };
@@ -163,6 +223,34 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
       {pending && <button type="button" disabled={busy} onClick={() => void importDrafts()}>
         {pending.length} Artikel als nicht freigegebene Entwürfe importieren
       </button>}
+      <section className="card" aria-label="Sammelprüfung und VE-Sammelfreigabe">
+        <h3>VE-Sammelprüfung statt 346 Einzelklicks</h3>
+        <p>Bei {groupCandidates.length} Artikeln stehen VE-Größe und ein positiver Netto-Preiskandidat im Händlerexport.
+          Die Liste ist nach gleicher VE-Größe und gleichem Preis gruppiert. Prüfe je Gruppe, ob der Betrag
+          tatsächlich der <strong>Gesamt-EK netto für diese vollständige VE</strong> ist. Ein „ab“- oder
+          Staffelpreis kann andernfalls etwas anderes bedeuten.</p>
+        <p>Unklare Produkte ohne VE-Angabe, Bundles und Einzelstückpreise werden nicht mitfreigegeben.</p>
+        {veGroups.map(g => <label key={g.key} style={{display:"block",padding:"0.65rem",borderBottom:"1px solid #8884"}}>
+          <input type="checkbox" disabled={busy} checked={selectedGroups.includes(g.key)}
+            onChange={e => {
+              setBatchConfirmed(false);
+              setSelectedGroups(current => e.target.checked ? [...current,g.key] : current.filter(k=>k!==g.key));
+            }} />
+          {" "}<strong>{g.products.length} Produkte · VE {g.pieces} Stück · EK-Kandidat {euro(g.price)} netto je VE</strong>
+          <br /><small>Beispiele: {g.products.slice(0,3).map(p=>p.name).join(" · ")}</small>
+        </label>)}
+        <label style={{display:"block",marginTop:"1rem"}}>
+          <input type="checkbox" disabled={busy || !selectedBatch.length}
+            checked={batchConfirmed} onChange={e => setBatchConfirmed(e.target.checked)} />
+          {" "}Ich habe die ausgewählten Gruppen geprüft und bestätige, dass der jeweilige Netto-Preis
+          für die vollständige angegebene VE gilt. Die Produktvarianten innerhalb dieser Gruppen
+          dürfen mit diesen Konditionen angeboten werden.
+        </label>
+        <button type="button" disabled={busy || !batchConfirmed || !selectedBatch.length}
+          onClick={() => void approveSelectedVE()}>
+          {selectedBatch.length} ausgewählte VE-Artikel gemeinsam freigeben
+        </button>
+      </section>
       <div className="form-grid">
         <label className="field">Produkt oder EAN suchen
           <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Artikel suchen …" />
