@@ -94,11 +94,24 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     setCurrent(old=>({...old,[key]:value}));
   useEffect(()=>{
     if(!photoAvailable||!photoReview)return;
-    const volume=round((photoInput.volume||0)+(photoInput.onlineVolume||0));
-    setCurrent(old=>({...old,volume,transactions:photoInput.transactions??old.transactions,
-      debitShare:old.debitShare===80?80:old.debitShare,
-      confirmedTotal:photoInput.currentTotal===undefined?old.confirmedTotal:photoInput.currentTotal}));
-    setReadReview("Die geprüften Belegwerte wurden übernommen. Bitte Kartenmix 80/20 und Wettbewerber-Gebührensätze mit dem Originalbeleg abgleichen. Du kannst alle Werte korrigieren.");
+    const recognized=new Set(photoReview.recognizedFields||[]);
+    const hasVolume=recognized.has("volume"),hasOnline=recognized.has("onlineVolume");
+    setCurrent(old=>({
+      ...old,
+      ...(hasVolume||hasOnline ? {volume:round(
+        (hasVolume?photoInput.volume:0)+(hasOnline?photoInput.onlineVolume:0)
+      )} : {}),
+      ...(recognized.has("transactions") ? {transactions:photoInput.transactions} : {}),
+      ...(recognized.has("currentTotal") ? {confirmedTotal:photoInput.currentTotal??null} : {})
+    }));
+    const labels:Record<string,string>={
+      volume:"Kartenumsatz",onlineVolume:"Online-Umsatz",
+      transactions:"Transaktionen",currentTotal:"Gesamtgebühren"
+    };
+    const fields=(photoReview.recognizedFields||[]).map(x=>labels[x]||x);
+    setReadReview(fields.length
+      ? "Automatisch aus dem Foto übernommen (noch nicht geprüft): "+fields.join(", ")+". Bitte alle Angaben kontrollieren und fehlende Werte ergänzen."
+      : "Aus dem Foto konnten keine eindeutigen Werte zugeordnet werden. Bitte Ist-Bestand manuell erfassen.");
   },[photoReview?.confirmedAt,photoAvailable]);
   const selectedPlan:SumupPlan=plan||(
     current.volume>0&&(()=>{
@@ -176,15 +189,10 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
         <b>{n}</b><span>{n===1?"Foto-Import":n===2?"Ist-Bestand":"Vergleichsangebot"}</span>
       </button>)}
     </div>
-    {step===1&&<Card title="01 · Foto-Import" eyebrow="BELEG ZUERST · MANUELLE EINGABE ALTERNATIV">
-      <p>Vorhandene Händlerabrechnung hochladen oder direkt fotografieren. Erfasste Werte werden im zweiten Schritt überprüft und können dort jederzeit korrigiert werden.</p>
+    {step===1&&<Card title="01 · Foto-Import" eyebrow="HÄNDLERABRECHNUNG">
       <button className="primary field-cta" type="button" onClick={onCapture}>
-        <Camera size={19}/> Foto / Abrechnung importieren
+        <Camera size={19}/> Foto aufnehmen / hochladen
       </button>
-      {photoAvailable&&photoReview&&<p role="status" className="notice">Beleg erfasst und vom Nutzer geprüft · {new Date(photoReview.confirmedAt).toLocaleDateString("de-DE")}</p>}
-      <p className="hint">Im Foto-Dialog gibt es getrennte Eingaben für „Datei/Galerie“ und „Kamera“. Der Belegtext bleibt lokal auf dem Gerät.</p>
-      <button className="secondary field-cta" onClick={()=>setStep(2)}>Ohne Foto manuell erfassen <ArrowRight size={17}/></button>
-      <a href="./testabrechnung.html" target="_blank" rel="noopener noreferrer" className="text-link">Testabrechnung öffnen</a>
     </Card>}
     {step===2&&<>
       <Card title="02 · Ist-Bestand" eyebrow="AKTUELLER ANBIETER & KARTENZAHLUNGEN">
