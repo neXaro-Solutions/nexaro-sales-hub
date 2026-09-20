@@ -22,7 +22,7 @@ export function rankProductPhoto<T extends PhotoProduct>(products: T[], text: st
     const words = [...new Set(tokens(item.name))];
     const common = words.filter(x => found.has(x));
     const score = words.length && common.length >= 2 ?
-      Math.round(100 * common.length / words.length) : 0;
+      Math.min(89, Math.round(100 * common.length / words.length)) : 0;
     return { item, score, reason: common.length ? common.join(" · ") : "Kein Texttreffer" };
   }).filter(result => result.score >= 25).sort((a,b) => b.score - a.score).slice(0,8);
 }
