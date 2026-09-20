@@ -131,7 +131,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const plus=useMemo(()=>{
     try{return compareFieldSales(current,"plus");}catch{return null;}
   },[current]);
-  const hardwarePrice=hardwareOfferPrice(selectedHardware.price??0,hardwareDiscount,quantity);
+  const hardwarePrice=hardwareOfferPrice(selectedHardware.price??0,hardwareDiscount,Number.isSafeInteger(quantity)&&quantity>=1&&quantity<=100?quantity:1);
   const good=!!(estimate.data&&current.volume>0&&selectedHardware.price!==null&&
     Number.isSafeInteger(quantity)&&quantity>0&&quantity<=100);
   const offerNotes=()=>{
