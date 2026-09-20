@@ -78,11 +78,17 @@ export function SumupOfferComparison({snapshot,compact=false}:{
       <small>{money(Math.abs(a.annualDifference))} / Jahr · ohne einmalige Hardware, bestehende Kündigungskosten und Sonderkonditionen</small>
     </div>
     <h4 className="sumup-benefits-title">Leistungen & Vorteile gegenübergestellt</h4>
-    <div className="sumup-offer-scroll"><table className="sumup-offer-table sumup-benefits-table">
-      <thead><tr><th scope="col">Merkmal</th><th scope="col">{previous}</th><th scope="col">SumUp · {plan}</th></tr></thead>
-      <tbody>{rows.map(([label,oldValue,newValue])=>
-        <tr key={label}><th scope="row">{label}</th><td>{oldValue}</td><td>{newValue}</td></tr>)}</tbody>
-    </table></div>
+    <div className="sumup-benefits-grid" role="table" aria-label="Vorteile und Leistungen im Vergleich">
+      <div className="sumup-benefits-row sumup-benefits-header" role="row">
+        <span role="columnheader">Merkmal</span><span role="columnheader">{previous}</span>
+        <span role="columnheader">SumUp · {plan}</span>
+      </div>
+      {rows.map(([label,oldValue,newValue])=>
+        <div className="sumup-benefits-row" role="row" key={label}>
+          <span role="rowheader">{label}</span><span role="cell">{oldValue}</span>
+          <span role="cell">{newValue}</span>
+        </div>)}
+    </div>
     <div className="sumup-tariff-card">
       <strong>Ausgewählter Tarif: {plan}</strong>
       <span>Vor Ort · EC/Debit: {percent(a.sumupDebit)} · Kredit/Premium modelliert: {percent(a.sumupCredit)}</span>
