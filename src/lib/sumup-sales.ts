@@ -209,19 +209,15 @@ export function compareOffers(input: ComparisonInput) {
             (input.monthlyVolume * input.currentVariablePercent) / 100 +
             input.currentTransactionCount * input.currentPerTransaction,
         );
-  const oneOffGross = input.hardware.reduce(
-    (s, h) => s + h.quantity * (h.price || 0),
-    0,
-  );
+  const regularHardwarePrice = (h: HardwareSelection) =>
+    hardwareCatalog.find((item) => item.id === h.id)?.price ?? h.price ?? 0;
   const hardwareNet = round(
     input.hardware.reduce(
-      (sum, h) =>
-        sum +
-        h.quantity * round(h.price || 0),
+      (sum, h) => sum + h.quantity * round(regularHardwarePrice(h)),
       0,
     ),
   );
-  const hardwareSaving = round(oneOffGross - hardwareNet);
+  const hardwareSaving = 0;
   const plans = (
     [
       {
