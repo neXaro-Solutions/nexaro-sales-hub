@@ -110,6 +110,17 @@ export function Dashboard({
           </span>
         </div>
       </div>
+      <Card title="Dein zentrales neXaro CRM" eyebrow="VERTRIEB · DOKUMENTE · WISSEN">
+        <p>SumUp-Vertriebsstudio, Händlerverwaltung, B2B-Katalog, Angebote, Rechnungen und Wissensdatenbank in einem System. Stand der Integration: 20.09.2026.</p>
+        <div className="button-row" style={{ flexWrap: "wrap" }}>
+          <button className="primary" onClick={() => navigate("sumup")}>SumUp-Beratung öffnen <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("vape")}>Vape-B2B-Katalog <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("offers")}>Angebote & Rechnungen <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("knowledge")}>Wissensdatenbank <ArrowRight size={15} /></button>
+          <a className="secondary" href="./testabrechnung.html" target="_blank" rel="noopener noreferrer">Testabrechnung drucken</a>
+        </div>
+        <p className="hint">SumUp-Hardware nur mit regulären Nettopreisen; Kartenmix standardmäßig 80 % Debit / 20 % Kredit. Nicht freigegebene Händlerpreise werden nicht als verbindliche VK übernommen.</p>
+      </Card>
       <DashboardWeather />
       <div className="metrics">
         <Metric
