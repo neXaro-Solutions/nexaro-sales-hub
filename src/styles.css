@@ -2817,3 +2817,50 @@ progress {
   body > dialog[open] .nx-document-table th,body > dialog[open] .nx-document-table td{overflow-wrap:anywhere}
   body > dialog[open] .sumup-benefits-table{min-width:0!important;table-layout:fixed}
 }
+
+
+/* CRM September: segmented cards with precise editable values, no generated images. */
+.mix-bars{display:grid;gap:23px;min-width:0}
+.mix-section{display:grid;gap:12px;min-width:0}
+.mix-section+.mix-section{border-top:1px solid #4a5544;padding-top:21px}
+.mix-section-heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:5px}
+.mix-section-heading strong{font-size:16px;color:#f0f1eb}
+.mix-section-heading span{font-size:11px;color:var(--muted)}
+.mix-segmented{display:flex;width:100%;height:53px;min-width:0;border-radius:9px;overflow:hidden;background:#353c30;border:1px solid #68725f}
+.mix-segment{display:flex;justify-content:center;align-items:center;min-width:0;transition:width .13s ease}
+.mix-segment b{font-size:18px;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:0}
+.mix-debit{background:#ff742d;color:#141814}
+.mix-credit{background:#3c5341;color:#f7f8f2}
+.mix-legend{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.mix-legend>span{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:11px;color:#cfd9c7;min-width:0}
+.mix-legend b{color:#e5eae0;font-size:12px}
+.mix-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.mix-orange{background:#ff742d}.mix-green{background:#63866d}
+.mix-section .range-field{margin:0;max-width:100%;min-width:0}
+.mix-rate-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.mix-rate-controls .range-field-values{grid-template-columns:minmax(0,1fr) 72px 14px!important;gap:6px!important}
+.mix-rate-controls .range-field>span{font-size:12px}
+.mix-rate-controls .range-field-values input[type=number]{font-size:15px!important}
+@media(max-width:650px){.mix-segmented{height:49px}.mix-segment b{font-size:15px}.mix-rate-controls{grid-template-columns:1fr}.mix-section-heading{align-items:flex-start;flex-direction:column}.mix-legend>span{flex:1 1 130px}}
+
+/* Replace crowded three-column native table with rows that reserve real cell space. */
+.sumup-benefits-grid{width:100%;min-width:0;display:grid;border:1px solid #475342;border-radius:8px;overflow:hidden}
+.sumup-benefits-row{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr) minmax(0,1.2fr);min-width:0}
+.sumup-benefits-row>span{display:block;padding:12px 10px;min-width:0;
+ white-space:normal!important;overflow-wrap:anywhere;word-break:normal;hyphens:auto;
+ line-height:1.55;font-size:clamp(10px,2.5vw,12px);letter-spacing:0}
+.sumup-benefits-row>span+span{border-left:1px solid #475342}
+.sumup-benefits-row+ .sumup-benefits-row{border-top:1px solid #475342}
+.sumup-benefits-row>span:first-child{font-weight:700}
+.sumup-benefits-row>span:last-child{background:#263626;color:#edf6e8}
+.sumup-benefits-header>span{font-weight:750;background:#283026;color:#e7eddf}
+.sumup-benefits-header>span:last-child{background:#344936}
+.nx-document .sumup-benefits-grid{border-color:#d0d7ca}
+.nx-document .sumup-benefits-row>span{font-size:9px;color:#20231f;padding:7px 5px}
+.nx-document .sumup-benefits-row>span+span{border-color:#d0d7ca}
+.nx-document .sumup-benefits-row+ .sumup-benefits-row{border-color:#d0d7ca}
+.nx-document .sumup-benefits-row>span:last-child{background:#f0f5ea}
+.nx-document .sumup-benefits-header>span{background:#e5eae0;color:#20231f}
+.nx-document .sumup-benefits-header>span:last-child{background:#dae6d3}
+@media(max-width:600px){.sumup-benefits-row>span{padding:9px 5px;font-size:10px;line-height:1.4}}
+@media print{.sumup-benefits-row{break-inside:avoid}.nx-document .sumup-benefits-row>span{font-size:8px}}
