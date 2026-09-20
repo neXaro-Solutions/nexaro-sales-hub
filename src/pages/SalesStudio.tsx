@@ -44,6 +44,34 @@ const initial: ComparisonInput = {
   subscriptions: [],
 };
 const num = (v: string) => Number(v);
+function MultiChoiceDropdown<T extends string>({
+  label, options, selected, onToggle,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  selected: T[];
+  onToggle: (value: T) => void;
+}) {
+  return (
+    <details className="multi-choice-dropdown">
+      <summary aria-label={label}>
+        {label} · {selected.length ? `${selected.length} ausgewählt` : "Bitte auswählen"}
+      </summary>
+      <div className="multi-choice-options" role="group" aria-label={label}>
+        {options.map((option) => (
+          <label className="checkbox-field" key={option.value}>
+            <input
+              type="checkbox"
+              checked={selected.includes(option.value)}
+              onChange={() => onToggle(option.value)}
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+}
 /** Keep the in-progress text separate from the numeric calculation.
  * Otherwise deleting the last digit immediately renders 0 again on iOS. */
 function NumericInput({
@@ -283,17 +311,14 @@ export function SalesStudio({
           </Field>
         </div>
         <h3>Produktinteresse</h3>
-        <Field label="Weiteres Produktinteresse auswählen">
-          <select value="" onChange={(e) => {
-            if (e.target.value) setProductInterest((old) =>
-              old.includes(e.target.value) ? old : [...old, e.target.value]);
-          }}>
-            <option value="">Bitte Produkt auswählen</option>
-            {["POS", "Kiosk", "Bank Account", "Another Product"]
-              .filter((x) => !productInterest.includes(x))
-              .map((x) => <option key={x} value={x}>{x}</option>)}
-          </select>
-        </Field>
+        <MultiChoiceDropdown
+          label="Produktinteresse auswählen"
+          options={["POS", "Kiosk", "Bank Account", "Another Product"].map((x) => ({ value: x, label: x }))}
+          selected={productInterest}
+          onToggle={(value) => setProductInterest((old) =>
+            old.includes(value) ? old.filter((x) => x !== value) : [...old, value]
+          )}
+        />
         {productInterest.map((x) => (
           <div className="recommendation" key={x}>
             <strong>{x}</strong>
@@ -433,16 +458,15 @@ export function SalesStudio({
         </Card>
       </div>
       <Card title="04 · Hardware" eyebrow="REGULÄRE NETTOPREISE">
-        <Field label="Hardware hinzufügen">
-          <select value="" onChange={(e) => {
-            if (e.target.value) toggleHardware(e.target.value as HardwareSelection["id"]);
-          }}>
-            <option value="">Bitte Hardware auswählen</option>
-            {hardwareCatalog.filter((item) => !input.hardware.some((h) => h.id === item.id)).map((item) =>
-              <option key={item.id} value={item.id}>{item.name} · {item.price === null ? "Preis prüfen" : money(item.price) + " netto"}</option>
-            )}
-          </select>
-        </Field>
+        <MultiChoiceDropdown
+          label="Hardware auswählen"
+          options={hardwareCatalog.map((item) => ({
+            value: item.id,
+            label: `${item.name} · ${item.price === null ? "Preis prüfen" : money(item.price) + " netto"}`,
+          }))}
+          selected={input.hardware.map((item) => item.id)}
+          onToggle={toggleHardware}
+        />
         {input.hardware.map((selected) => {
           const item = hardwareCatalog.find((x) => x.id === selected.id);
           return <div className="recommendation" key={selected.id}>
@@ -492,14 +516,15 @@ export function SalesStudio({
         title="05 · Lizenzen"
         eyebrow="WIEDERKEHRENDE NETTOKOSTEN, SOWEIT AUSGEWIESEN"
       >
-        <Field label="Lizenz hinzufügen">
-          <select value="" onChange={(e) => { if (e.target.value) toggleSubscription(e.target.value); }}>
-            <option value="">Bitte Lizenz auswählen</option>
-            {subscriptions.filter((s) => !input.subscriptions.some((x) => x.id === s.id)).map((s) =>
-              <option key={s.id} value={s.id}>{s.name} · {s.monthly === null ? "Preis prüfen" : money(s.monthly) + " / Monat"}</option>
-            )}
-          </select>
-        </Field>
+        <MultiChoiceDropdown
+          label="Lizenzen auswählen"
+          options={subscriptions.map((item) => ({
+            value: item.id,
+            label: `${item.name} · ${item.monthly === null ? "Preis prüfen" : money(item.monthly) + " / Monat"}`,
+          }))}
+          selected={input.subscriptions.map((item) => item.id)}
+          onToggle={toggleSubscription}
+        />
         {input.subscriptions.map((chosen) => {
           const license = subscriptions.find((s) => s.id === chosen.id);
           return <div className="recommendation" key={chosen.id}>
