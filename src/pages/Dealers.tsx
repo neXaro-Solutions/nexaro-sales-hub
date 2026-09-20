@@ -57,10 +57,10 @@ export function Dealers() {
           Kontakte & Dokumente
         </button>
         <button className={tab === "catalog" ? "active" : ""} onClick={() => setTab("catalog")}>
-          Produktkatalog
+          Alter Produktstamm
         </button>
         <button className={tab === "review" ? "active" : ""} onClick={() => setTab("review")}>
-          Händlerimport & Freigaben
+          Vape-Produktkatalog
         </button>
         <button
           className={tab === "tasks" ? "active" : ""}
