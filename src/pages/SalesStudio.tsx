@@ -1,4 +1,5 @@
-import { useMemo, useState, type InputHTMLAttributes } from "react";
+import { useEffect, useMemo, useState, type InputHTMLAttributes } from "react";
+import type { StatementReview } from "../components/StatementCapture";
 import { Card, Field, External } from "../components/UI";
 import { money, round, type PaymentInput } from "../lib/calculations";
 import {
@@ -36,7 +37,7 @@ const initial: ComparisonInput = {
   currentVariablePercent: 1.5,
   currentTransactionCount: 0,
   currentPerTransaction: 0,
-  mix: { ...emptyMix },
+  mix: { ...emptyMix, domesticDebit: 4000, unknown: 1000 },
   splitConfirmed: false,
   hardware: [],
   hardwareDiscount: 0,
@@ -80,11 +81,15 @@ export function SalesStudio({
   onOffer,
   photoInput,
   photoAvailable,
+  photoReview,
+  onCapture,
 }: {
   customerId: string;
   onOffer: (draft: OfferDraft) => void;
   photoInput: PaymentInput;
   photoAvailable: boolean;
+  photoReview: StatementReview | null;
+  onCapture: () => void;
 }) {
   const { data, save } = useStore();
   const opportunity = data.opportunities.find(
@@ -102,6 +107,8 @@ export function SalesStudio({
       }
     | undefined;
   const [input, setInput] = useState<ComparisonInput>(saved?.input || initial);
+  const [manualMixOpen, setManualMixOpen] = useState(false);
+  const [mixOrigin, setMixOrigin] = useState<"default" | "photo" | "manual">("default");
   const [provider, setProvider] = useState(saved?.provider || "");
   const [start, setStart] = useState(saved?.start || "");
   const [productInterest, setProductInterest] = useState<string[]>(
@@ -130,6 +137,43 @@ export function SalesStudio({
         ? { splitConfirmed: false }
         : {}),
     }));
+  useEffect(() => {
+    if (!photoAvailable || !photoReview) return;
+    const volume = photoInput.volume + photoInput.onlineVolume;
+    const eligible = photoReview.eligibleVolume;
+    const other = photoReview.otherVolume;
+    const hasBreakdown = eligible !== undefined || other !== undefined;
+    const knownEligible = eligible ?? 0;
+    const knownOther = other ?? 0;
+    const mix = hasBreakdown
+      ? {
+          ...emptyMix,
+          domesticDebit: knownEligible,
+          unknown: Math.max(0, photoInput.volume - knownEligible),
+          cardNotPresent: photoInput.onlineVolume,
+        }
+      : {
+          ...emptyMix,
+          domesticDebit: round(photoInput.volume * 0.8),
+          unknown: round(photoInput.volume * 0.2),
+          cardNotPresent: photoInput.onlineVolume,
+        };
+    setInput((old) => ({
+      ...old,
+      monthlyVolume: volume,
+      currentMode: photoInput.currentTotal !== undefined ? "total" : "formula",
+      currentMonthly: photoInput.currentTotal ?? 0,
+      currentFixed: photoInput.currentTotal === undefined ? photoInput.currentFixed : 0,
+      currentVariablePercent: photoInput.currentTotal === undefined ? photoInput.currentRate : 0,
+      currentTransactionCount: photoInput.currentTotal === undefined ? photoInput.transactions : 0,
+      currentPerTransaction: photoInput.currentTotal === undefined ? photoInput.currentPerTransaction : 0,
+      mix,
+      splitConfirmed: hasBreakdown && eligible !== undefined && other !== undefined &&
+        Math.abs(knownEligible + knownOther - photoInput.volume) <= 0.01,
+    }));
+    setMixOrigin("photo");
+  }, [photoReview?.confirmedAt, photoAvailable]);
+
   const toggleHardware = (id: HardwareSelection["id"]) => {
     setInput((old) => ({
       ...old,
@@ -325,147 +369,82 @@ export function SalesStudio({
               />
             </Field>
           </div>
-          <p className="hint">
-            📷 Abrechnung im Reiter „Analyse & Foto“ fotografieren und prüfen.
-            Anschließend hier übernehmen.
-          </p>
-          <button
-            className="secondary"
-            disabled={!photoAvailable}
-            onClick={() =>
-              setInput((old) => ({
-                ...old,
-                monthlyVolume: photoInput.volume + photoInput.onlineVolume,
-                currentMode:
-                  photoInput.currentTotal !== undefined ? "total" : "formula",
-                currentMonthly: photoInput.currentTotal ?? 0,
-                currentFixed:
-                  photoInput.currentTotal === undefined
-                    ? photoInput.currentFixed
-                    : 0,
-                currentVariablePercent:
-                  photoInput.currentTotal === undefined
-                    ? photoInput.currentRate
-                    : 0,
-                currentTransactionCount:
-                  photoInput.currentTotal === undefined
-                    ? photoInput.transactions
-                    : 0,
-                currentPerTransaction:
-                  photoInput.currentTotal === undefined
-                    ? photoInput.currentPerTransaction
-                    : 0,
-                mix: { ...emptyMix, cardNotPresent: photoInput.onlineVolume },
-                splitConfirmed: false,
-              }))
-            }
-          >
-            Geprüfte Foto-Abrechnung übernehmen
-          </button>
         </Card>
-        <Card title="03 · Kartenmix" eyebrow="TPV JE KARTENART">
+        <Card title="03 · Kartenmix" eyebrow="STANDARD 80 / 20 · BELEG HAT VORRANG">
+          <button className="primary" onClick={onCapture}>
+            📷 Händlerabrechnung fotografieren / hochladen
+          </button>
           <p className="hint">
-            Beträge pro Monat eingeben. Nicht erfasster Umsatz wird mit 1,39 %
-            kalkuliert, niemals stillschweigend als vergünstigte Karte.
+            Standard: 80 % für Zahlungen Plus geeignete inländische Debit-/Kreditkarten,
+            20 % andere Karten (konservativ mit 1,39 %). Das ist eine Schätzung,
+            keine bestätigte Händlerangabe.
           </p>
-          <div className="form-grid">
-            {keys.map(({ key, label }) => (
-              <Field key={key} label={label + " (€)"}>
-                <NumericInput
-                  min="0"
-                  step=".01"
-                  value={input.mix[key]}
-                  onChange={(e) =>
-                    update("mix", { ...input.mix, [key]: num(e.target.value) })
-                  }
-                />
-              </Field>
-            ))}
-          </div>
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              checked={input.splitConfirmed}
-              onChange={(e) => update("splitConfirmed", e.target.checked)}
-            />
-            Kartenmix anhand einer Abrechnung oder Händlerangabe geprüft
-          </label>
-          {result && result.missingMix > 0 && (
-            <p className="notice">
-              Noch nicht aufgeteilt: {money(result.missingMix)} des TPV.
+          {mixOrigin === "photo" && (
+            <p className="notice" role="status">
+              {input.splitConfirmed
+                ? "Geprüfte Kartenanteile aus der Foto-Abrechnung übernommen."
+                : "Belegumsatz übernommen. Ohne vollständige Kartenarten-Aufteilung bleibt der Kartenmix eine Schätzung bzw. ein unbekannter Anteil."}
             </p>
+          )}
+          <div className="mini-stats">
+            <div><span>Für Zahlungen Plus geeignete Karten</span><b>{input.monthlyVolume > 0 ? round((input.mix.domesticDebit + input.mix.domesticCredit) / input.monthlyVolume * 100) : 0} %</b></div>
+            <div><span>Andere / unbekannte Karten inkl. Online</span><b>{input.monthlyVolume > 0 ? round((input.monthlyVolume - input.mix.domesticDebit - input.mix.domesticCredit) / input.monthlyVolume * 100) : 0} %</b></div>
+          </div>
+          <details open={manualMixOpen} onToggle={(e) => setManualMixOpen(e.currentTarget.open)}>
+            <summary>Manuelle Kartendaten erfassen / korrigieren</summary>
+            <p className="hint">Beträge pro Monat in Euro. Die Summe darf den gesamten Kartenumsatz nicht übersteigen.</p>
+            <div className="form-grid">
+              {keys.map(({ key, label }) => (
+                <Field key={key} label={label + " (€)"}>
+                  <NumericInput min="0" step=".01" value={input.mix[key]}
+                    onChange={(e) => {
+                      setMixOrigin("manual");
+                      update("mix", { ...input.mix, [key]: num(e.target.value) });
+                    }} />
+                </Field>
+              ))}
+            </div>
+            <label className="checkbox-field">
+              <input type="checkbox" checked={input.splitConfirmed}
+                onChange={(e) => update("splitConfirmed", e.target.checked)} />
+              Vollständigen Kartenmix anhand der Abrechnung oder Händlerangabe geprüft
+            </label>
+          </details>
+          {result && result.missingMix > 0 && (
+            <p className="notice">Noch nicht aufgeteilt: {money(result.missingMix)} des TPV.</p>
           )}
         </Card>
       </div>
       <Card title="04 · Hardware" eyebrow="REGULÄRE NETTOPREISE">
-        <div className="solutions-grid">
-          {hardwareCatalog.map((item) => {
-            const selected = input.hardware.find((x) => x.id === item.id);
-            return (
-              <div key={item.id} className="recommendation">
-                <label className="checkbox-field">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(selected)}
-                    onChange={() => toggleHardware(item.id)}
-                  />{" "}
-                  <strong>{item.name}</strong>
-                </label>
-                <small>
-                  {item.price === null
-                    ? "Regulärpreis noch nicht öffentlich verifiziert"
-                    : money(item.price) + " netto / Stück"}
-                </small>
-                {selected && (
-                  <div className="form-grid">
-                    <Field label="Menge">
-                      <NumericInput
-                        min="1"
-                        max="100"
-                        step="1"
-                        value={selected.quantity}
-                        onChange={(e) =>
-                          update(
-                            "hardware",
-                            input.hardware.map((x) =>
-                              x.id === item.id
-                                ? { ...x, quantity: num(e.target.value) }
-                                : x,
-                            ),
-                          )
-                        }
-                      />
-                    </Field>
-                    <Field label="Bestätigter Stückpreis netto (€)">
-                      <NumericInput
-                        min="0"
-                        step=".01"
-                        value={selected.price ?? ""}
-                        placeholder="Preis prüfen"
-                        onChange={(e) =>
-                          update(
-                            "hardware",
-                            input.hardware.map((x) =>
-                              x.id === item.id
-                                ? {
-                                    ...x,
-                                    price:
-                                      e.target.value === ""
-                                        ? null
-                                        : num(e.target.value),
-                                  }
-                                : x,
-                            ),
-                          )
-                        }
-                      />
-                    </Field>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <Field label="Hardware hinzufügen">
+          <select value="" onChange={(e) => {
+            if (e.target.value) toggleHardware(e.target.value as HardwareSelection["id"]);
+          }}>
+            <option value="">Bitte Hardware auswählen</option>
+            {hardwareCatalog.filter((item) => !input.hardware.some((h) => h.id === item.id)).map((item) =>
+              <option key={item.id} value={item.id}>{item.name} · {item.price === null ? "Preis prüfen" : money(item.price) + " netto"}</option>
+            )}
+          </select>
+        </Field>
+        {input.hardware.map((selected) => {
+          const item = hardwareCatalog.find((x) => x.id === selected.id);
+          return <div className="recommendation" key={selected.id}>
+            <strong>{item?.name}</strong>
+            <button type="button" className="text-link" onClick={() => toggleHardware(selected.id)}>Entfernen</button>
+            <div className="form-grid">
+              <Field label="Menge">
+                <NumericInput min="1" max="100" step="1" value={selected.quantity}
+                  onChange={(e) => update("hardware", input.hardware.map((x) =>
+                    x.id === selected.id ? { ...x, quantity: num(e.target.value) } : x))} />
+              </Field>
+              <Field label="Bestätigter Stückpreis netto (€)">
+                <NumericInput min="0" step=".01" value={selected.price ?? ""} placeholder="Preis prüfen"
+                  onChange={(e) => update("hardware", input.hardware.map((x) =>
+                    x.id === selected.id ? { ...x, price: e.target.value === "" ? null : num(e.target.value) } : x))} />
+              </Field>
+            </div>
+          </div>;
+        })}
         <Field label={`Hardware-Rabatt: ${input.hardwareDiscount} % (0–25 %)`}>
           <input
             type="range"
@@ -496,54 +475,26 @@ export function SalesStudio({
         title="05 · Lizenzen"
         eyebrow="WIEDERKEHRENDE NETTOKOSTEN, SOWEIT AUSGEWIESEN"
       >
-        <div className="solutions-grid">
-          {subscriptions.map((s) => {
-            const chosen = input.subscriptions.find((x) => x.id === s.id);
-            return (
-              <div className="recommendation" key={s.id}>
-                <label className="checkbox-field">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(chosen)}
-                    onChange={() => toggleSubscription(s.id)}
-                  />{" "}
-                  <strong>{s.name}</strong>
-                </label>
-                <small>
-                  {s.monthly === null
-                    ? "Preis auf Anfrage / nicht verifiziert"
-                    : money(s.monthly) + " monatlich"}
-                </small>
-                {chosen && (
-                  <Field label="Bestätigte Monatskosten netto (€)">
-                    <NumericInput
-                      min="0"
-                      step=".01"
-                      value={chosen.monthly ?? ""}
-                      placeholder="Preis prüfen"
-                      onChange={(e) =>
-                        update(
-                          "subscriptions",
-                          input.subscriptions.map((x) =>
-                            x.id === s.id
-                              ? {
-                                  ...x,
-                                  monthly:
-                                    e.target.value === ""
-                                      ? null
-                                      : num(e.target.value),
-                                }
-                              : x,
-                          ),
-                        )
-                      }
-                    />
-                  </Field>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <Field label="Lizenz hinzufügen">
+          <select value="" onChange={(e) => { if (e.target.value) toggleSubscription(e.target.value); }}>
+            <option value="">Bitte Lizenz auswählen</option>
+            {subscriptions.filter((s) => !input.subscriptions.some((x) => x.id === s.id)).map((s) =>
+              <option key={s.id} value={s.id}>{s.name} · {s.monthly === null ? "Preis prüfen" : money(s.monthly) + " / Monat"}</option>
+            )}
+          </select>
+        </Field>
+        {input.subscriptions.map((chosen) => {
+          const license = subscriptions.find((s) => s.id === chosen.id);
+          return <div className="recommendation" key={chosen.id}>
+            <strong>{license?.name}</strong>
+            <button type="button" className="text-link" onClick={() => toggleSubscription(chosen.id)}>Entfernen</button>
+            <Field label="Bestätigte Monatskosten netto (€)">
+              <NumericInput min="0" step=".01" value={chosen.monthly ?? ""} placeholder="Preis prüfen"
+                onChange={(e) => update("subscriptions", input.subscriptions.map((x) =>
+                  x.id === chosen.id ? { ...x, monthly: e.target.value === "" ? null : num(e.target.value) } : x))} />
+            </Field>
+          </div>;
+        })}
         <p className="hint">
           Geschäftskonto Plus ist öffentlich mit 25 € inkl. MwSt. ausgewiesen;
           vor einem Netto-Angebot steuerliche Behandlung gesondert prüfen.
@@ -582,25 +533,17 @@ export function SalesStudio({
               <span>Zusätzliche SumUp Lizenzen</span>
               <strong>{money(result.fixedSubs)} / Monat</strong>
             </div>
+            <Field label="SumUp-Tarif auswählen">
+              <select value={planId || result.best.id} onChange={(e) => setPlanId(e.target.value)}>
+                {result.plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>{plan.title}{plan.id === result.best.id ? " · niedrigste 12-Monats-Kosten" : ""}</option>
+                ))}
+              </select>
+            </Field>
             {result.plans.map((plan) => (
               <div className="cost-row" key={plan.id}>
-                <label className="checkbox-field">
-                  <input
-                    type="radio"
-                    name="sales-plan"
-                    checked={(planId || result.best.id) === plan.id}
-                    onChange={() => setPlanId(plan.id)}
-                  />
-                  {plan.title}
-                  {plan.id === result.best.id && (
-                    <small> · niedrigste berechnete 12-Monats-Kosten</small>
-                  )}
-                </label>
-                <strong>
-                  {money(plan.monthly)} / Monat
-                  <br />
-                  <small>Jahr 1 inkl. Hardware: {money(plan.year)}</small>
-                </strong>
+                <span>{plan.title}</span>
+                <strong>{money(plan.monthly)} / Monat<br /><small>Jahr 1 inkl. Hardware: {money(plan.year)}</small></strong>
               </div>
             ))}
             {selected && (
