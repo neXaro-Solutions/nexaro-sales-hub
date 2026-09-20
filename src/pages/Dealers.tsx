@@ -3,6 +3,7 @@ import { useStore } from "../lib/store";
 import { Customers } from "./Customers";
 import { Tasks } from "./Tasks";
 import { VapeCatalog } from "./VapeCatalog";
+import { VapeReviewCatalog } from "./VapeReviewCatalog";
 import { Metric } from "../components/UI";
 import { dayKey, today } from "../lib/calculations";
 export function Dealers() {
@@ -58,6 +59,9 @@ export function Dealers() {
         <button className={tab === "catalog" ? "active" : ""} onClick={() => setTab("catalog")}>
           Produktkatalog
         </button>
+        <button className={tab === "review" ? "active" : ""} onClick={() => setTab("review")}>
+          Händlerimport & Freigaben
+        </button>
         <button
           className={tab === "tasks" ? "active" : ""}
           onClick={() => setTab("tasks")}
@@ -69,6 +73,8 @@ export function Dealers() {
         <Customers division="vape" />
       ) : tab === "catalog" ? (
         <VapeCatalog demo={demo} />
+      ) : tab === "review" ? (
+        <VapeReviewCatalog demo={demo} />
       ) : (
         <Tasks division="vape" />
       )}
