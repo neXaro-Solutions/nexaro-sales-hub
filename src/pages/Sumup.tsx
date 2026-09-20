@@ -239,6 +239,7 @@ export function Sumup() {
                 <button className="primary" onClick={() => setCapture(true)}>
                   <FileText size={16} /> Abrechnung fotografieren / hochladen
                 </button>
+                <a className="secondary" style={{ marginLeft: 10 }} href="./testabrechnung.html" target="_blank" rel="noopener noreferrer">Testabrechnung zum Drucken</a>
                 {statement && (
                   <p className="hint">
                     Geprüfter Beleg übernommen · {statement.months} Monat(e),
@@ -616,7 +617,7 @@ export function Sumup() {
                 ))}
               </div>
               <p className="hint">
-                Öffentliche Aktionspreise, geprüft am {dateLabel(checkedAt)}.
+                Reguläre Hardware-Referenzpreise ohne Aktionen oder Rabatte, geprüft am {dateLabel(checkedAt)}.
                 Verfügbarkeit und Konditionen können sich ändern.
               </p>
               <External href={hardwareSource}>
