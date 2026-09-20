@@ -26,7 +26,7 @@ export function rankProductPhoto(products: Product[], text: string, barcodes: st
     const ean = (item.ean || "").replace(/\D/g,"");
     const article = normalize(item.supplier_article_no || "");
     if (ean && codes.has(ean)) return { item, score: 100, reason: "EAN / Barcode exakt" };
-    if (article.length >= 4 && new RegExp("(^| )" + article.replace(/[.*+?^$()|[\]{}\\]/g,"\\$&") + "( |$)").test(corpus))
+    if (article.length >= 4 && (" " + corpus + " ").includes(" " + article + " "))
       return { item, score: 95, reason: "Artikelnummer exakt" };
     const words = [...new Set(tokens(item.name))];
     const common = words.filter(x => found.has(x));
@@ -160,6 +160,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
     const validSingle=!!(p.single_approved&&p.supplier_single_available&&p.single_ek_net);
     const price=unit==="VE"&&validVE?p.ve_ek_net:unit==="Stück"&&validSingle?p.single_ek_net:null;
     if(!price||!Number.isSafeInteger(quantity)||quantity<1)return;
+    setActive(null);
     onOffer({division:"vape",lines:[{
       name:p.name+" · "+(unit==="VE"?"1 VE = "+p.pieces_per_ve+" Stück":"Einzelstück")+
         (p.supplier_article_no?" · Art. "+p.supplier_article_no:""),
