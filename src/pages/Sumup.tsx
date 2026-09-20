@@ -5,6 +5,8 @@ import { useStore } from "../lib/store";
 import type { PaymentInput } from "../lib/calculations";
 import { SalesStudio } from "./SalesStudio";
 import { OfferForm, type OfferDraft } from "./Offers";
+import { DocumentPreview } from "../components/BusinessDocuments";
+import type { Offer } from "../lib/types";
 
 const emptyStatement: PaymentInput = {
   volume: 0, onlineVolume: 0, transactions: 0, eligibleShare: 80,
@@ -19,6 +21,7 @@ export function Sumup() {
   const [photoInput,setPhotoInput] = useState<PaymentInput>(emptyStatement);
   const [photoReview,setPhotoReview] = useState<StatementReview|null>(null);
   const [draft,setDraft] = useState<OfferDraft|null>(null);
+  const [preview,setPreview] = useState<Offer|null>(null);
   return <>
     <div className="section-intro">
       <div><DivisionBadge division="sumup"/><h1>SumUp Vertrieb</h1>
@@ -50,6 +53,7 @@ export function Sumup() {
         setStep(2);
         setCapture(false);
       }}/>}
-    {draft&&<OfferForm draft={draft} onClose={()=>setDraft(null)}/>}
+    {draft&&<OfferForm draft={draft} onClose={()=>setDraft(null)} onSaved={saved=>setPreview(saved)}/>}
+    {preview&&<DocumentPreview document={preview} onClose={()=>setPreview(null)}/>}
   </>;
 }
