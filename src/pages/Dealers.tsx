@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useStore } from "../lib/store";
 import { Customers } from "./Customers";
 import { Tasks } from "./Tasks";
+import { VapeCatalog } from "./VapeCatalog";
 import { Metric } from "../components/UI";
 import { dayKey, today } from "../lib/calculations";
 export function Dealers() {
-  const { data } = useStore();
+  const { data, demo } = useStore();
   const [tab, setTab] = useState("contacts");
   const ids = new Set(
     data.opportunities
@@ -54,6 +55,9 @@ export function Dealers() {
         >
           Kontakte & Dokumente
         </button>
+        <button className={tab === "catalog" ? "active" : ""} onClick={() => setTab("catalog")}>
+          Produktkatalog
+        </button>
         <button
           className={tab === "tasks" ? "active" : ""}
           onClick={() => setTab("tasks")}
@@ -63,6 +67,8 @@ export function Dealers() {
       </div>
       {tab === "contacts" ? (
         <Customers division="vape" />
+      ) : tab === "catalog" ? (
+        <VapeCatalog demo={demo} />
       ) : (
         <Tasks division="vape" />
       )}
