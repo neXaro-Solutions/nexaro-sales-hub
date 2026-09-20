@@ -33,12 +33,12 @@ import { Settings } from "./pages/Settings";
 const nav = [
   { id: "dashboard", label: "Übersicht", icon: LayoutDashboard },
   { id: "customers", label: "Kunden & Leads", icon: Users },
+  { id: "routes", label: "Tagesroute", icon: Map },
+  { id: "sumup", label: "SumUp", icon: CreditCard },
+  { id: "vape", label: "Vape", icon: Package },
+  { id: "offers", label: "Angebote & Rechnungen", icon: FileText },
+  { id: "knowledge", label: "Vertriebswissen", icon: BookOpen },
   { id: "tasks", label: "Aufgaben", icon: CheckSquare },
-  { id: "routes", label: "Gebiet & Tagesroute", icon: Map },
-  { id: "sumup", label: "SumUp Vertrieb", icon: CreditCard },
-  { id: "vape", label: "Vape", icon: Users },
-  { id: "offers", label: "Angebote", icon: FileText },
-  { id: "knowledge", label: "Wissensdatenbank", icon: BookOpen },
   { id: "settings", label: "System & Sicherung", icon: SettingsIcon },
 ];
 class ErrorBoundary extends Component<
@@ -107,10 +107,10 @@ function Shell({ onLogout }: { onLogout: () => void }) {
         <nav>
           {nav.map((n, i) => (
             <div key={n.id}>
-              {i === 4 && (
+              {i === 3 && (
                 <span className="nav-section">VERTRIEBSBEREICHE</span>
               )}
-              {i === 8 && <span className="nav-section">VERWALTUNG</span>}
+              {i === 7 && <span className="nav-section">ORGANISATION</span>}
               <button
                 className={page === n.id ? "active" : ""}
                 onClick={() => navigate(n.id)}
