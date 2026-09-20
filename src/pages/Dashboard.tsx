@@ -142,7 +142,7 @@ export function Dashboard({
           icon={<Target size={17} />}
         />
         <Metric
-          label="Händlerkontakte"
+          label="Vape-Händler"
           value={dealerCount}
           detail="Neutrale Betreuung und Dokumentation"
         />
