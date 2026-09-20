@@ -71,7 +71,7 @@ export function OfferForm({
           if (!c && status !== "Entwurf")
             throw Error("Ohne Kundenauswahl kannst du das Angebot als Entwurf speichern. Kunde vor Versand zuordnen.");
           if (c && !data.opportunities.some((o) => o.customer_id === customer_id && o.division === division)) {
-            await save("opportunities", { customer_id, division, stage: "Neu", potential: 0, details: {} });
+            await save("opportunities", { customer_id: c.id, division, stage: "Neu", potential: 0, details: {} });
           }
           await save("offers", {
             ...offer,
