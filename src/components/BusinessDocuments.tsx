@@ -1,3 +1,4 @@
+import { EditableNumberInput } from "./EditableNumberInput";
 import { useState } from "react";
 import { Plus, Printer, Trash2 } from "lucide-react";
 import { AsyncForm, Field, Modal } from "../components/UI";
@@ -71,8 +72,8 @@ export function InvoiceForm({
         </div>
         {lines.map((l, i) => <div className="offer-line" key={i}>
           <Field label="Position *"><input required maxLength={300} value={l.name} onChange={(e) => update(i, "name", e.target.value)} /></Field>
-          <Field label="Menge"><input required type="number" min="1" max="1000000" step="1" value={l.quantity} onChange={(e) => update(i, "quantity", Number(e.target.value))} /></Field>
-          <Field label="Einzelpreis netto (€)"><input required type="number" min="0" max="1000000000" step=".01" value={l.price} onChange={(e) => update(i, "price", Number(e.target.value))} /></Field>
+          <Field label="Menge"><EditableNumberInput required min="1" max="1000000" step="1" value={l.quantity} onChange={(e) => update(i, "quantity", Number(e.target.value))} /></Field>
+          <Field label="Einzelpreis netto (€)"><EditableNumberInput required min="0" max="1000000000" step=".01" value={l.price} onChange={(e) => update(i, "price", Number(e.target.value))} /></Field>
           <Field label="MwSt. (%)"><select value={l.vat} onChange={(e) => update(i, "vat", Number(e.target.value))}><option value={19}>19 %</option><option value={7}>7 %</option><option value={0}>0 %</option></select></Field>
           <button type="button" className="icon-button" aria-label={`Position ${i+1} entfernen`} disabled={lines.length === 1} onClick={() => setLines((v) => v.filter((_, j) => j !== i))}><Trash2 size={16}/></button>
         </div>)}
