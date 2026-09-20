@@ -133,6 +133,15 @@ export function SalesStudio({
     setInput((old) => ({
       ...old,
       [key]: value,
+      ...(key === "monthlyVolume" && mixOrigin === "default"
+        ? {
+            mix: {
+              ...emptyMix,
+              domesticDebit: round((value as number) * 0.8),
+              unknown: round((value as number) - round((value as number) * 0.8)),
+            },
+          }
+        : {}),
       ...(["mix", "monthlyVolume"].includes(key)
         ? { splitConfirmed: false }
         : {}),
@@ -237,6 +246,10 @@ export function SalesStudio({
         ausgewiesen. Hardware netto; Preis und Verfügbarkeit vor Versand des
         Angebots verifizieren.
       </p>
+      <div className="recommendation">
+        <button className="primary" onClick={onCapture}>📷 Händlerabrechnung fotografieren / hochladen</button>
+        <p className="hint">Erster Schritt: Beleg erfassen, Werte prüfen und automatisch in Kartenmix und Kostenvergleich übernehmen.</p>
+      </div>
       <Card title="01 · Händler und Bedarf" eyebrow="QUALIFIZIERUNG">
         <div className="form-grid">
           <Field label="Erwartetes Startdatum (optional)">
