@@ -1,0 +1,211 @@
+/*
+ * neXaro Field Sales — light identity. Brand mark remains untouched.
+ * Orange = action, neon green = progress/positive, neon yellow = highlights.
+ * Dark ink always carries long-form text for readable mobile and print layouts.
+ */
+:root {
+  color-scheme:light;
+  color:#182119;
+  background:#fff;
+  --bg:#fff;
+  --panel:#fff;
+  --panel2:#f7f9f5;
+  --border:#dce4da;
+  --muted:#526051;
+  --orange:#ff671f;
+  --orange-light:#b33d07;
+  --green:#9cff00;
+  --neon-green:#a3ff12;
+  --neon-yellow:#f4ff37;
+  --ink:#182119;
+  --ink-soft:#394739;
+  --soft-green:#f0ffdb;
+  --soft-yellow:#fbffe5;
+  --soft-orange:#fff2e9;
+  color-scheme:light;
+}
+html,body,#root,.app-shell,.main-shell,main{background:#fff;color:var(--ink)}
+body{color-scheme:light}
+p,small,.muted,.hint,.field>span{color:var(--muted)}
+h1,h2,h3,h4,strong,dt,dd{color:var(--ink)}
+.eyebrow{color:#b84000}
+.brand{color:#172018}
+.brand>small{color:#394739}
+.brand>div>span{color:var(--orange)}
+.sidebar,.topbar{background:#fff;color:var(--ink);border-color:var(--border)}
+.sidebar{box-shadow:3px 0 19px #14250e08}
+.workspace-label{background:var(--soft-yellow);color:#37452c;border-color:#e3edb4}
+.workspace-label>span:last-child{color:#58624f}
+nav>div>button{color:#344431}
+nav>div>button:hover{background:#f1ffde;color:#263a13}
+nav>div>button.active{background:var(--soft-orange);color:#a83500;border-color:#ffbc98;box-shadow:inset 3px 0 0 var(--orange)}
+nav>div>button.active svg{color:var(--orange)}
+.nav-section,.brand-promise,.profile small,.top-date,.breadcrumb,.app-footer{color:#5b6954}
+.breadcrumb b,.profile strong{color:var(--ink)}
+.profile,.sidebar-bottom{border-color:var(--border)}
+.profile>span,.avatar{background:var(--neon-green);border-color:#6bc500;color:#1c2b0a}
+.connection{color:#356515}.connection i{background:#64b800}
+.welcome{border-color:var(--border)}
+.welcome h1 span{color:#567a20}
+.welcome-art>span{color:#52604e}.welcome-art b{color:#b73d00}
+.x-shape{-webkit-text-stroke-color:#ffad70}
+.primary{background:var(--orange);color:#20150d;border-color:var(--orange)}
+.primary:hover:not(:disabled){background:#ff8a50;border-color:#ff8a50;color:#20150d}
+.secondary{background:#fff;border-color:#c7d2c5;color:#263726}
+.secondary:hover:not(:disabled){background:var(--soft-green);border-color:#70b62b;color:#213219}
+.icon-button,.text-button,.text-link{color:#2c5530}
+.icon-button:hover,.text-button:hover,.text-link:hover{background:var(--soft-green);color:#924008}
+.card,.metric,dialog,.login-panel{background:#fff;color:var(--ink);border-color:var(--border)}
+.card{box-shadow:0 3px 14px #1e321009}
+.metric-top,.metric>small,.card-head .eyebrow,.hint{color:var(--muted)}
+.metric-top svg,.quiet-box svg{color:#5c9a19}
+.metrics .metric:nth-child(2){border-top:3px solid var(--orange)}
+.metrics .metric:nth-child(3){border-top:3px solid #9cff00}
+.metrics .metric:nth-child(4){border-top:3px solid #e8f500}
+.task-row,.activity-list>div,.card-footer,.quiet-box,.tabs,.profile{border-color:var(--border)}
+.card-footer{color:#346018}
+.division-card,.context-bar,.comparison-product,.quiet-box,.mini-stats,.recommendation{
+ background:#f7faf4;color:var(--ink);border-color:var(--border)
+}
+.division-card:hover{background:var(--soft-green)}
+.division-card strong,.comparison-product dd,.total-strip b{color:var(--ink)}
+.division-card>svg,.comparison-product>strong,.comparison-product dt{color:#4d7c22}
+.division-icon{background:var(--soft-orange);color:#ba4100;border-color:#ffc39e}
+.vape-icon{background:var(--soft-green);color:#356515;border-color:#a6dc69}
+.quiet-box strong{color:#2e5329}
+.badge{background:#f4f8ee;color:#395330;border-color:#d0dfbf}
+.badge.sumup{background:var(--soft-orange);color:#ae4107;border-color:#ffd0ab}
+.badge.vape,.badge.positive{background:var(--soft-green);color:#335f14;border-color:#b7e57e}
+.badge.danger{background:#fff0ed;color:#9d351c;border-color:#eec1b7}
+.pipeline>div>div:first-child,.activity-list small,.mini-stats span{color:var(--muted)}
+.pipeline b{color:var(--ink)}
+.pipeline-track{background:#dfe8d5}.activity-dot{background:#80c800}
+.tabs>button{color:#4c5e46}
+.tabs>button.active{color:#a83b00;border-color:var(--orange);background:#fff5ed}
+.search,input,select,textarea,.multi-choice-dropdown{
+ background:#fff;color:var(--ink);border-color:#cbd7c5
+}
+.search{background:#fff}
+.search svg{color:#668358}
+.search input{background:transparent;color:var(--ink)}
+input::placeholder,textarea::placeholder{color:#75816f}
+input:focus,select:focus,textarea:focus{border-color:#ff863a}
+input[type=range]{accent-color:var(--orange);color:var(--orange)}
+input[type=checkbox]{accent-color:#70c500}
+.field>span,th,.offer-line label{color:#3e513b}
+td,.customer-link{color:var(--ink)}
+th{background:#f3f8eb;border-color:var(--border)}
+tr,td,.table-wrap{border-color:var(--border)}
+.customer-link:hover{color:#bb4600}
+.empty-mark{background:var(--soft-green);color:#376b12}
+.notice{background:var(--soft-yellow);border-color:#dce575;color:#475100}
+.error{background:#fff1ec;border-color:#e7a997;color:#a7361d}
+.recommendation{background:linear-gradient(115deg,#fff4e9,#f2ffdd)}
+.recommendation>strong,.solution-price{color:#aa3d00}
+.recommendation>strong small,.solutions-grid ul,.guide-steps button{color:#4c5b44}
+.solution-number{color:#658b3e}.solution-price del{color:#6d7766}
+.guide-steps button.active{background:var(--soft-orange);color:#aa3d00;border-color:#f9c49c}
+blockquote,.profit-number{color:#366814}
+.total-strip{background:var(--soft-green);border-color:#b9e77d}
+.total-strip span{color:#3a6228}
+.stop-number{background:var(--neon-yellow);color:#333900}
+.navigation-link{color:#2e6416;background:#f6ffe9;border-color:#c2e8a6}
+.navigation-link:hover,.saved-route:hover{background:var(--soft-green)}
+.saved-route{color:#22321e}
+.demo-banner{background:var(--soft-yellow);color:#3c502e;border-color:#e7edb0}
+.demo-banner b,.demo-banner button{color:#35670d}
+.loading,.fatal{color:#38512c;background:#fff}
+dialog{background:#fff;color:var(--ink);border-color:#c9d7c3}
+dialog::backdrop{background:#1020137a}
+dialog[open]>.modal-head{background:#fff!important;color:var(--ink);border-color:var(--border)}
+.modal-head h2{color:var(--ink)}
+.login-story{background:linear-gradient(145deg,#fff8f1,#f1ffe4);color:var(--ink)}
+.login-story h1,.login-story p,.login-tag{color:var(--ink)}
+.login-panel{background:#fff}
+.login-security,.demo-link{color:#3a671f}
+.lock-mark{background:var(--soft-orange);color:#af3c00}
+.vape-scan{background:linear-gradient(110deg,#fff7f0,#f6ffe9);border-color:#ffc49e}
+.vape-match{background:#fff;color:var(--ink);border-color:var(--border)}
+.vape-match:hover{background:var(--soft-yellow)}
+.vape-image-placeholder{background:linear-gradient(145deg,#f5f9ed,#eaffcf);color:#4a6935}
+.vape-product-card{background:#fff;color:var(--ink);border-color:var(--border)}
+.vape-product-info>strong{color:var(--ink)}
+.vape-product-info>b,.vape-card-link,.vape-shop-count{color:#ad3e00}
+.vape-detail-price{background:var(--soft-yellow);border:1px solid #e4ecad}
+.vape-detail-price strong{color:#ad3e00}
+.vape-detail-price span{color:#315b16}
+.vape-detail-overlay{background:#17300b88}
+.vape-detail-close{background:#fff}
+.field-progress button{background:#fff;color:#394b32;border-color:var(--border)}
+.field-progress button.active{background:var(--soft-orange);color:#a83c00;border-color:var(--orange)}
+.field-progress b,.field-computed{color:#a74000}
+.field-compare>section{background:#fafcf7;color:var(--ink)}
+.field-compare .field-compare-new{background:linear-gradient(120deg,#f0ffda,#fbffe9);border-color:#88b83a}
+.field-compare h3,.field-compare strong,.field-compare .field-compare-new strong{color:var(--ink)}
+.field-difference{background:var(--soft-green);border-color:#9ed764}
+.field-difference strong{color:#286014}
+.sumup-offer-comparison{background:#fff;color:var(--ink);border-color:var(--border)}
+.sumup-offer-heading h3,.sumup-benefits-title{color:var(--ink)}
+.sumup-offer-tag,.sumup-offer-details>summary{color:#a63b00}
+.sumup-offer-intro,.sumup-offer-fineprint{color:#4a5946}
+.sumup-offer-table th,.sumup-offer-table td{border-color:var(--border);color:var(--ink)}
+.sumup-offer-table thead th{background:#edffd7;color:var(--ink)}
+.sumup-offer-table tbody th{color:#3a4f32}
+.sumup-offer-total th,.sumup-offer-total td{color:#8f3900;border-top-color:var(--orange)}
+.sumup-offer-difference{background:var(--soft-green);color:var(--ink)}
+.sumup-offer-difference strong{color:#245b13}
+.sumup-quick-summary>div{background:#f8fbf5;border-color:var(--border)}
+.sumup-quick-summary>div:last-child{background:var(--soft-orange);border-color:#ffb786}
+.sumup-quick-summary span,.sumup-quick-summary strong{color:var(--ink)}
+.sumup-benefit{background:var(--soft-yellow);color:var(--ink);border-color:#dce675}
+.sumup-benefit-positive{background:var(--soft-green);border-color:#98d750}
+.sumup-benefit-negative{background:#fff0e9;border-color:#f8bc95}
+.sumup-benefit strong{color:#275b12}
+.sumup-benefit-negative strong{color:#983500}
+.sumup-benefit small{color:#3d5134}
+.sumup-benefits-grid{border-color:var(--border)}
+.sumup-benefits-row>span{color:var(--ink);border-color:var(--border)}
+.sumup-benefits-row>span+span,.sumup-benefits-row+.sumup-benefits-row{border-color:var(--border)}
+.sumup-benefits-row>span:last-child{background:#f0ffdd;color:var(--ink)}
+.sumup-benefits-header>span{background:#f2f9e9;color:#2b3c25}
+.sumup-benefits-header>span:last-child{background:#defeb2;color:#243517}
+.sumup-tariff-card{background:#fbffe9;color:var(--ink);border-left-color:var(--orange)}
+.sumup-hardware-summary{background:var(--soft-green);color:var(--ink);border-left-color:#79bd29}
+.sumup-tariff-card strong,.sumup-hardware-summary strong{color:var(--ink)}
+.sumup-discount-controls{background:#fffdf1;border-color:#e1d785;color:var(--ink)}
+.sumup-discount-total strong{color:#336017}
+.range-field{color:var(--ink)}
+.sales-studio.field-studio .range-field{border-color:var(--border)}
+.mix-section+.mix-section{border-color:var(--border)}
+.mix-section-heading strong,.mix-legend b{color:var(--ink)}
+.mix-section-heading span,.mix-legend>span{color:#41543c}
+.mix-debit{background:var(--orange);color:#211509}
+.mix-credit{background:#a5ff28;color:#1e3210}
+.mix-dot.mix-orange{background:var(--orange)}
+.mix-dot.mix-green{background:#8de812}
+.mix-segmented{background:#e7efe0;border-color:#c3d4b9}
+.route-prospect-active{background:var(--soft-yellow);border-color:var(--orange)!important}
+.route-map-frame{background:#effae7;border-color:#c2d1b8}
+.route-search-help,.route-map-footer{border-color:var(--border)}
+.route-search-help summary{color:#a64100}
+.route-map-header strong{color:var(--ink)}
+/* A deliberate night-friendly backdrop only behind full-screen dialogs, not inside them. */
+.mobile-overlay{background:#0b1b1080}
+/* Keep the customer-facing PDF sheet white, neutral, and clean even in light mode. */
+.nx-document,.print-sheet{background:#fff;color:#20231f}
+.nx-document .sumup-offer-comparison{background:#fff;color:#20231f}
+.nx-document .sumup-benefits-row>span{color:#20231f}
+.nx-document .sumup-benefits-row>span:last-child{background:#f0f5ea}
+.nx-document .sumup-tariff-card,.nx-document .sumup-hardware-summary{background:#f4f5f0;color:#263025}
+/* The export UI stays white in screen and paper output. */
+@media(max-width:700px){
+  html,body,#root{background:#fff}
+  .sidebar,.topbar,.card,dialog[open],dialog[open]>.modal-head{background:#fff!important;color:var(--ink)}
+  .sidebar{box-shadow:12px 0 30px #19320925}
+  dialog[open] .offer-line,dialog[open] .sumup-offer-comparison{background:#fff}
+  .mix-rate-controls{min-width:0}
+}
+@media print{
+  body,body>dialog[open],.print-sheet,.nx-document{background:#fff!important;color:#000!important}
+  .nx-document .sumup-benefits-header>span{background:#e5eae0!important;color:#20231f!important}
+}
