@@ -98,3 +98,16 @@ export function normalizeStatement(
     currentTotal: round(parsed.costs / months),
   };
 }
+
+/** Pass only uniquely recognized fields to Ist-Bestand. No implicit zeroes or confirmation. */
+export function recognizedStatementValues(text: string) {
+  const candidates = extractStatement(text);
+  const values: Partial<Pick<PaymentInput, "volume" | "onlineVolume" | "transactions" | "currentTotal">> = {};
+  if (candidates.volume.length === 1) values.volume = candidates.volume[0].value;
+  if (candidates.onlineVolume.length === 1) values.onlineVolume = candidates.onlineVolume[0].value;
+  if (candidates.transactions.length === 1 &&
+      Number.isSafeInteger(candidates.transactions[0].value))
+    values.transactions = candidates.transactions[0].value;
+  if (candidates.costs.length === 1) values.currentTotal = candidates.costs[0].value;
+  return values;
+}
