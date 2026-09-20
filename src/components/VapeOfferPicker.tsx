@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../lib/client";
+import { vapeSaleNet, vapeSaleGross } from "../lib/vapePricing";
 import type { OfferLine } from "../lib/types";
 
 type ApprovedVape = {
@@ -8,8 +9,6 @@ type ApprovedVape = {
   supplier_single_available: boolean; single_ek_net: number | null; single_approved: boolean;
 };
 const money = (v: number) => v.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
-export const calcVapeSaleNet = (ek: number, margin: number) =>
-  Math.ceil((ek / (1 - margin / 100)) * 100 - 0.00000001) / 100;
 
 export function VapeOfferPicker({ onAdd }: { onAdd: (line: OfferLine) => void }) {
   const [products, setProducts] = useState<ApprovedVape[]>([]);
@@ -42,7 +41,7 @@ export function VapeOfferPicker({ onAdd }: { onAdd: (line: OfferLine) => void })
   const allowedSingle = !!(product?.single_approved && product.supplier_single_available &&
     product.single_ek_net && product.single_ek_net > 0);
   const ek = unit === "VE" ? allowedVE ? product?.ve_ek_net : null : allowedSingle ? product?.single_ek_net : null;
-  const vk = ek ? calcVapeSaleNet(ek, margin) : null;
+  const vk = ek ? vapeSaleNet(ek, margin) : null;
 
   function add() {
     if (!product || vk === null || !Number.isSafeInteger(quantity) || quantity < 1 ||
