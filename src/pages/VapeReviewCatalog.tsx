@@ -152,7 +152,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
     <p>Inhaberansicht: VE standardmäßig · Einzelstückverkauf nur nach bestätigtem Einzelbezug und separater Freigabe.
       Händler-Preiskandidaten sind keine freigegebenen Verkaufspreise.</p>
     {demo ? <p>In der Demo sind EK und Händlerimport deaktiviert.</p> : <>
-      <label className="field">Händlerexport importieren (dealer-products.json aus dem GitHub-Artifact)
+      <label className="field">Nur bei späteren Händlerexporten: neue Datei einlesen (dealer-products.json)
         <input type="file" accept=".json,application/json" disabled={busy} onChange={e => void readImport(e.target.files?.[0])} />
       </label>
       {pending && <button type="button" disabled={busy} onClick={() => void importDrafts()}>
@@ -173,7 +173,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
             onChange={e => setMargin(Number(e.target.value))} />
         </label>
       </div>
-      <p role="status">{busy ? "Bearbeitung läuft …" : filtered.length + " von " + products.length + " Artikeln"}</p>
+      <p role="status">{busy ? "Bearbeitung läuft …" : products.length + " Händlerartikel bereits im Sales Hub · " + filtered.length + " in der aktuellen Auswahl · " + products.filter(p => p.ve_approved).length + " VE-Freigaben · " + products.filter(p => p.single_approved).length + " Einzelstück-Freigaben"}</p>
       {notice && <p role="status">{notice}</p>}
       {error && <p role="alert" className="error">{error}</p>}
       {filtered.map(p => <article className="card" key={p.id}>
