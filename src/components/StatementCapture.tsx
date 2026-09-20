@@ -87,22 +87,8 @@ export function StatementCapture({
       setError((e as Error).message);
     }
   }
-  return (
-    <Modal title="Händlerabrechnung erfassen" onClose={onClose}>
-      <p>
-        Foto oder Kameraaufnahme wählen. Die Texterkennung läuft auf deinem
-        Gerät. Das Foto und der vollständige Belegtext werden nicht im CRM
-        gespeichert.
-      </p>
-      <Field label="Abrechnungsfoto (JPG / PNG / WebP)">
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          capture="environment"
-          disabled={busy}
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
             abortRef.current?.abort();
             const controller = new AbortController();
             abortRef.current = controller;
@@ -142,8 +128,27 @@ export function StatementCapture({
             } finally {
               if (abortRef.current === controller) setBusy(false);
             }
-          }}
+  }
+  return (
+    <Modal title="Händlerabrechnung erfassen" onClose={onClose}>
+      <p>
+        Foto oder Kameraaufnahme wählen. Die Texterkennung läuft auf deinem
+        Gerät. Das Foto und der vollständige Belegtext werden nicht im CRM
+        gespeichert.
+      </p>
+      <p className="hint">Zwei getrennte Wege: Datei aus dem Gerätespeicher auswählen oder Kamera direkt öffnen. Die ursprüngliche Schaltfläche erzwang auf manchen Smartphones die Kamera.</p>
+      <Field label="Abrechnung aus Dateien / Galerie auswählen (JPG, PNG, WebP)">
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          disabled={busy}
+          onChange={(e) => { void handleFile(e.target.files?.[0]); e.target.value = ""; }}
         />
+      </Field>
+      <Field label="Neues Foto mit der Kamera aufnehmen">
+        <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+          disabled={busy} aria-label="Kamera für Abrechnung öffnen"
+          onChange={(e) => { void handleFile(e.target.files?.[0]); e.target.value = ""; }} />
       </Field>
       {preview && (
         <img
