@@ -15,7 +15,7 @@ export const solutions = [
   },
   {
     name: "Solo Lite",
-    price: 22,
+    price: 34,
     regular: 34,
     tag: "Kompakter Einstieg",
     use: "Kartenterminal in Verbindung mit der SumUp App.",
@@ -25,7 +25,7 @@ export const solutions = [
   },
   {
     name: "Solo",
-    price: 59,
+    price: 79,
     regular: 79,
     tag: "Mobil & eigenständig",
     use: "Eigenständiges Terminal mit Touchscreen, WLAN und SIM.",
@@ -35,7 +35,7 @@ export const solutions = [
   },
   {
     name: "Terminal",
-    price: 139,
+    price: 169,
     regular: 169,
     tag: "Verkaufen & kassieren",
     use: "Handliches Kassensystem mit integriertem Belegdruck.",
