@@ -14,6 +14,7 @@ const emptyStatement: PaymentInput = {
 export function Sumup() {
   const { data } = useStore();
   const [customer,setCustomer] = useState("");
+  const [step,setStep] = useState<1|2|3>(1);
   const [capture,setCapture] = useState(false);
   const [photoInput,setPhotoInput] = useState<PaymentInput>(emptyStatement);
   const [photoReview,setPhotoReview] = useState<StatementReview|null>(null);
@@ -29,6 +30,7 @@ export function Sumup() {
           setCustomer(event.target.value);
           setPhotoInput(emptyStatement);
           setPhotoReview(null);
+          setStep(1);
         }}>
           <option value="">Ohne Kundenakte beraten · zum Speichern Kunde auswählen</option>
           {[...data.customers].sort((a,b)=>a.company.localeCompare(b.company,"de"))
@@ -37,6 +39,7 @@ export function Sumup() {
       </Field>
     </div>
     <SalesStudio key={customer||"ohne-kunde"} customerId={customer}
+      step={step} setStep={setStep}
       photoInput={photoInput} photoReview={photoReview}
       photoAvailable={!!photoReview} onCapture={()=>setCapture(true)}
       onOffer={setDraft}/>
@@ -44,6 +47,7 @@ export function Sumup() {
       onApply={(values,review)=>{
         setPhotoInput(old=>({...old,...values}));
         setPhotoReview(review);
+        setStep(2);
         setCapture(false);
       }}/>}
     {draft&&<OfferForm draft={draft} onClose={()=>setDraft(null)}/>}
