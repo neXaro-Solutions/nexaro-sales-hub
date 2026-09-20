@@ -283,22 +283,26 @@ export function SalesStudio({
           </Field>
         </div>
         <h3>Produktinteresse</h3>
-        <div className="form-grid">
-          {["POS", "Kiosk", "Bank Account", "Another Product"].map((x) => (
-            <label className="checkbox-field" key={x}>
-              <input
-                type="checkbox"
-                checked={productInterest.includes(x)}
-                onChange={(e) =>
-                  setProductInterest((old) =>
-                    e.target.checked ? [...old, x] : old.filter((y) => y !== x),
-                  )
-                }
-              />
-              {x}
-            </label>
-          ))}
-        </div>
+        <Field label="Weiteres Produktinteresse auswählen">
+          <select value="" onChange={(e) => {
+            if (e.target.value) setProductInterest((old) =>
+              old.includes(e.target.value) ? old : [...old, e.target.value]);
+          }}>
+            <option value="">Bitte Produkt auswählen</option>
+            {["POS", "Kiosk", "Bank Account", "Another Product"]
+              .filter((x) => !productInterest.includes(x))
+              .map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </Field>
+        {productInterest.map((x) => (
+          <div className="recommendation" key={x}>
+            <strong>{x}</strong>
+            <button type="button" className="text-link"
+              onClick={() => setProductInterest((old) => old.filter((y) => y !== x))}>
+              Entfernen
+            </button>
+          </div>
+        ))}
         <Field label="Gesprächsnotizen / offener Bedarf">
           <textarea
             value={notes}
