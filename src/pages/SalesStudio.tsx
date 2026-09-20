@@ -11,6 +11,7 @@ import { useStore } from "../lib/store";
 import type { OfferDraft } from "./Offers";
 import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
 import { RangeNumber } from "../components/RangeNumber";
+import { CardMixBars } from "../components/CardMixBars";
 
 const defaultCurrent: ExistingProviderInput = {
   volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
@@ -217,12 +218,11 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       </Card>
       <Card title="03 · Kartenmix & Gebühren" eyebrow="ANTEILE UND KARTENSÄTZE">
         <p className="hint">Das sind angenommene <strong>Gebührensätze des aktuellen Anbieters</strong>, keine SumUp-Sätze. Bei einer echten Händlerabrechnung die Werte korrigieren.</p>
-        <div className="form-grid field-fees-grid">
-          <RangeNumber label="EC / Debit – Umsatzanteil" value={current.debitShare} onChange={v=>update("debitShare",v)} max={100} unit="%" />
-          <Field label="Kredit- & Premiumkarten inkl. Amex – Anteil (%)"><strong className="field-computed">{round(100-current.debitShare)} %</strong></Field>
-          <RangeNumber label="EC / Debit – Faktor" value={current.debitRate} onChange={v=>update("debitRate",v)} max={5} step={0.01} unit="%" />
-          <RangeNumber label="Kredit / Premium – Faktor" value={current.creditRate} onChange={v=>update("creditRate",v)} max={5} step={0.01} unit="%" />
-        </div>
+        <CardMixBars debitShare={current.debitShare}
+          debitRate={current.debitRate} creditRate={current.creditRate}
+          onDebitShare={v=>update("debitShare",v)}
+          onDebitRate={v=>update("debitRate",v)}
+          onCreditRate={v=>update("creditRate",v)} />
       </Card>
       <Card title="04 · Laufende Kosten" eyebrow="FESTE UND VARIABLE ENTGELTE">
         <div className="form-grid field-fees-grid">
