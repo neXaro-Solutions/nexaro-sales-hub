@@ -449,3 +449,25 @@ test("real local photo OCR feeds reviewed totals and hardware advice", async ({
     fullPage: true,
   });
 });
+
+
+test("manual offer and invoice use independent numbers and branded PDF preview", async ({page}) => {
+  await page.goto("/?demo=1");
+  await navigate(page, "Angebote");
+  await page.getByRole("button", { name: "Angebot erstellen" }).click();
+  await page.getByRole("combobox", { name: "Kunde *" }).selectOption({ label: "Café Morgenrot" });
+  await page.getByRole("textbox", { name: "Bezeichnung *" }).fill("Zahlungsterminal");
+  await page.getByRole("button", { name: "Angebot speichern" }).click();
+  await expect(page.locator("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^ANG-\\d{4}-00001$/ })).toBeVisible();
+  await page.getByRole("button", { name: /ANG-\\d{4}-00001 in Rechnung umwandeln/ }).click();
+  await expect(page.locator("dialog")).toContainText("Angebot in Rechnung übernehmen");
+  await page.getByRole("button", { name: "Rechnung mit Nummer anlegen" }).click();
+  await expect(page.locator(".print-sheet")).toContainText("RECHNUNG");
+  await expect(page.locator(".print-sheet")).toContainText("neXaro Solutions");
+  await expect(page.locator(".print-sheet")).toContainText("DE367084019");
+  await expect(page.locator(".print-sheet")).toContainText("DE02100110012046791637");
+  await expect(page.locator(".print-sheet")).toContainText("Zahlungsterminal");
+  await page.getByRole("button", { name: "Schließen" }).click();
+  await expect(page.getByText(/RE-\\d{4}-00001/).first()).toBeVisible();
+});
