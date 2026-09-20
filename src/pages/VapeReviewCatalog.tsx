@@ -33,6 +33,8 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
+  const [reviewFilter, setReviewFilter] = useState("all");
+  const [page, setPage] = useState(0);
   const [margin, setMargin] = useState(25);
   const [drafts, setDrafts] = useState<Record<string, { ve: string; pieces: string; single: string }>>({});
   const [pending, setPending] = useState<SupplierDetail[] | null>(null);
@@ -58,9 +60,12 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
   const categories = useMemo(() => [...new Set(products.map(p => p.category || "Ohne Kategorie"))].sort(), [products]);
   const filtered = useMemo(() => products.filter(p =>
     (!category || (p.category || "Ohne Kategorie") === category) &&
+    (reviewFilter === "all" || (reviewFilter === "pending" && !p.ve_approved && !p.single_approved) ||
+      (reviewFilter === "ve" && p.ve_approved) || (reviewFilter === "single" && p.single_approved)) &&
     [p.name, p.supplier_article_no, p.ean].some(s =>
       (s || "").toLocaleLowerCase("de-DE").includes(search.toLocaleLowerCase("de-DE").trim()))
-  ), [products, search, category]);
+  ), [products, search, category, reviewFilter]);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / 25) - 1));
 
   async function readImport(file: File | undefined) {
     if (!file) return;
@@ -160,12 +165,20 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
       </button>}
       <div className="form-grid">
         <label className="field">Produkt oder EAN suchen
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Artikel suchen …" />
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Artikel suchen …" />
         </label>
         <label className="field">Kategorie
-          <select value={category} onChange={e => setCategory(e.target.value)}>
+          <select value={category} onChange={e => { setCategory(e.target.value); setPage(0); }}>
             <option value="">Alle Kategorien</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label className="field">Freigabestatus
+          <select value={reviewFilter} onChange={e => { setReviewFilter(e.target.value); setPage(0); }}>
+            <option value="all">Alle Produkte</option>
+            <option value="pending">Ohne Freigabe</option>
+            <option value="ve">VE freigegeben</option>
+            <option value="single">Einzelstück freigegeben</option>
           </select>
         </label>
         <label className="field">Marge: {margin} %
@@ -176,7 +189,12 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
       <p role="status">{busy ? "Bearbeitung läuft …" : products.length + " Händlerartikel bereits im Sales Hub · " + filtered.length + " in der aktuellen Auswahl · " + products.filter(p => p.ve_approved).length + " VE-Freigaben · " + products.filter(p => p.single_approved).length + " Einzelstück-Freigaben"}</p>
       {notice && <p role="status">{notice}</p>}
       {error && <p role="alert" className="error">{error}</p>}
-      {filtered.map(p => <article className="card" key={p.id}>
+      {filtered.length > 25 && <div className="button-row">
+        <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Zurück</button>
+        <span>Seite {currentPage + 1} von {Math.ceil(filtered.length / 25)}</span>
+        <button type="button" disabled={currentPage + 1 >= Math.ceil(filtered.length / 25)} onClick={() => setPage(currentPage + 1)}>Weiter</button>
+      </div>}
+      {filtered.slice(currentPage * 25, currentPage * 25 + 25).map(p => <article className="card" key={p.id}>
         <h3>{p.name}</h3>
         <small>{p.supplier_article_no || "Ohne Artikelnummer"} · {p.category || "Kategorie prüfen"} · {p.ean || "EAN fehlt"}</small>
         <p>Händlerpreis-Kandidat netto: {p.supplier_price_candidate_net ? euro(p.supplier_price_candidate_net) : "fehlt"}
