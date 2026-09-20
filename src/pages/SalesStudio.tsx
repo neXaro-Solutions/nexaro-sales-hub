@@ -67,14 +67,14 @@ const editable=(value:number,onChange:(v:number)=>void,props:{step?:string;min?:
   <EditableNumberInput min={props.min??"0"} max={props.max} step={props.step??".01"}
     value={value} onChange={event=>onChange(numeric(event.target.value))}/>;
 
-export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,onCapture,onOffer}:{
+export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,onCapture,onOffer,step,setStep}:{
   customerId:string;photoInput:PaymentInput;photoAvailable:boolean;photoReview:StatementReview|null;
   onCapture:()=>void;onOffer:(draft:OfferDraft)=>void;
+  step:1|2|3;setStep:(step:1|2|3)=>void;
 }) {
   const {data,save}=useStore();
   const opportunity=data.opportunities.find(o=>o.customer_id===customerId&&o.division==="sumup");
   const saved=(opportunity?.details.salesStudio||{}) as SavedStudio;
-  const [step,setStep]=useState<1|2|3>(1);
   const [current,setCurrent]=useState<ExistingProviderInput>(()=>({...defaultCurrent,...saved.current}));
   const [provider,setProvider]=useState(saved.provider||"");
   const [hardware,setHardware]=useState(saved.competitorHardware||"");
@@ -98,8 +98,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     setCurrent(old=>({...old,volume,transactions:photoInput.transactions??old.transactions,
       debitShare:old.debitShare===80?80:old.debitShare,
       confirmedTotal:photoInput.currentTotal===undefined?old.confirmedTotal:photoInput.currentTotal}));
-    setReadReview("Die geprüften Belegwerte wurden übernommen. Kartenmix 80/20 und Wettbewerber-Gebührensätze bitte mit dem Originalbeleg abgleichen.");
-    setStep(2);
+    setReadReview("Die geprüften Belegwerte wurden übernommen. Bitte Kartenmix 80/20 und Wettbewerber-Gebührensätze mit dem Originalbeleg abgleichen. Du kannst alle Werte korrigieren.");
   },[photoReview?.confirmedAt,photoAvailable]);
   const selectedPlan:SumupPlan=plan||(
     current.volume>0&&(()=>{
