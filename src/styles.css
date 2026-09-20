@@ -2690,3 +2690,73 @@ progress {
  .field-studio .form-grid .field-computed{min-height:44px;display:flex;align-items:center;padding:6px 0;font-size:19px}
  .field-studio .card{padding:16px}
 }
+
+
+/* Field-sales offer: visible tariff and benefits without a giant scrolling fee block. */
+.sumup-offer-comparison{overflow-wrap:anywhere}
+.sumup-offer-heading{margin-bottom:12px}
+.sumup-offer-heading .sumup-offer-tag{max-width:200px;line-height:1.5;text-align:right}
+.sumup-quick-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.sumup-quick-summary>div{padding:13px;background:#282d24;border:1px solid #4b5946;border-radius:9px;min-width:0}
+.sumup-quick-summary span{display:block;font-size:11px;color:#bac4b5;line-height:1.4}
+.sumup-quick-summary strong{display:block;font-size:clamp(17px,4vw,25px);line-height:1.3;margin-top:7px;color:#f3f7eb}
+.sumup-quick-summary>div:last-child{border-color:var(--orange);background:#2b231c}
+.sumup-benefit{padding:13px 15px;background:#252a23;border:1px solid #5c6555;border-radius:9px;display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.sumup-benefit-positive{background:#263420;border-color:#7a9a53}
+.sumup-benefit-negative{background:#3b2923;border-color:#a37751}
+.sumup-benefit span{font-size:12px;font-weight:700}
+.sumup-benefit strong{font-size:clamp(19px,4vw,27px);color:#d3edb0}
+.sumup-benefit-negative strong{color:#ffc5a6}
+.sumup-benefit small{color:#c3cabb;font-size:10px;line-height:1.5}
+.sumup-benefits-title{font-size:14px;margin:10px 0;color:#e9eee4}
+.sumup-benefits-table{min-width:0;table-layout:fixed;font-size:11px}
+.sumup-benefits-table th:first-child{width:27%}
+.sumup-benefits-table th:nth-child(2),.sumup-benefits-table th:nth-child(3){width:36.5%}
+.sumup-benefits-table th,.sumup-benefits-table td{padding:9px 7px;overflow-wrap:anywhere;hyphens:auto}
+.sumup-benefits-table tbody td:last-child{color:#e6efda;background:#253021}
+.sumup-tariff-card,.sumup-hardware-summary{display:flex;flex-direction:column;gap:6px;padding:12px;margin-top:12px;background:#242b22;border-left:3px solid var(--orange);border-radius:6px;font-size:11px;line-height:1.55}
+.sumup-hardware-summary{border-left-color:#92b16f;background:#263025}
+.sumup-tariff-card strong,.sumup-hardware-summary strong{color:#f1f4ec;font-size:12px}
+.sumup-wishes{font-size:11px;line-height:1.6}
+.sumup-offer-details{margin-top:13px;border-top:1px solid var(--border);padding-top:10px}
+.sumup-offer-details>summary{cursor:pointer;color:#f2a276;font-weight:700;font-size:12px;line-height:1.5}
+.sumup-offer-details[open]>summary{margin-bottom:10px}
+.sumup-offer-details .sumup-offer-table{min-width:0}
+.sumup-discount-controls{margin:16px 0;padding:15px;border:1px solid #716044;background:#282b20;border-radius:9px}
+.sumup-discount-controls>strong{display:block;font-size:14px;margin-bottom:14px}
+.sumup-discount-controls .field{margin:0}
+.sumup-discount-controls input[type=range]{display:block;width:100%;min-height:35px;accent-color:var(--orange);cursor:pointer}
+.sumup-discount-total{display:grid;gap:7px;margin-top:12px;font-size:12px}
+.sumup-discount-total strong{font-size:15px;color:#d0e9a1}
+.nx-document .sumup-quick-summary>div{background:#f1f4ef;border-color:#d3dbce}
+.nx-document .sumup-quick-summary>div:last-child{background:#fff5eb;border-color:#e6b18e}
+.nx-document .sumup-quick-summary span,.nx-document .sumup-quick-summary strong{color:#263025}
+.nx-document .sumup-benefit{background:#ecf3e6;color:#263025;border-color:#a7bd99}
+.nx-document .sumup-benefit-negative{background:#faeee6;border-color:#dcb49b}
+.nx-document .sumup-benefit strong{color:#2f5420}
+.nx-document .sumup-benefit-negative strong{color:#8f3e1e}
+.nx-document .sumup-benefit small{color:#3b4535}
+.nx-document .sumup-benefits-title{color:#252b20}
+.nx-document .sumup-benefits-table tbody td:last-child{background:#f0f4eb;color:#202820}
+.nx-document .sumup-tariff-card,.nx-document .sumup-hardware-summary{color:#263025;background:#f4f5f0;font-size:9px;border-left-color:#cc642c}
+.nx-document .sumup-tariff-card strong,.nx-document .sumup-hardware-summary strong{color:#202820}
+.nx-document .sumup-wishes{color:#333}
+.nx-document .sumup-offer-details>summary{color:#873b19}
+@media(max-width:600px){
+ .sumup-offer-comparison{padding:12px;margin:10px 0}
+ .sumup-quick-summary>div{padding:10px}
+ .sumup-quick-summary strong{font-size:19px}
+ .sumup-benefits-table{font-size:10px;line-height:1.3}
+ .sumup-benefits-table th,.sumup-benefits-table td{padding:8px 5px}
+ .sumup-benefits-table th:first-child{width:28%}
+ .sumup-offer-heading .sumup-offer-tag{text-align:left;max-width:100%}
+}
+@media print{
+ .nx-document .sumup-offer-comparison{font-size:9px}
+ .nx-document .sumup-quick-summary{break-inside:avoid}
+ .nx-document .sumup-benefit{break-inside:avoid}
+ .nx-document .sumup-benefits-table{font-size:8px}
+ .nx-document .sumup-benefits-table tr{break-inside:avoid}
+ .nx-document .sumup-tariff-card,.nx-document .sumup-hardware-summary{break-inside:avoid}
+ .nx-document .sumup-offer-details{break-inside:auto}
+}
