@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../lib/client";
-import { vapeSaleNet, vapeSaleGross } from "../lib/vapePricing";
+import { vapeSaleNet, vapeSaleGross, vapeIndicativePieceNet } from "../lib/vapePricing";
 
 type SupplierDetail = {
   url: string; title?: string; articleNo?: string; ean?: string; category?: string;
@@ -291,7 +291,15 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
       {filtered.slice(currentPage * 25, currentPage * 25 + 25).map(p => <article className="card" key={p.id}>
         <h3>{p.name}</h3>
         <small>{p.supplier_article_no || "Ohne Artikelnummer"} · {p.category || "Vape-Artikel"} {p.pieces_per_ve ? " · VE mit " + p.pieces_per_ve + " Stück" : ""}</small>
-        {p.ve_approved && p.ve_ek_net !== null && <p><strong>VK netto je VE: {euro(vapeSaleNet(p.ve_ek_net, margin))}</strong> · inkl. 19 % MwSt.: {euro(vapeSaleGross(vapeSaleNet(p.ve_ek_net, margin)))}</p>}
+        {p.ve_approved && p.ve_ek_net !== null && <p>
+          <strong>VK netto je VE: {euro(vapeSaleNet(p.ve_ek_net, margin))}</strong>
+          {" · "}inkl. 19 % MwSt.: {euro(vapeSaleGross(vapeSaleNet(p.ve_ek_net, margin)))}
+        </p>}
+        {p.ve_approved && p.ve_ek_net !== null && p.pieces_per_ve !== null && p.pieces_per_ve > 0 && <p className="muted">
+          Rechnerischer Preis pro Stück: <strong>{euro(vapeIndicativePieceNet(vapeSaleNet(p.ve_ek_net, margin), p.pieces_per_ve))} netto</strong>
+          {" · "}{euro(vapeSaleGross(vapeSaleNet(p.ve_ek_net, margin) / p.pieces_per_ve))} inkl. 19 % MwSt.
+          <br /><small>Nur Vergleichswert aus dem VE-Preis – kein freigegebener Einzelstück-Verkaufspreis.</small>
+        </p>}
         {!p.ve_approved && <p>Im Katalog vorhanden · Preis je Verkaufseinheit noch nicht zugeordnet.</p>}
         <details><summary>Produkt bearbeiten / Einzelstückverkauf</summary>
         <p>Händlerpreis-Kandidat netto: {p.supplier_price_candidate_net ? euro(p.supplier_price_candidate_net) : "fehlt"} · Preis je Verkaufseinheit prüfen</p>
