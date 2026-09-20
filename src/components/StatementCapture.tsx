@@ -13,6 +13,8 @@ export type StatementReview = {
   months: number;
   source: "photo" | "text";
   confidence: number | null;
+  eligibleVolume?: number;
+  otherVolume?: number;
 };
 export function StatementCapture({
   onClose,
@@ -29,6 +31,8 @@ export function StatementCapture({
     [confidence, setConfidence] = useState<number | null>(null),
     [source, setSource] = useState<"photo" | "text">("text"),
     [months, setMonths] = useState(1),
+    [eligibleAmount, setEligibleAmount] = useState(""),
+    [otherAmount, setOtherAmount] = useState(""),
     [reviewed, setReviewed] = useState(false),
     [parsed, setParsed] = useState<ReturnType<typeof extractStatement> | null>(
       null,
@@ -55,9 +59,21 @@ export function StatementCapture({
   function parse(raw: string) {
     setParsed(null);
     setReviewed(false);
+    setEligibleAmount("");
+    setOtherAmount("");
     try {
       const result = extractStatement(raw);
       setParsed(result);
+      // Only explicitly labelled card categories qualify; totals are never guessed.
+      const categoryAmount = (label: RegExp) => {
+        const candidates = raw.split(/\r?\n/).filter((line) => label.test(line));
+        if (candidates.length !== 1) return "";
+        const matches = candidates[0].match(/\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}/g);
+        if (!matches || matches.length !== 1) return "";
+        return String(Number(matches[0].replace(/\./g, "").replace(",", ".")));
+      };
+      setEligibleAmount(categoryAmount(/(?:geeignete\s+karten|inl[aä]ndische\s+(?:debit|kredit)karten|domestic\s+(?:debit|credit))/i));
+      setOtherAmount(categoryAmount(/(?:sonstige\s+karten|andere\s+karten|nicht\s+geeignete\s+karten)/i));
       setValues(
         Object.fromEntries(
           Object.entries(result).map(([k, v]) => [
@@ -193,11 +209,19 @@ export function StatementCapture({
               if (!reviewed)
                 throw Error("Bitte Belegwerte und Zeitraum bestätigen.");
               const p = normalizeStatement(values, months);
+              const eligible = eligibleAmount.trim() === "" ? undefined : Number(eligibleAmount);
+              const other = otherAmount.trim() === "" ? undefined : Number(otherAmount);
+              if ([eligible, other].some((n) => n !== undefined && (!Number.isFinite(n) || n < 0)))
+                throw Error("Kartenanteile müssen gültige, nichtnegative Beträge sein.");
+              if ((eligible ?? 0) + (other ?? 0) > Number(values.volume) + 0.01)
+                throw Error("Die Kartenarten dürfen den Vor-Ort-Umsatz nicht überschreiten.");
               onApply(p, {
                 confirmedAt: new Date().toISOString(),
                 months,
                 source,
                 confidence,
+                eligibleVolume: eligible === undefined ? undefined : Math.round(eligible / months * 100) / 100,
+                otherVolume: other === undefined ? undefined : Math.round(other / months * 100) / 100,
               });
               onClose();
             } catch (e) {
@@ -263,6 +287,18 @@ export function StatementCapture({
               </div>
             ))}
           </div>
+          <details>
+            <summary>Kartenarten aus der Abrechnung prüfen (optional)</summary>
+            <p className="hint">Nur auf dem Beleg ausgewiesene Beträge eintragen. Ohne Aufschlüsselung verwendet das Vertriebsstudio weiterhin die unbestätigte 80/20-Schätzung. Werte für den gesamten Abrechnungszeitraum, ohne Online-Umsatz.</p>
+            <div className="form-grid">
+              <Field label="Für Zahlungen Plus geeignete inländische Karten (€)">
+                <input type="number" min="0" step="0.01" value={eligibleAmount} onChange={(e) => { setEligibleAmount(e.target.value); setReviewed(false); }} />
+              </Field>
+              <Field label="Andere / nicht geeignete Karten (€)">
+                <input type="number" min="0" step="0.01" value={otherAmount} onChange={(e) => { setOtherAmount(e.target.value); setReviewed(false); }} />
+              </Field>
+            </div>
+          </details>
           <label className="checkbox-field">
             <input
               type="checkbox"
