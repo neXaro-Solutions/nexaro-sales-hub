@@ -117,7 +117,7 @@ export function DataProvider({
                 (value as Partial<Row<"offers">>).number ||
                 (value as Partial<Row<"invoices">>).number ||
                 `${entity === "offers" ? "ANG" : "RE"}-${new Date().getFullYear()}-${String(
-                  Math.max(0, ...(entity === "offers" ? data.offers : data.invoices).map((item) => Number(item.number.match(/-(\\d+)$/)?.[1] || 0))) + 1
+                  Math.max(0, ...(entity === "offers" ? data.offers : data.invoices).map((item) => Number(item.number.match(/-(\d+)$/)?.[1] || 0))) + 1
                 ).padStart(5, "0")}`,
             }
           : {}),
