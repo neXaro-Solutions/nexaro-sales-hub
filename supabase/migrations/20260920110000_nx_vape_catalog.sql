@@ -33,5 +33,6 @@ create index if not exists nx_vape_catalog_article_idx on public.nx_vape_catalog
 -- Existing public.vape_products RLS may expose historical EK to regular authenticated dealers.
 -- Before enabling a dealer portal, replace its broad SELECT policy with an owner-only policy.
 drop policy if exists products_select_authenticated on public.vape_products;
+drop policy if exists vape_products_owner_select on public.vape_products;
 create policy vape_products_owner_select on public.vape_products for select to authenticated
 using (exists (select 1 from public.nx_owner where user_id=(select auth.uid())));
