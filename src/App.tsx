@@ -7,6 +7,7 @@ import {
   Map,
   CheckSquare,
   FileText,
+  BookOpen,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -27,6 +28,7 @@ import { Dealers } from "./pages/Dealers";
 import { Routes } from "./pages/Routes";
 import { Tasks } from "./pages/Tasks";
 import { Offers } from "./pages/Offers";
+import { KnowledgeBase } from "./pages/KnowledgeBase";
 import { Settings } from "./pages/Settings";
 const nav = [
   { id: "dashboard", label: "Übersicht", icon: LayoutDashboard },
@@ -36,6 +38,7 @@ const nav = [
   { id: "sumup", label: "SumUp Vertrieb", icon: CreditCard },
   { id: "vape", label: "Händlerverwaltung", icon: Users },
   { id: "offers", label: "Angebote", icon: FileText },
+  { id: "knowledge", label: "Wissensdatenbank", icon: BookOpen },
   { id: "settings", label: "System & Sicherung", icon: SettingsIcon },
 ];
 class ErrorBoundary extends Component<
@@ -107,7 +110,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               {i === 4 && (
                 <span className="nav-section">VERTRIEBSBEREICHE</span>
               )}
-              {i === 7 && <span className="nav-section">VERWALTUNG</span>}
+              {i === 8 && <span className="nav-section">VERWALTUNG</span>}
               <button
                 className={page === n.id ? "active" : ""}
                 onClick={() => navigate(n.id)}
@@ -224,6 +227,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               {page === "tasks" && <Tasks />}
               {page === "routes" && <Routes />}
               {page === "offers" && <Offers />}
+              {page === "knowledge" && <KnowledgeBase />}
               {page === "settings" && <Settings />}
             </ErrorBoundary>
           )}
