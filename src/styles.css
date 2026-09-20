@@ -2634,3 +2634,43 @@ progress {
  .field-wishes{grid-template-columns:1fr}.field-compare{grid-template-columns:1fr}.field-actions{flex-direction:column-reverse;align-items:stretch}.field-actions button{width:100%}
  .field-cta{width:100%;justify-content:center}
 }
+
+
+/* Direct monthly provider comparison appears in the editor and on the printable offer. */
+.sumup-offer-comparison{color:#e6ebe4;background:#1a1d19;border:1px solid #535a48;border-radius:11px;margin:18px 0;padding:20px;min-width:0}
+.sumup-offer-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sumup-offer-heading h3{font-size:18px;margin:5px 0 10px;color:inherit}
+.sumup-offer-tag{font-size:10px;font-weight:700;color:#f6ac83;text-transform:uppercase;letter-spacing:.05em}
+.sumup-offer-intro{color:#bec8b9;font-size:12px;line-height:1.6}
+.sumup-offer-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.sumup-offer-table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.55;min-width:425px}
+.sumup-offer-table th,.sumup-offer-table td{padding:10px 9px;border-bottom:1px solid #444b40;text-align:left;vertical-align:top}
+.sumup-offer-table th:first-child{width:45%}
+.sumup-offer-table thead th{background:#242b22;color:#ecf0e8}
+.sumup-offer-table tbody th{font-weight:600;color:#d2ddc8}
+.sumup-offer-total th,.sumup-offer-total td{font-weight:800;color:#f9c09d;border-top:2px solid var(--orange)}
+.sumup-offer-difference{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:14px 0;padding:12px;background:#35402e;border-radius:8px;font-size:12px}
+.sumup-offer-difference strong{color:#cbed9f;font-size:17px}
+.sumup-offer-fineprint{font-size:10px;line-height:1.5;color:#afb9a9}
+.sumup-offer-fineprint a{text-decoration:underline;color:inherit;overflow-wrap:anywhere}
+.sumup-offer-edit .sumup-offer-scroll{max-height:360px}
+.nx-document .sumup-offer-comparison{color:#20231f;border:1px solid #d2d8ce;background:#fff;border-radius:2px;padding:12px;margin:16px 0}
+.nx-document .sumup-offer-heading h3{color:#252920;font-size:14px}
+.nx-document .sumup-offer-tag{color:#a34317}
+.nx-document .sumup-offer-intro,.nx-document .sumup-offer-fineprint{color:#434a42;font-size:9px}
+.nx-document .sumup-offer-table{font-size:9px;min-width:0}
+.nx-document .sumup-offer-table th,.nx-document .sumup-offer-table td{padding:6px 5px;color:#20231f;border-color:#d8dfd3}
+.nx-document .sumup-offer-table thead th{background:#ebf0e8}
+.nx-document .sumup-offer-table tbody th{color:#20231f}
+.nx-document .sumup-offer-total th,.nx-document .sumup-offer-total td{color:#953f19}
+.nx-document .sumup-offer-difference{color:#20231f;background:#edf2e9}
+.nx-document .sumup-offer-difference strong{color:#235119}
+@media(max-width:600px){.sumup-offer-comparison{padding:13px}.sumup-offer-heading{align-items:flex-start;flex-direction:column}.sumup-offer-difference{flex-direction:column}}
+@media print{
+ .nx-document .sumup-offer-comparison{break-inside:auto}
+ .nx-document .sumup-offer-table{break-inside:auto}
+ .nx-document .sumup-offer-table tr{break-inside:avoid}
+ .nx-document .sumup-offer-difference{break-inside:avoid}
+ .nx-document .sumup-offer-scroll{overflow:visible}
+ .nx-document .sumup-offer-tag{color:#a34317}
+}
