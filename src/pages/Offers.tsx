@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Printer, Trash2, FileText } from "lucide-react";
+import { Plus, Printer, Trash2, FileText, Receipt, ArrowRight } from "lucide-react";
+import { InvoiceForm, DocumentPreview, customerSnapshot } from "../components/BusinessDocuments";
 import { useStore } from "../lib/store";
 import {
   Card,
@@ -15,9 +16,8 @@ import {
   offerTotals,
   money,
   dateLabel,
-  address,
 } from "../lib/calculations";
-import type { Offer, OfferLine, Division } from "../lib/types";
+import type { Offer, OfferLine, Division, Invoice } from "../lib/types";
 export type OfferDraft = {
   division: Division;
   customer_id?: string;
@@ -42,11 +42,7 @@ export function OfferForm({
     offer?.lines ||
       draft?.lines || [{ name: "", quantity: 1, price: 0, vat: 19 }],
   );
-  const customers = data.customers.filter((c) =>
-    data.opportunities.some(
-      (o) => o.customer_id === c.id && o.division === division,
-    ),
-  );
+  const customers = data.customers;
   let total = { net: 0, gross: 0, vat: 0 };
   try {
     total = offerTotals(lines);
@@ -70,6 +66,9 @@ export function OfferForm({
             throw Error(
               "Bitte zuerst einen Kunden im gewählten Bereich anlegen.",
             );
+          if (!data.opportunities.some((o) => o.customer_id === customer_id && o.division === division)) {
+            await save("opportunities", { customer_id, division, stage: "Neu", potential: 0, details: {} });
+          }
           await save("offers", {
             ...offer,
             division,
@@ -83,7 +82,7 @@ export function OfferForm({
               customer: {
                 company: c.company,
                 contact: c.contact,
-                address: address(c),
+                address: customerSnapshot(c).address,
                 email: c.email,
               },
             },
@@ -238,158 +237,48 @@ export function OfferForm({
 }
 export function Offers() {
   const { data } = useStore();
-  const [edit, setEdit] = useState<Offer | true | null>(null),
-    [print, setPrint] = useState<Offer | null>(null);
-  const customer = print
-    ? data.customers.find((c) => c.id === print.customer_id)
-    : null;
-  const snapshot = print?.snapshot.customer as
-    | { company?: string; contact?: string; address?: string; email?: string }
-    | undefined;
-  return (
-    <>
-      <div className="section-intro">
-        <div>
-          <h1>Angebote</h1>
-          <p>Sauber kalkuliert. Kundengerecht aufbereitet.</p>
-        </div>
-        <button className="primary" onClick={() => setEdit(true)}>
-          <Plus size={17} /> Neues Angebot
-        </button>
+  const [edit, setEdit] = useState<Offer | true | null>(null);
+  const [invoiceForm, setInvoiceForm] = useState<{invoice?: Invoice; offer?: Offer} | null>(null);
+  const [print, setPrint] = useState<Offer | Invoice | null>(null);
+  const [tab, setTab] = useState<"offers" | "invoices">("offers");
+  return <>
+    <div className="section-intro">
+      <div><h1>Angebote & Rechnungen</h1><p>Individuell erstellen · automatisch nummerieren · als PDF ausgeben.</p></div>
+      <div className="button-row">
+        <button className="primary" onClick={() => { setTab("offers"); setEdit(true); }}><Plus size={17}/> Angebot erstellen</button>
+        <button className="secondary" onClick={() => { setTab("invoices"); setInvoiceForm({}); }}><Receipt size={17}/> Rechnung erstellen</button>
       </div>
-      <Card>
-        {data.offers.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Angebot</th>
-                  <th>Kunde</th>
-                  <th>Bereich</th>
-                  <th>Netto</th>
-                  <th>Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {[...data.offers]
-                  .sort((a, b) => b.created_at.localeCompare(a.created_at))
-                  .map((o) => (
-                    <tr key={o.id}>
-                      <td>
-                        <button
-                          className="customer-link"
-                          onClick={() => setEdit(o)}
-                        >
-                          {o.number}
-                        </button>
-                        <small>Gültig bis {dateLabel(o.valid_until)}</small>
-                      </td>
-                      <td>
-                        {
-                          data.customers.find((c) => c.id === o.customer_id)
-                            ?.company
-                        }
-                      </td>
-                      <td>
-                        <DivisionBadge division={o.division} />
-                      </td>
-                      <td>{money(o.net)}</td>
-                      <td>{o.status}</td>
-                      <td>
-                        <button
-                          className="icon-button"
-                          aria-label={o.number + " Druckansicht"}
-                          onClick={() => setPrint(o)}
-                        >
-                          <Printer size={17} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Empty title="Dein erstes Angebot">
-            Übernimm eine SumUp-Lösung oder ausgewählte Katalogprodukte in ein
-            Angebot.
-          </Empty>
-        )}
-      </Card>
-      {edit && (
-        <OfferForm
-          offer={edit === true ? undefined : edit}
-          onClose={() => setEdit(null)}
-        />
-      )}{" "}
-      {print && (
-        <Modal title="Angebotsvorschau" onClose={() => setPrint(null)}>
-          <div className="print-sheet">
-            <div className="print-header">
-              <b>
-                ne<span>X</span>aro Solutions
-              </b>
-              <span>Vertrieb · Payment · Trendprodukte</span>
-            </div>
-            <p>
-              {snapshot?.company || customer?.company}
-              <br />
-              {snapshot?.contact || customer?.contact}
-              <br />
-              {snapshot?.address || (customer ? address(customer) : "")}
-            </p>
-            <h1>Angebot {print.number}</h1>
-            <p>
-              Datum: {dateLabel(print.created_at)} · Gültig bis:{" "}
-              {dateLabel(print.valid_until)}
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Position</th>
-                  <th>Menge</th>
-                  <th>Einzel netto</th>
-                  <th>Gesamt netto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {print.lines.map((l, i) => (
-                  <tr key={i}>
-                    <td>{l.name}</td>
-                    <td>{l.quantity}</td>
-                    <td>{money(l.price)}</td>
-                    <td>{money(l.quantity * l.price)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="print-totals">
-              <p>
-                Netto <b>{money(print.net)}</b>
-              </p>
-              <p>
-                MwSt. <b>{money(print.gross - print.net)}</b>
-              </p>
-              <p>
-                Gesamtbetrag <b>{money(print.gross)}</b>
-              </p>
-            </div>
-            <p className="prewrap">{print.notes}</p>
-            <footer>
-              neXaro Solutions · Kirchstraße 1A · 15757 Halbe
-              <br />
-              kontakt@nexaro-solutions.de · 0171 9098 831 ·
-              www.nexaro-solutions.de
-            </footer>
-          </div>
-          <div className="no-print form-actions">
-            <button className="primary" onClick={() => window.print()}>
-              <Printer size={16} /> Drucken / PDF speichern
-            </button>
-          </div>
-        </Modal>
-      )}
-    </>
-  );
+    </div>
+    <div className="button-row document-tabs">
+      <button className={tab === "offers" ? "primary" : "secondary"} onClick={() => setTab("offers")}>Angebote ({data.offers.length})</button>
+      <button className={tab === "invoices" ? "primary" : "secondary"} onClick={() => setTab("invoices")}>Rechnungen ({data.invoices.length})</button>
+    </div>
+    <Card>
+      {tab === "offers" ? data.offers.length ? <div className="table-wrap"><table>
+        <thead><tr><th>Angebot</th><th>Kunde</th><th>Bereich</th><th>Netto</th><th>Status</th><th>Aktionen</th></tr></thead>
+        <tbody>{[...data.offers].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map((o)=><tr key={o.id}>
+          <td><button className="customer-link" onClick={() => setEdit(o)}>{o.number}</button><small>Gültig bis {dateLabel(o.valid_until)}</small></td>
+          <td>{data.customers.find((c)=>c.id===o.customer_id)?.company || String((o.snapshot.customer as {company?: string}|undefined)?.company || "")}</td>
+          <td><DivisionBadge division={o.division}/></td><td>{money(o.net)}</td><td>{o.status}</td>
+          <td><div className="button-row">
+            <button className="secondary" aria-label={o.number+" PDF ansehen"} onClick={()=>setPrint(o)}><Printer size={16}/> PDF</button>
+            <button className="secondary" aria-label={o.number+" in Rechnung umwandeln"} onClick={()=>{setInvoiceForm({offer:o});setTab("invoices");}}><ArrowRight size={16}/> Rechnung</button>
+          </div></td>
+        </tr>)}</tbody>
+      </table></div> : <Empty title="Noch keine Angebote">Erstelle dein erstes Angebot manuell oder über den SumUp-Vergleich.</Empty>
+      : data.invoices.length ? <div className="table-wrap"><table>
+        <thead><tr><th>Rechnung</th><th>Kunde</th><th>Rechnungsdatum</th><th>Brutto</th><th>Status</th><th>Aktionen</th></tr></thead>
+        <tbody>{[...data.invoices].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map((i)=><tr key={i.id}>
+          <td>{i.status==="Entwurf" ? <button className="customer-link" onClick={()=>setInvoiceForm({invoice:i})}>{i.number}</button> : <strong>{i.number}</strong>}<small>Fällig {dateLabel(i.due_date)}</small></td>
+          <td>{data.customers.find((c)=>c.id===i.customer_id)?.company || String((i.snapshot.customer as {company?: string}|undefined)?.company || "")}</td>
+          <td>{dateLabel(i.issue_date)}</td><td>{money(i.gross)}</td><td>{i.status}</td>
+          <td><button className="secondary" aria-label={i.number+" PDF ansehen"} onClick={()=>setPrint(i)}><Printer size={16}/> PDF</button></td>
+        </tr>)}</tbody>
+      </table></div> : <Empty title="Noch keine Rechnungen">Erstelle eine Rechnung frei oder wandle ein bestehendes Angebot um.</Empty>}
+    </Card>
+    {edit && <OfferForm offer={edit===true?undefined:edit} onClose={()=>setEdit(null)}/>}
+    {invoiceForm && <InvoiceForm invoice={invoiceForm.invoice} offer={invoiceForm.offer}
+      onClose={()=>setInvoiceForm(null)} onSaved={(invoice)=>{setTab("invoices");setPrint(invoice);}}/>}
+    {print && <DocumentPreview document={print} onClose={()=>setPrint(null)}/>}
+  </>;
 }
