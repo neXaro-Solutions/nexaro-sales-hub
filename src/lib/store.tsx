@@ -110,12 +110,15 @@ export function DataProvider({
         created_at: existing?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
         version: (existing?.version || 0) + 1,
-        ...(entity === "offers"
+        ...(entity === "offers" || entity === "invoices"
           ? {
-              ...offerTotals((value as Partial<Row<"offers">>).lines || []),
+              ...offerTotals((value as Partial<Row<"offers">>).lines || (value as Partial<Row<"invoices">>).lines || []),
               number:
                 (value as Partial<Row<"offers">>).number ||
-                "DEMO-" + (data.offers.length + 1),
+                (value as Partial<Row<"invoices">>).number ||
+                `${entity === "offers" ? "ANG" : "RE"}-${new Date().getFullYear()}-${String(
+                  Math.max(0, ...data[entity].map((item) => Number(item.number.match(/-(\\d+)$/)?.[1] || 0))) + 1
+                ).padStart(5, "0")}`,
             }
           : {}),
       } as Row<K>;
