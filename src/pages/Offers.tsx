@@ -168,6 +168,21 @@ export function OfferForm({
         })} />}
         {division === "sumup" && <SumupOfferComparison
           snapshot={offer?.snapshot || draft?.snapshot} compact />}
+        {hardwareIndex>=0&&regularUnit!==undefined&&lines[hardwareIndex].quantity>=1&&
+          Number.isSafeInteger(lines[hardwareIndex].quantity)&&
+          <div className="sumup-discount-controls">
+            <strong>Hardware-Angebot individuell anpassen</strong>
+            <label className="field">
+              <span>Gewährter Rabatt: {hardwareDiscount} % (maximal 25 %)</span>
+              <input type="range" min="0" max="25" step="1" value={hardwareDiscount}
+                aria-label="SumUp Hardware Rabatt" onChange={e=>changeHardwareDiscount(Number(e.target.value))}/>
+            </label>
+            <div className="sumup-discount-total">
+              <span>Regulär: {money(hardwareOfferPrice(regularUnit,0,lines[hardwareIndex].quantity).regularTotal)} netto</span>
+              <span>Nachlass: {money(hardwareOfferPrice(regularUnit,hardwareDiscount,lines[hardwareIndex].quantity).discountTotal)}</span>
+              <strong>Hardware im Angebot: {money(hardwareOfferPrice(regularUnit,hardwareDiscount,lines[hardwareIndex].quantity).offerNet)} netto</strong>
+            </div>
+          </div>}
         <p className="muted">Positionspreise netto. SumUp-Zahlungsgebühren erscheinen beim Vergleich separat
           und werden nicht als Rechnungspositionen von neXaro berechnet.</p>
         {lines.map((l, i) => (
