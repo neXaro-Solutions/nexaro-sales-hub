@@ -221,6 +221,8 @@ export function Sumup() {
               onOffer={setDraft}
               photoInput={p}
               photoAvailable={Boolean(statement)}
+              photoReview={statement}
+              onCapture={() => setCapture(true)}
             />
           </div>
           {tab === "analysis" && (
