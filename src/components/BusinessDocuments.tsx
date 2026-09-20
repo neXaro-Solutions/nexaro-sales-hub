@@ -95,6 +95,26 @@ export function DocumentPreview({ document, onClose }: { document: Offer | Invoi
   const recipient: Party = saved || (customer ? customerSnapshot(customer) : {});
   const issuer = (document.snapshot.seller as typeof seller | undefined) || seller;
   const vatGroups = [...new Set(document.lines.map((l) => l.vat))].sort((a,b) => b-a);
+  const subject=(invoice?"Rechnung ":"Angebot ")+document.number+" · neXaro Solutions";
+  const emailBody=[
+    "Guten Tag,",
+    "",
+    "anbei erhalten Sie "+(invoice?"die Rechnung ":"das Angebot ")+document.number+".",
+    "Bitte fügen Sie die zuvor als PDF gespeicherte Datei als Anhang hinzu.",
+    "",
+    "Mit freundlichen Grüßen",
+    "neXaro Solutions",
+  ].join("\n");
+  const emailTo=recipient.email||"";
+  const emailHref="mailto:"+encodeURIComponent(emailTo)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(emailBody);
+  async function shareSummary(){
+    const message=subject+"\n"+(recipient.company||"Entwurf ohne Kundenzuordnung")+"\nGesamtbetrag: "+money(document.gross)+
+      "\nPDF separat über Drucken / als PDF sichern speichern und beim Versand anhängen.";
+    if(navigator.share){try{await navigator.share({title:subject,text:message});}catch(e){
+      if((e as Error)?.name!=="AbortError")window.location.href=emailHref;
+    }} else window.location.href=emailHref;
+  }
+
   return <Modal title={invoice ? "Rechnung · PDF-Vorschau" : "Angebot · PDF-Vorschau"} onClose={onClose}>
     <div className="print-sheet nx-document">
       <div className="nx-document-band" />
@@ -134,6 +154,10 @@ export function DocumentPreview({ document, onClose }: { document: Offer | Invoi
         <div><b>Bankverbindung</b><br/>{issuer.bank}<br/>IBAN: {issuer.iban}</div>
       </footer>
     </div>
-    <div className="no-print form-actions"><button className="primary" onClick={() => window.print()}><Printer size={16}/> Drucken / als PDF speichern</button><p className="hint">Im Druckdialog „Als PDF sichern“ wählen. Bitte Anschrift, Steuersatz und Leistungsdatum vor dem Versand prüfen.</p></div>
+    <div className="no-print document-export-actions">
+      <button type="button" className="primary" onClick={() => window.print()}><Printer size={16}/> Drucken / als PDF sichern</button>
+      <button type="button" className="secondary" onClick={() => void shareSummary()}>Angebot teilen / E-Mail</button>
+      <p className="hint">Auf dem iPhone: „Drucken“ öffnen und die Druckvorschau über „Teilen“ als PDF sichern. Der E-Mail-Knopf bereitet die Nachricht vor; das gesicherte PDF muss als Anhang hinzugefügt werden.{!document.customer_id?" Ohne Kundenakte ist dies ein interner Angebotsentwurf.":""}</p>
+    </div>
   </Modal>;
 }
