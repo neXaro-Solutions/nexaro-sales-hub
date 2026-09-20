@@ -2559,3 +2559,47 @@ progress {
     gap: 12px;
   }
 }
+
+
+/* Field-sales Vape catalog — inherits the central neXaro design tokens. */
+.vape-shop{min-width:0}
+.vape-shop-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:10px 0 22px}
+.vape-shop-head h2{font-size:clamp(23px,3vw,32px);margin:9px 0 7px}
+.vape-shop-count{font-size:30px;color:var(--orange-light);font-weight:700;text-align:right}
+.vape-shop-count small{display:block;font-size:11px;white-space:nowrap}
+.vape-scan{background:linear-gradient(110deg,#302117,#191a18);border-color:#70402a}
+.vape-scan h3{display:flex;gap:10px;align-items:center;font-size:19px;margin:0 0 10px}
+.vape-scan-actions{display:flex;gap:12px;flex-wrap:wrap}
+.vape-file-action{position:relative;cursor:pointer;display:inline-flex;gap:9px;align-items:center;max-width:100%;min-height:48px}
+.vape-file-action input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0;z-index:1}
+.vape-file-action:focus-within{outline:2px solid var(--orange);outline-offset:3px}
+.vape-file-action:has(input:disabled){opacity:.5;cursor:not-allowed}
+.vape-scan-preview{width:min(100%,220px);max-height:180px;object-fit:contain;border-radius:10px;border:1px solid var(--border);margin:14px 0}
+.vape-matches{display:grid;gap:8px;margin-top:18px}
+.vape-match{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--border);border-radius:8px;background:#191c16;color:#eaece4;padding:14px}
+.vape-match:hover{border-color:var(--orange)}
+.vape-match span{flex:1;min-width:0}.vape-match b{display:block;line-height:1.4}.vape-match small{display:block;margin-top:4px}
+.vape-shop-filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(160px,.55fr) minmax(180px,.55fr);align-items:center;gap:14px}
+.vape-shop-filters .search{min-width:0;width:100%}
+.vape-margin{display:flex;align-items:center;gap:10px;font-size:12px}.vape-margin input{flex:1;min-width:40px}
+.vape-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-bottom:24px}
+.vape-product-card{color:inherit;display:flex;flex-direction:column;min-width:0;text-align:left;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;padding:0;transition:transform .14s,border-color .14s}
+.vape-product-card:hover{transform:translateY(-2px);border-color:var(--orange)}
+.vape-product-image{width:100%;height:205px;object-fit:contain;background:#f0f2ed;display:block}
+.vape-image-placeholder{background:linear-gradient(145deg,#282d23,#171b17);color:#98a38b;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;min-height:180px;text-align:center;padding:18px;font-size:12px}
+.vape-product-info{padding:17px;display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:11px}
+.vape-product-info>small{line-height:1.6}
+.vape-product-info>strong{font-size:13px;line-height:1.55;min-height:3em;color:#f3f4ef}
+.vape-product-info>b{font-size:20px;color:var(--orange-light);margin-top:auto}
+.vape-card-link{color:var(--orange-light);font-weight:700;font-size:12px;margin-top:7px;display:flex;align-items:center;gap:7px}
+.vape-pagination{display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:24px}
+.vape-detail-overlay{position:fixed;inset:0;z-index:80;background:#000c;overflow:auto;padding:20px;display:flex;align-items:flex-start;justify-content:center}
+.vape-detail{width:min(580px,100%);position:relative;padding:28px;margin:3vh auto;box-shadow:0 20px 70px #0008}
+.vape-detail-close{position:absolute;right:13px;top:13px;z-index:1;background:#111d}
+.vape-detail-image{width:100%;max-height:260px;object-fit:contain;background:#e9eee9;margin-bottom:17px;border-radius:9px}
+.vape-detail-price{background:#262c20;padding:18px;margin:13px 0;border-radius:9px;display:flex;flex-direction:column;gap:7px}
+.vape-detail-price small{color:var(--muted)}.vape-detail-price strong{font-size:30px;color:var(--orange-light)}
+.vape-detail-price span{font-size:13px;color:#d1e5b8}
+@media(max-width:800px){.vape-shop-filters{grid-template-columns:1fr 1fr}.vape-shop-filters .search{grid-column:1/-1}}
+@media(max-width:560px){.vape-shop-filters{grid-template-columns:1fr}.vape-shop-filters .search{grid-column:auto}.vape-shop-head{align-items:flex-start}.vape-shop-count{font-size:23px}.vape-shop-count small{white-space:normal}.vape-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.vape-product-info{padding:12px;gap:8px}.vape-product-image{height:150px}.vape-product-info>strong{font-size:12px}.vape-product-info>b{font-size:15px}.vape-scan-actions>.vape-file-action{width:100%}.vape-detail-overlay{padding:8px}.vape-detail{padding:18px}}
+@media(max-width:370px){.vape-products{grid-template-columns:1fr}.vape-product-image{height:190px}}
