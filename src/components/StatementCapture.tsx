@@ -126,10 +126,6 @@ export function StatementCapture({
               if (!controller.signal.aborted) {
                 if (autoApply) {
                   const recognized = recognizedStatementValues(result.text);
-                  if (Object.keys(recognized).length === 0) {
-                    setError("Keine eindeutigen Belegwerte erkannt. Bitte ein schärferes Foto wählen oder Ist-Bestand manuell erfassen.");
-                    return;
-                  }
                   onApply(recognized, {
                     confirmedAt: new Date().toISOString(),
                     months: 1,
