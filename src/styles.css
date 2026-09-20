@@ -2303,3 +2303,32 @@ progress {
     font-size: 16px;
   }
 }
+
+
+/* Accessible multi-select dropdowns: keep selected options visible and editable. */
+.multi-choice-dropdown {
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--border, #cbd5e1);
+  border-radius: 0.65rem;
+}
+.multi-choice-dropdown > summary {
+  cursor: pointer;
+  padding: 0.8rem 1rem;
+  font-weight: 600;
+}
+.multi-choice-options {
+  max-height: 18rem;
+  overflow-y: auto;
+  padding: 0.4rem 1rem 0.8rem;
+  border-top: 1px solid var(--border, #cbd5e1);
+}
+.multi-choice-options .checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  cursor: pointer;
+}
+.multi-choice-options input[type="checkbox"] {
+  flex: 0 0 auto;
+}
