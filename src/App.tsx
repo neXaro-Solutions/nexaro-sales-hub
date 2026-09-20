@@ -102,7 +102,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
           </button>
         </div>
         <div className="workspace-label">
-          <span className="orange-dot" /> SALES HUB <span>01</span>
+          <span className="orange-dot" /> neXaro CRM <span>09/26</span>
         </div>
         <nav>
           {nav.map((n, i) => (
@@ -323,6 +323,7 @@ export default function App() {
         <Brand />
         <div>
           <span className="eyebrow">DEIN VERTRIEB. EINE ZENTRALE.</span>
+          <p className="badge sumup">CRM-Integration September 2026 · Alle Module zentral</p>
           <h1>
             Mehr
             <br />
@@ -349,6 +350,7 @@ export default function App() {
             <LockKeyhole size={24} />
           </div>
           <span className="eyebrow">PERSÖNLICHER ARBEITSBEREICH</span>
+          <small className="badge positive">neXaro CRM · Stand 20.09.2026</small>
           <h2>Bereit für deinen nächsten Abschluss?</h2>
           <p>Melde dich mit deinem bestehenden Administratorkonto an.</p>
           <form
