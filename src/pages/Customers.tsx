@@ -378,18 +378,17 @@ export function Customers({ division }: { division?: Division }) {
                 </button>
               </div>
             ))}
+          <h3>Angebote & Rechnungen</h3>
+          {data.offers.filter((o) => o.customer_id === customer.id &&
+            (!division || o.division === division)).map((o) => (
+            <p key={o.id}>Angebot {o.number} · {o.status} · {money(o.gross)} brutto</p>
+          ))}
+          {data.invoices.filter((i) => i.customer_id === customer.id &&
+            (!division || i.division === division)).map((i) => (
+            <p key={i.id}>Rechnung {i.number} · {i.status} · {money(i.gross)} brutto</p>
+          ))}
           <Documents key={customer.id} customerId={customer.id} />
-          {division !== "vape" && <h3>SumUp-Angebote</h3>}
-          {division !== "vape" &&
-            data.offers
-              .filter(
-                (o) => o.customer_id === customer.id && o.division === "sumup",
-              )
-              .map((o) => (
-                <p key={o.id}>
-                  {o.number} · {o.status} · {money(o.net)} netto
-                </p>
-              ))}
+
         </Modal>
       )}
       {edit && (
