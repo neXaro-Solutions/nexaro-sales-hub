@@ -43,9 +43,9 @@ export function Sumup() {
       photoInput={photoInput} photoReview={photoReview}
       photoAvailable={!!photoReview} onCapture={()=>setCapture(true)}
       onOffer={setDraft}/>
-    {capture&&<StatementCapture onClose={()=>setCapture(false)}
+    {capture&&<StatementCapture autoApply onClose={()=>setCapture(false)}
       onApply={(values,review)=>{
-        setPhotoInput(old=>({...old,...values}));
+        setPhotoInput({...emptyStatement,...values});
         setPhotoReview(review);
         setStep(2);
         setCapture(false);
