@@ -303,7 +303,7 @@ export function Offers() {
           <td>{data.customers.find((c)=>c.id===o.customer_id)?.company || String((o.snapshot.customer as {company?: string}|undefined)?.company || "Ohne Kunden · Entwurf")}</td>
           <td><DivisionBadge division={o.division}/></td><td>{money(o.net)}</td><td>{o.status}</td>
           <td><div className="button-row">
-            <button className="secondary" aria-label={o.number+" PDF ansehen"} onClick={()=>setPrint(o)}><Printer size={16}/> PDF</button>
+            <button className="secondary" aria-label={o.number+" drucken, PDF sichern oder versenden"} onClick={()=>setPrint(o)}><Printer size={16}/> PDF / Teilen</button>
             <button className="secondary" disabled={!o.customer_id} title={!o.customer_id?"Vor Rechnung Kunden zuordnen":undefined} aria-label={o.number+" in Rechnung umwandeln"} onClick={()=>{setInvoiceForm({offer:o});setTab("invoices");}}><ArrowRight size={16}/> Rechnung</button>
           </div></td>
         </tr>)}</tbody>
@@ -318,7 +318,7 @@ export function Offers() {
         </tr>)}</tbody>
       </table></div> : <Empty title="Noch keine Rechnungen">Erstelle eine Rechnung frei oder wandle ein bestehendes Angebot um.</Empty>}
     </Card>
-    {edit && <OfferForm offer={edit===true?undefined:edit} onClose={()=>setEdit(null)}/>}
+    {edit && <OfferForm offer={edit===true?undefined:edit} onClose={()=>setEdit(null)} onSaved={saved=>{setTab("offers");setPrint(saved);}}/>}
     {invoiceForm && <InvoiceForm invoice={invoiceForm.invoice} offer={invoiceForm.offer}
       onClose={()=>setInvoiceForm(null)} onSaved={(invoice)=>{setTab("invoices");setPrint(invoice);}}/>}
     {print && <DocumentPreview document={print} onClose={()=>setPrint(null)}/>}
