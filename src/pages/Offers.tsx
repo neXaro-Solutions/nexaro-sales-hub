@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EditableNumberInput } from "../components/EditableNumberInput";
 import { Plus, Printer, Trash2, FileText, Receipt, ArrowRight } from "lucide-react";
 import { InvoiceForm, DocumentPreview, customerSnapshot } from "../components/BusinessDocuments";
 import { useStore } from "../lib/store";
@@ -163,7 +164,7 @@ export function OfferForm({
               />
             </Field>
             <Field label="Menge">
-              <input
+              <EditableNumberInput
                 type="number"
                 required
                 min="1"
@@ -174,7 +175,7 @@ export function OfferForm({
               />
             </Field>
             <Field label="Netto (€)">
-              <input
+              <EditableNumberInput
                 type="number"
                 required
                 min="0"
@@ -185,7 +186,7 @@ export function OfferForm({
               />
             </Field>
             <Field label="MwSt. %">
-              <input
+              <EditableNumberInput
                 type="number"
                 required
                 min="0"
