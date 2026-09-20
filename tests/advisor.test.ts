@@ -59,13 +59,13 @@ describe("Statement review", () => {
 describe("Automatic photo-to-Ist-Bestand transfer", () => {
   it("immediately imports uniquely recognized amounts without inventing missing zeroes", () => {
     expect(recognizedStatementValues(
-      "Kartenumsatz vor Ort: 5.200,00 EUR\\nAnzahl Transaktionen: 260\\nGesamtgebühren: 102,85 EUR"
+      "Kartenumsatz vor Ort: 5.200,00 EUR\nAnzahl Transaktionen: 260\nGesamtgebühren: 102,85 EUR"
         
     )).toEqual({ volume: 5200, transactions: 260, currentTotal: 102.85 });
   });
   it("leaves ambiguous values for correction in step two", () => {
     expect(recognizedStatementValues(
-      "Kartenumsatz: 5.000,00\\nKartenumsatz: 6.000,00\\nAnzahl Transaktionen: 300"
+      "Kartenumsatz: 5.000,00\nKartenumsatz: 6.000,00\nAnzahl Transaktionen: 300"
         
     )).toEqual({ transactions: 300 });
   });
