@@ -25,7 +25,7 @@ export function rankProductPhoto(products: Product[], text: string, barcodes: st
   return products.map(item => {
     const ean = (item.ean || "").replace(/\D/g,"");
     const article = normalize(item.supplier_article_no || "");
-    if (ean && codes.has(ean)) return { item, score: 100, reason: "EAN / Barcode exakt" };
+    if (ean && (codes.has(ean) || (" "+corpus+" ").includes(" "+ean+" "))) return { item, score: 100, reason: "EAN / Barcode exakt" };
     if (article.length >= 4 && (" " + corpus + " ").includes(" " + article + " "))
       return { item, score: 95, reason: "Artikelnummer exakt" };
     const words = [...new Set(tokens(item.name))];
@@ -67,7 +67,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
     setLoading(true);
     const {data,error:dbError} = await client.from("nx_vape_catalog").select(
       "id,name,category,supplier_article_no,ean,image_url,pieces_per_ve,ve_approved,ve_ek_net,single_approved,supplier_single_available,single_ek_net"
-    ).or("ve_approved.eq.true,single_approved.eq.true").order("name");
+    ).order("name");
     if (dbError) setError("Katalog konnte nicht geladen werden: " + dbError.message);
     else { setProducts((data||[]) as Product[]); setError(""); }
     setLoading(false);
@@ -87,10 +87,11 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
     return () => { live=false; };
   },[products]);
   useEffect(()=>()=>{if(photoPreview) URL.revokeObjectURL(photoPreview);},[photoPreview]);
-  const categories=useMemo(()=>[...new Set(products.map(p=>p.category||"Andere"))].sort(),[products]);
-  const shown=useMemo(()=>products.filter(p=>(!category||(p.category||"Andere")===category)&&
+  const approved=useMemo(()=>products.filter(p=>p.ve_approved||p.single_approved),[products]);
+  const categories=useMemo(()=>[...new Set(approved.map(p=>p.category||"Andere"))].sort(),[approved]);
+  const shown=useMemo(()=>approved.filter(p=>(!category||(p.category||"Andere")===category)&&
     normalize(p.name+" "+(p.supplier_article_no||"")+" "+(p.ean||"")).includes(normalize(query))
-  ),[products,category,query]);
+  ),[approved,category,query]);
   const pages=Math.max(1,Math.ceil(shown.length/24));
   const visible=shown.slice(Math.min(page,pages-1)*24,Math.min(page,pages-1)*24+24);
   const imageFor=(p:Product)=>p.image_url?.startsWith("nx-vape-images/")?pictures[p.id]:
@@ -171,7 +172,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
     <div className="vape-shop-head">
       <div><span className="eyebrow">FÜR DEN AUSSENDIENST</span><h2>Freigegebene Vape-Produkte</h2>
         <p>Foto aufnehmen, Produkt finden, geprüften VK sehen und direkt ins Angebot übernehmen.</p></div>
-      <div className="vape-shop-count">{loading?"…":products.length}<small>verkaufsfertige Artikel</small></div>
+      <div className="vape-shop-count">{loading?"…":approved.length}<small>verkaufsfertige Artikel</small></div>
     </div>
     <div className="card vape-scan">
       <h3><Camera size={19}/> Produkt beim Händler erkennen</h3>
@@ -187,7 +188,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
       {scanText&&<details><summary>Erkannten Verpackungstext prüfen</summary><p className="prewrap">{scanText}</p></details>}
       {matches.length>0&&<div className="vape-matches"><strong>Mögliche Treffer – bitte Artikel prüfen</strong>
         {matches.map(m=><button className="vape-match" key={m.item.id} onClick={()=>open(m.item)}>
-          <ScanBarcode size={17}/><span><b>{m.item.name}</b><small>{m.reason} · {m.score}% Text-/Code-Übereinstimmung</small></span><ArrowRight size={16}/>
+          <ScanBarcode size={17}/><span><b>{m.item.name}</b><small>{m.reason} · {m.score}% Text-/Code-Übereinstimmung · {m.item.ve_approved||m.item.single_approved?"verkaufsfertig":"noch nicht freigegeben"}</small></span><ArrowRight size={16}/>
         </button>)}</div>}
     </div>
     <div className="card">
@@ -237,11 +238,12 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
           <label className="field">Menge<input type="number" min="1" max="1000" step="1" value={quantity}
             onChange={e=>setQuantity(Number(e.target.value))}/></label>
         </div>
-        <div className="vape-detail-price">
+        {!active.ve_approved&&!active.single_approved&&<p className="notice">Dieser Artikel ist im CRM vorhanden, aber noch nicht für Angebote freigegeben. Erst den Händler-EK und die Verkaufseinheit unter „Artikel freigeben“ prüfen.</p>}
+        {(unit==="VE"?active.ve_approved&&active.ve_ek_net:active.single_approved&&active.single_ek_net)&&<div className="vape-detail-price">
           <small>VK je {unit} · netto / brutto inkl. 19 % MwSt.</small>
           <strong>{money(vapeSaleNet((unit==="VE"?active.ve_ek_net:active.single_ek_net)||0.01,margin))}</strong>
           <span>{money(vapeSaleGross(vapeSaleNet((unit==="VE"?active.ve_ek_net:active.single_ek_net)||0.01,margin)))}</span>
-        </div>
+        </div>}
         <button className="primary wide" disabled={demo||!Number.isSafeInteger(quantity)||quantity<1||
           (unit==="VE"?!(active.ve_approved&&active.ve_ek_net&&active.pieces_per_ve):
             !(active.single_approved&&active.supplier_single_available&&active.single_ek_net))}
