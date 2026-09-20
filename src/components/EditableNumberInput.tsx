@@ -6,7 +6,7 @@ import { useState, type InputHTMLAttributes } from "react";
  */
 export function EditableNumberInput({
   value, onChange, onFocus, onBlur, ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "type"> & {
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "value"> & {
   value: number | string;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
