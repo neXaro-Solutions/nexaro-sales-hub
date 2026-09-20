@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>neXaro · Testabrechnung Kartenzahlungen</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#1c211b;background:#f3f3f1}*{box-sizing:border-box}body{margin:0}.toolbar{background:#171913;color:#fff;padding:12px 22px;display:flex;justify-content:space-between;gap:12px;align-items:center}.toolbar button{background:#ff641e;color:#161616;border:0;border-radius:6px;padding:12px 18px;font-weight:700;cursor:pointer}.sheet{width:min(210mm,100%);min-height:297mm;margin:22px auto;padding:18mm 17mm;background:#fff;box-shadow:0 8px 30px #0002}h1{font-size:23px;margin:5px 0 12px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#4a5549;border-bottom:1px solid #ccd1cb;padding-bottom:9px;margin:32px 0 12px}p{margin:5px 0;line-height:1.45}.muted{color:#637068;font-size:12px}.brand{font-size:29px;font-weight:750;color:#101610}.brand span{color:#ff641e}.header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.test{border:2px solid #c84b28;color:#b33a21;padding:8px 12px;font-size:12px;font-weight:800;letter-spacing:.08em}.notice{margin:25px 0;background:#fff6ed;border:1px solid #db9c6b;padding:12px;font-size:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.metric{padding:16px;background:#f5f6f2;border:1px solid #dce0d8}.metric small{display:block;color:#5c665e;margin-bottom:8px}.metric strong{font-size:23px}table{border-collapse:collapse;width:100%;font-size:13px;margin:14px 0}th{background:#f2f3ef;text-align:left;color:#475147}td,th{border-bottom:1px solid #dbe0d7;padding:12px 9px}td:last-child,th:last-child{text-align:right}.sum{font-weight:750;background:#f2f4ee}.foot{border-top:1px solid #ccd1ca;margin-top:40px;padding-top:12px;color:#606961;font-size:11px}@page{size:A4;margin:0}@media print{body{background:#fff}.toolbar{display:none}.sheet{margin:0;box-shadow:none;width:210mm;height:297mm;min-height:0;break-after:avoid}}@media(max-width:650px){.sheet{padding:25px}.header{flex-direction:column}.grid{grid-template-columns:1fr}.toolbar{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="toolbar"><strong>neXaro Solutions · OCR-Testdokument</strong><button type="button" onclick="window.print()">A4 drucken / als PDF speichern</button></div>
+<main class="sheet">
+<div class="header"><div><div class="brand">ne<span>X</span>aro <small style="font-size:13px;font-weight:400">SOLUTIONS</small></div><p class="muted">Abrechnung als Testvorlage für den SumUp-Tarifvergleich</p></div><div class="test">MUSTER · KEINE ECHTE ABRECHNUNG</div></div>
+<h1>Kartenzahlungsabrechnung</h1>
+<p><strong>Testhändler:</strong> Muster-Café Halbe GmbH (fiktiv)</p>
+<p><strong>Anbieter:</strong> Beispiel-Zahlungsanbieter (fiktiv)</p>
+<p><strong>Abrechnungszeitraum:</strong> 01.08.2026 bis 31.08.2026</p>
+<p><strong>Testreferenz:</strong> OCR-TEST-2026-08</p>
+<div class="notice"><strong>Nur für Softwareprüfung.</strong> Diese Zahlen sind frei erfundene Testdaten. Keine Forderung, kein Zahlungsbeleg, kein Steuerbeleg und keine Bestätigung eines Zahlungsanbieters.</div>
+<h2>Übersicht</h2>
+<div class="grid">
+<div class="metric"><small>Kartenumsatz gesamt</small><strong>6.500,00 €</strong></div>
+<div class="metric"><small>Transaktionen gesamt</small><strong>325</strong></div>
+<div class="metric"><small>Gesamtgebühren</small><strong>118,45 €</strong></div>
+<div class="metric"><small>Auszahlung nach Gebühren (vereinfacht)</small><strong>6.381,55 €</strong></div>
+</div>
+<h2>Kartenarten</h2>
+<table><thead><tr><th>Art</th><th>Transaktionen</th><th>Umsatz</th><th>Anteil</th></tr></thead><tbody>
+<tr><td>Debitkarten</td><td>260</td><td>5.200,00 €</td><td>80 %</td></tr>
+<tr><td>Kreditkarten</td><td>65</td><td>1.300,00 €</td><td>20 %</td></tr>
+<tr class="sum"><td>Gesamt</td><td>325</td><td>6.500,00 €</td><td>100 %</td></tr>
+</tbody></table>
+<h2>Gebührenübersicht</h2>
+<table><tbody><tr><td>Variable Transaktionsgebühren (Testannahme)</td><td>103,45 €</td></tr><tr><td>Monatliche Grundgebühr (Testannahme)</td><td>15,00 €</td></tr><tr class="sum"><td>Gesamtgebühren</td><td>118,45 €</td></tr><tr class="sum"><td>Auszahlung nach Gebühren</td><td>6.381,55 €</td></tr></tbody></table>
+<p class="foot">Hinweis für den OCR-Test: Die automatische Texterkennung darf nur erkannte Werte zur manuellen Freigabe vorschlagen. Kartenmix, Gebühren und Abrechnungszeitraum vor der Übernahme prüfen. Die Abrechnung ist ausschließlich zu Demonstrations- und Testzwecken erstellt.</p>
+</main>
+</body>
+</html>
