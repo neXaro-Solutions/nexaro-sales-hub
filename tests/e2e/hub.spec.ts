@@ -468,6 +468,6 @@ test("manual offer and invoice use independent numbers and branded PDF preview",
   await expect(page.locator(".print-sheet")).toContainText("DE367084019");
   await expect(page.locator(".print-sheet")).toContainText("DE02100110012046791637");
   await expect(page.locator(".print-sheet")).toContainText("Zahlungsterminal");
-  await page.getByRole("button", { name: "Schließen" }).click();
+  await page.getByRole("button", { name: "Schließen", exact: true }).click();
   await expect(page.getByText(/RE-\d{4}-00001/).first()).toBeVisible();
 });
