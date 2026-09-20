@@ -138,6 +138,7 @@ export function demoData(): Data {
       },
     ],
     offers: [],
+    invoices: [],
     routes: [],
     events: [
       {
