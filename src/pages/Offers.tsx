@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Printer, Trash2, FileText, Receipt, ArrowRight } from "lucide-react";
 import { InvoiceForm, DocumentPreview, customerSnapshot } from "../components/BusinessDocuments";
 import { useStore } from "../lib/store";
+import { VapeOfferPicker } from "../components/VapeOfferPicker";
 import {
   Card,
   Empty,
@@ -142,6 +143,11 @@ export function OfferForm({
             </select>
           </Field>
         </div>
+        {division === "vape" && <VapeOfferPicker onAdd={line => setLines(current => {
+          const blank = current.length === 1 && !current[0].name.trim() && current[0].price === 0;
+          const next = blank ? [line] : [...current, line];
+          return next.length > 100 ? current : next;
+        })} />}
         <p className="muted">
           Positionspreise netto. Gebührenvergleiche gehören in die
           Beratungsnotiz.
