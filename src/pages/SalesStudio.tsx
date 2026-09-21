@@ -49,10 +49,10 @@ const payLabel: Record<string,string> = {
   daily:"Täglich",weekly:"Wöchentlich",fortnightly:"Alle zwei Wochen",monthly:"Einmal im Monat",unknown:"Noch offen"
 };
 const suggest = (existing:string, needs:Wish[]):HardwareId => {
-  if(needs.includes("Kasse")) return "pos";
-  if(needs.includes("Drucker") || /a920|dx8000|n86|terminal|mypos pro/i.test(existing)) return "terminal";
-  if(/reader|p400|pin-pad/i.test(existing) && !needs.includes("Ohne Smartphone")) return "lite";
-  if(/tap to pay|telefon/i.test(existing) && !needs.includes("Ohne Smartphone")) return "tap";
+  if(needs.includes("pos")) return "pos";
+  if(needs.includes("receipt") || /a920|dx8000|n86|terminal|mypos pro/i.test(existing)) return "terminal";
+  if(/reader|p400|pin-pad/i.test(existing) && !needs.includes("standalone")) return "lite";
+  if(/tap to pay|telefon/i.test(existing) && !needs.includes("standalone")) return "tap";
   return "solo";
 };
 type SavedStudio = {
