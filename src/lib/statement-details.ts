@@ -121,6 +121,30 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
      !/%|gebühr|satz|rate|fee/i.test(line)&&amounts.length===1)add("eligibleVolume",amounts[0],line);
   if(/(?:sonstige|andere|nicht\s+geeignete)\s*karten\s*(?:umsatz|volumen|betrag)?/i.test(line)&&
      !/%|gebühr|satz|rate|fee/i.test(line)&&amounts.length===1)add("otherVolume",amounts[0],line);
+  // OCR on phones frequently splits a table at column boundaries:
+  // "Debitkarten (80 %)" / "10.024,00 € 1,25 % 125,30 €".
+  // Only merge adjacent lines when the second one has a distinct card turnover,
+  // exactly one percentage and at least one monetary fee amount.
+  if((debitRow||creditRow)&&shares.length===1&&
+     /\(\s*\d{1,3}(?:[.,]\d+)?\s*%\s*\)/.test(line)){
+   const feePercents=findPercent(next);
+   const feeAmounts=[...next.matchAll(/(?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2}\s*€/g)];
+   const source=next+" (Tabellenzeile: "+line+")";
+   if(feePercents.length===1&&feeAmounts.length>=2&&!/(?:debit|kredit|credit|girocard)/i.test(next)){
+    if(debitRow&&!creditRow){add("debitShare",shares[0],source);add("debitRate",feePercents[0],source);}
+    if(creditRow&&!debitRow)add("creditRate",feePercents[0],source);
+   }
+  }
+  // OCR can also place the entire fee in the next line after a labelled row.
+  if((debitRow||creditRow)&&shares.length===1&&
+     /(?:debitkarten?|kreditkarten?)\s*\(/i.test(line)&&
+     /^gebührensatz\s*[:：]?\s*\d/i.test(next)){
+   const feePercents=findPercent(next);
+   if(feePercents.length===1){
+    if(debitRow&&!creditRow){add("debitShare",shares[0],line);add("debitRate",feePercents[0],line+" → "+next);}
+    if(creditRow&&!debitRow)add("creditRate",feePercents[0],line+" → "+next);
+   }
+  }
   // A labelled "Kartenmix EC/Debit 80 % / Kredit 20 %" can be read
   // without confusing two fee percentages with a transaction share.
   if(/kartenmix|kartenanteile|umsatzaufteilung/i.test(line)){
