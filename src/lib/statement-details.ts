@@ -40,7 +40,7 @@ const providerNames=[
  ["myPOS",/\bmypos\b/i],
  ["Stripe",/\bstripe\b/i],
  ["Adyen",/\badyen\b/i],
- ["Testpay",/\btest\s*pay\b/i]
+ ["TESTPAY",/\btest\s*pay\b/i]
 ] as const;
 const definite=(values:{value:number;line:string}[])=>{
  const unique=[...new Set(values.map(v=>v.value))];
