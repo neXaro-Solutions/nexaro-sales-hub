@@ -31,6 +31,36 @@ describe("web business-card scan mapping",()=>{
   expect(read.fields.email).toBe("max@stadtcafe.de");
   expect(read.fields.website).toBe("www.stadtcafe.de");
  });
+ it("reads the uploaded neXaro test card without mistaking Außendienst & Vertrieb for the company",()=>{
+  const card=[
+   "neXaro Solutions","IDEEN BEWEGEN MÄRKTE","LÖSUNGEN FÜR EINE STARKE ZUKUNFT",
+   "Sebastian Pötschke","Außendienst & Vertrieb",
+   "Friedrichstraße 100","10117 Berlin Mitte",
+   "Telefon: +49 30 12345678","Mobil: +49 176 12345678",
+   "E-Mail: kontakt@nexaro-solutions.de","Web: www.nexaro-solutions.de"
+  ].join("\n");
+  const {fields}=readBusinessCardText(card);
+  expect(fields.company).toBe("neXaro Solutions");
+  expect(fields.contact).toBe("Sebastian Pötschke");
+  expect(fields.jobTitle).toBe("Außendienst & Vertrieb");
+  expect(fields.phone).toBe("+49 30 12345678");
+  expect(fields.mobile).toBe("+49 176 12345678");
+  expect(fields.email).toBe("kontakt@nexaro-solutions.de");
+  expect(fields.website).toBe("www.nexaro-solutions.de");
+  expect(fields.street).toBe("Friedrichstraße 100");
+  expect(fields.zip).toBe("10117");
+  expect(fields.city).toBe("Berlin Mitte");
+ });
+ it("never guesses a position as the company when an OCR logo is missing",()=>{
+  const {fields,warnings}=readBusinessCardText("Sebastian Pötschke\nAußendienst & Vertrieb\nFriedrichstraße 100\n10117 Berlin Mitte\nkontakt@nexaro-solutions.de");
+  expect(fields.company).toBeUndefined();
+  expect(fields.contact).toBe("Sebastian Pötschke");
+  expect(warnings.some(w=>w.includes("Unternehmen"))).toBe(true);
+ });
+ it("reads a split logo with company name in two rows",()=>{
+  const {fields}=readBusinessCardText("neXaro\nSolutions\nSebastian Pötschke\nAußendienst & Vertrieb\nFriedrichstraße 100\n10117 Berlin Mitte\nkontakt@nexaro-solutions.de");
+  expect(fields.company).toBe("neXaro Solutions");
+ });
  it("does not invent a named contact from a business letterhead",()=>{
   const read=readBusinessCardText("Stadtcafé Musterblick\nAlexanderplatz 1\n10178 Berlin");
   expect(read.fields.company).toBe("Stadtcafé Musterblick");
