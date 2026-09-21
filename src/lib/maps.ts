@@ -104,7 +104,7 @@ export async function findProspects(
   };
   const chosen=selectors[category]||selectors.all;
   const union=chosen.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
-  const q=`[out:json][timeout:40];(${union});out center tags 350;`;
+  const q=`[out:json][timeout:40];(${union});out center tags 1200;`;
   const response = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
     body: new URLSearchParams({ data: q }),
@@ -149,5 +149,11 @@ export async function findProspects(
       },
     )
     .filter((p:Prospect|null):p is Prospect=>!!p&&!!p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng))
+    .sort((a,b)=>{
+      const lat1=Math.PI/180*center.lat;
+      const dx=(a.lng-center.lng)*Math.cos(lat1),dy=a.lat-center.lat;
+      const ex=(b.lng-center.lng)*Math.cos(lat1),ey=b.lat-center.lat;
+      return dx*dx+dy*dy-ex*ex-ey*ey;
+    })
     .slice(0,150);
 }
