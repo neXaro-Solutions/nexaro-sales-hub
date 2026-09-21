@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../lib/client";
+import { ImagePlus } from "lucide-react";
 import { vapeSaleNet, vapeSaleGross, vapeIndicativePieceNet } from "../lib/vapePricing";
 
 type SupplierDetail = {
@@ -85,6 +86,39 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
   }, [groupCandidates]);
   const selectedBatch = veGroups.filter(g => selectedGroups.includes(g.key)).flatMap(g => g.products);
   const currentPage = Math.min(page, Math.max(0, Math.ceil(filtered.length / 25) - 1));
+
+  async function uploadPdfImages(files: FileList | null) {
+    if (!files?.length || demo || busy) return;
+    const catalog = new Map(products.filter(p => p.source_url.startsWith("pdf://nexaro-vape-20260921/"))
+      .map(p => [p.source_url.split("/").pop(), p]));
+    const selected = Array.from(files);
+    const invalid = selected.filter(f => !/^\\d{3}\\.jpe?g$/i.test(f.name) || f.size > 5_000_000);
+    if (invalid.length) { setError("Bitte ausschließlich die nummerierten JPG-Dateien 001.jpg bis 170.jpg aus dem PDF-Bildpaket auswählen (je max. 5 MB)."); return; }
+    if (!window.confirm(selected.length + " PDF-Produktbilder den vorhandenen Katalogartikeln zuordnen? Bestehende Artikeltexte und Preise bleiben unverändert.")) return;
+    setBusy(true);setError("");setNotice("");
+    let completed = 0;
+    const failed: string[] = [];
+    try {
+      for (const file of selected) {
+        const number = file.name.slice(0, 3);
+        const product = catalog.get(number);
+        if (!product) {failed.push(file.name + ": Kein entsprechender PDF-Artikel");continue;}
+        const path = product.id + ".jpg";
+        const {error:uploadError} = await client.storage.from("nx-vape-images")
+          .upload(path,file,{contentType:"image/jpeg",upsert:true});
+        if (uploadError) {failed.push(file.name + ": " + uploadError.message);continue;}
+        const {data:updated,error:dbError} = await client.from("nx_vape_catalog")
+          .update({image_url:"nx-vape-images/"+path,updated_at:new Date().toISOString()})
+          .eq("id",product.id).select("id");
+        if (dbError || !updated?.length) {failed.push(file.name + ": " + (dbError?.message||"Keine Schreibberechtigung"));continue;}
+        completed++;
+        setNotice(completed + " von " + selected.length + " Produktbildern gespeichert …");
+      }
+      if (failed.length) setError(failed.length + " Bild(er) nicht übernommen: " + failed.slice(0,8).join("; ") +
+        (failed.length>8 ? " …" : "") + ". Erneutes Auswählen der fehlenden Dateien ist möglich.");
+      setNotice(completed + " PDF-Produktbilder erfolgreich zugeordnet.");
+    } finally {await load();setBusy(false);}
+  }
 
   async function readImport(file: File | undefined) {
     if (!file) return;
@@ -220,6 +254,15 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
         <div className="card"><strong>{products.filter(p => p.ve_approved).length}</strong><p>Für VE-Angebote freigegeben</p></div>
         <div className="card"><strong>{products.filter(p => !p.ve_approved && !p.single_approved).length}</strong><p>Weitere Händlerartikel</p></div>
         <div className="card"><strong>{products.filter(p => p.single_approved).length}</strong><p>Einzelstück-Freigaben</p></div>
+      </div>
+      <div className="card" style={{background:"var(--soft-green)",borderColor:"#b7e57e"}}>
+        <h3><ImagePlus size={19} style={{verticalAlign:"middle"}} /> PDF-Produktbilder zuordnen</h3>
+        <p>Die 170 Produkte aus „Produkte neu mit Bild 2.pdf“ sind bereits angelegt. Das Bildpaket entpacken und alle nummerierten JPG-Dateien auswählen. Die Zuordnung erfolgt anhand der eindeutigen Nummer 001–170. Der bestehende Preis und die Freigabe werden dabei nicht verändert.</p>
+        <label className="secondary vape-file-action"><ImagePlus size={17} /> {busy ? "Bilder werden verarbeitet …" : "PDF-Produktbilder hochladen"}
+          <input type="file" accept="image/jpeg,.jpg,.jpeg" multiple disabled={busy}
+            onChange={e=>{void uploadPdfImages(e.target.files);e.target.value="";}} />
+        </label>
+        <p className="hint">{products.filter(p=>p.source_url.startsWith("pdf://nexaro-vape-20260921/") && !!p.image_url).length} / 170 PDF-Bilder hinterlegt</p>
       </div>
       <details><summary>Verwaltung & zukünftige Händlerimporte (optional)</summary>
       <label className="field">Neue Händlerdatei (dealer-products.json)
