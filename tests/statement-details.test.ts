@@ -88,14 +88,14 @@ describe("statement photo field extraction",()=>{
   expect(result.details.creditRate).toBe(2.50);
  });
  it("keeps debit 80 percent even if OCR misses its fee rate",()=>{
-  const result=analyzeStatementText("Debitkarten (80 %) 10.024,00 € 125,30 €\\nKreditkarten (20 %) 2.506,00 € 2,50 % 62,65 €");
+  const result=analyzeStatementText("Debitkarten (80 %) 10.024,00 € 125,30 €\nKreditkarten (20 %) 2.506,00 € 2,50 % 62,65 €");
   expect(result.details.debitShare).toBe(80);
   expect(result.details.debitRate).toBe(1.25);
   expect(result.details.creditRate).toBe(2.5);
   expect(result.warnings.some(w=>w.includes("rechnerisch"))).toBe(true);
  });
  it("never invents a debit percentage from the card mix alone",()=>{
-  const result=analyzeStatementText("Debitkarten (80 %)\\nKreditkarten (20 %) 2.506,00 € 2,50 % 62,65 €");
+  const result=analyzeStatementText("Debitkarten (80 %)\nKreditkarten (20 %) 2.506,00 € 2,50 % 62,65 €");
   expect(result.details.debitShare).toBe(80);
   expect(result.details.debitRate).toBeUndefined();
  });
