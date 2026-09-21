@@ -7,6 +7,7 @@ export type Prospect = {
   city: string;
   phone: string;
   website: string;
+  email: string;
   lat: number;
   lng: number;
   category: string;
@@ -139,7 +140,8 @@ export async function findProspects(
           zip: t["addr:postcode"] || "",
           city: t["addr:city"] || "",
           phone: t.phone || t["contact:phone"] || "",
-          website: t.website || "",
+          website: t.website || t["contact:website"] || "",
+          email: t.email || t["contact:email"] || "",
           lat: e.lat ?? e.center?.lat,
           lng: e.lon ?? e.center?.lon,
           category: t.shop || t.amenity || "",
@@ -147,5 +149,5 @@ export async function findProspects(
       },
     )
     .filter((p:Prospect|null):p is Prospect=>!!p&&!!p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng))
-    .slice(0,60);
+    .slice(0,150);
 }
