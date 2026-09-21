@@ -25,7 +25,7 @@ const chainNames = [
  "clever fit","mcfit","fitx","john reed","easyfitness","basic fit"
 ];
 const clean=(value:string)=>value.toLocaleLowerCase("de-DE").normalize("NFKD")
- .replace(/[\u0300-\u036f]/g,"").replace(/&/g,"and").replace(/[^a-z0-9]+/g," ").trim();
+ .replace(/[\u0300-\u036f]/g,"").replace(/[’\']/g,"").replace(/&/g,"and").replace(/[^a-z0-9]+/g," ").trim();
 const chainKeys = chainNames.map(clean);
 const franchises = /^(?:yes|only|brand|chain)$/i;
 /** Known chain/branch filter; conservatively avoid filtering independent shops on vague words. */
