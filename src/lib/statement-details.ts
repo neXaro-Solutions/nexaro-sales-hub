@@ -99,6 +99,12 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
   // The first percentage is a share; the second is the card fee rate.
   const debitRow=/\b(?:ec|girocard|debitkarten?|debit\s*karten?)\b/i.test(line);
   const creditRow=/\b(?:kredit(?:karten?)?|credit(?:\s*cards?)?|premium)\b/i.test(line);
+  // Parenthesized 80 % is a card share, even when the fee percentage is lost.
+  const rowShare=line.match(/(?:debitkarten?|kreditkarten?|girocard|credit\s*cards?)\s*\(\s*(\d{1,3}(?:[.,]\d+)?)\s*%\s*\)/i);
+  if(rowShare&&debitRow&&!creditRow){
+   const share=Number(rowShare[1].replace(",","."));
+   if(share>=0&&share<=100)add("debitShare",share,line);
+  }
   if((debitRow||creditRow)&&shares.length===2&&shares[0]<=100&&shares[1]<=100){
    if(debitRow&&!creditRow){add("debitShare",shares[0],line);add("debitRate",shares[1],line);}
    if(creditRow&&!debitRow)add("creditRate",shares[1],line);
@@ -121,6 +127,26 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
      !/%|gebühr|satz|rate|fee/i.test(line)&&amounts.length===1)add("eligibleVolume",amounts[0],line);
   if(/(?:sonstige|andere|nicht\s+geeignete)\s*karten\s*(?:umsatz|volumen|betrag)?/i.test(line)&&
      !/%|gebühr|satz|rate|fee/i.test(line)&&amounts.length===1)add("otherVolume",amounts[0],line);
+  // If a statement row has a turnover AND a fee amount, check the
+  // implied percentage. This repairs an unreadable/missing fee-rate glyph,
+  // but only when both explicitly currency-labelled amounts and the share
+  // belong to the same debit/credit row. Arithmetic is not a confirmation.
+  const currency=[...line.matchAll(/((?:\d{1,3}(?:[.\s]\d{3})+|\d+),\d{2})\s*€/g)]
+    .map(m=>parseMoney(m[1])).filter((v):v is number=>v!==null);
+  if((debitRow!==creditRow)&&rowShare&&currency.length===2&&currency[0]>0){
+   const implied=Math.round(currency[1]/currency[0]*100*100)/100;
+   if(implied>0&&implied<=10){
+    const explicitRate=shares.length===2?shares[1]:null;
+    if(explicitRate===null){
+     const info=line+" → Gebührensatz aus Umsatz und Gebührenbetrag berechnet (bitte prüfen)";
+     if(debitRow)add("debitRate",implied,info);
+     else add("creditRate",implied,info);
+     warnings.push((debitRow?"EC-/Debit":"Kreditkarten")+"-Satz rechnerisch aus der Tabellenzeile rekonstruiert; bitte auf der Abrechnung prüfen.");
+    }else if(Math.abs(explicitRate-implied)>.06){
+     warnings.push("Gebührensatz und Gebührenbetrag widersprechen sich in der "+(debitRow?"Debit":"Kredit")+"-Zeile. Bitte manuell prüfen.");
+    }
+   }
+  }
   // OCR on phones frequently splits a table at column boundaries:
   // "Debitkarten (80 %)" / "10.024,00 € 1,25 % 125,30 €".
   // Only merge adjacent lines when the second one has a distinct card turnover,
