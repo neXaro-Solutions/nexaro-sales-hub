@@ -77,7 +77,7 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
   };
   if(/(?:ec|girocard|debit)(?:\s*[-/]\s*(?:karte|card|umsatz|anteil))?\s*(?:[-/]\s*(?:ec|debit))?\s*(?:anteil|kartenmix|umsatzanteil)?/i.test(line)&&
      !/kredit|credit|premium|corporate|international/i.test(line)){
-   if(/(?:anteil|kartenmix)/i.test(line)||/^(?:ec\\s*\\/\\s*debit|ec|debit|girocard)\\s+\\d/i.test(line))if(shares.length===1&&!/(?:gebühr|entgelt|satz|rate|msc|disagio|fee)/i.test(line))add("debitShare",shares[0],line);
+   if((/(?:anteil|kartenmix)/i.test(line)||/^(?:ec\s*\/\s*debit|ec|debit|girocard)\s+\d/i.test(line))&&shares.length===1&&!/(?:gebühr|entgelt|satz|rate|msc|disagio|fee)/i.test(line))add("debitShare",shares[0],line);
    if(/(?:gebühr|entgelt|satz|rate|msc|disagio|fee)/i.test(line)&&shares.length===1)add("debitRate",shares[0],line);
   }
   if(/(?:kredit(?:karte)?|credit(?: card)?|premium|corporate)/i.test(line)&&!/debit/i.test(line)){
