@@ -80,6 +80,13 @@ describe("statement photo field extraction",()=>{
   expect(result.details.debitShare).toBe(80);
   expect(result.details.debitRate).toBe(.99);
  });
+ it("recovers percent share and rate when OCR splits the amount columns into a second line",()=>{
+  const text=["Debitkarten (80 %)","10.024,00 € 1,25 % 125,30 €","Kreditkarten (20 %)","2.506,00 € 2,50 % 62,65 €"].join("\n");
+  const result=analyzeStatementText(text);
+  expect(result.details.debitShare).toBe(80);
+  expect(result.details.debitRate).toBe(1.25);
+  expect(result.details.creditRate).toBe(2.50);
+ });
  it("does not silently copy a merchant into the payment provider field",()=>{
   const result=analyzeStatementText("Händler: Muster GmbH\nKartenumsatz: 5.000,00 €");
   expect(result.details.provider).toBeUndefined();
