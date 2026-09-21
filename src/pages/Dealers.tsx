@@ -11,6 +11,7 @@ export function Dealers() {
   const { data, demo } = useStore();
   const [tab, setTab] = useState("shop");
   const [offer, setOffer] = useState<OfferDraft | null>(null);
+  const [cartReset, setCartReset] = useState(0);
   const ids = new Set(
     data.opportunities
       .filter((o) => o.division === "vape")
@@ -60,7 +61,7 @@ export function Dealers() {
         </button>
       </div>
       {tab === "shop" ? (
-        <VapeShop demo={demo} onOffer={setOffer} />
+        <VapeShop demo={demo} onOffer={setOffer} resetCart={cartReset} />
       ) : tab === "contacts" ? (
         <Customers />
       ) : tab === "review" ? (
@@ -68,7 +69,7 @@ export function Dealers() {
       ) : (
         <Tasks division="vape" />
       )}
-      {offer && <OfferForm draft={offer} onClose={() => setOffer(null)} />}
+      {offer && <OfferForm draft={offer} onClose={() => setOffer(null)} onSaved={() => setCartReset(n => n + 1)} />}
     </>
   );
 }
