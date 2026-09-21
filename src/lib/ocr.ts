@@ -96,7 +96,7 @@ export async function recognizeStatement(
             await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_BLOCK,preserve_interword_spaces:"1"});
             const region=await worker.recognize(detail);
             if(!stopped&&region.data.text.trim()&&region.data.text.trim()!==data.text.trim())
-              text+="\\n"+region.data.text;
+              text+="\n"+region.data.text;
           }
         }finally{detail.width=0;detail.height=0;}
       }
