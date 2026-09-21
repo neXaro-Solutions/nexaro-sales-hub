@@ -248,6 +248,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
           {photoReview.confidence!==null&&<p className="hint">Durchschnittliche OCR-Zeichensicherheit: {Math.round(photoReview.confidence)} % (keine inhaltliche Genauigkeitsgarantie).</p>}
           {Object.entries(photoReview.evidence||{}).map(([name,line])=><p className="hint" key={name}><strong>{name}:</strong> {line}</p>)}
           {(photoReview.warnings||[]).map((warning,i)=><p key={i} className="hint">⚠ {warning}</p>)}
+          {photoReview.ocrText&&<details><summary>Erkannten Originaltext anzeigen (Diagnose)</summary><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",maxHeight:340,overflow:"auto",fontSize:12}}>{photoReview.ocrText}</pre><p className="hint">Nur zur Kontrolle auf deinem Gerät; kein automatisches Speichern des vollständigen Belegtexts in der Kundenakte.</p></details>}
         </details>}
         <div className="form-grid">
           <Field label="Aktueller Anbieter"><input value={provider} onChange={e=>setProvider(e.target.value)}
@@ -270,6 +271,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
           onDebitShare={v=>{update("debitShare",v);setCardMixConfirmed(true);}}
           onDebitRate={v=>{update("debitRate",v);setFeeRatesConfirmed(true);}}
           onCreditRate={v=>{update("creditRate",v);setFeeRatesConfirmed(true);}} />
+        {photoReview&&<p className="hint" role="status">{photoReview.details?.debitRate!==undefined?`EC-/Debit-Gebühr aus dem Foto: ${photoReview.details.debitRate.toLocaleString("de-DE")} %`:"⚠ EC-/Debit-Gebühr aus dem Foto nicht eindeutig erkannt – der sichtbare Wert kann noch die bisherige Vorgabe sein."} · {photoReview.details?.creditRate!==undefined?`Kreditkartengebühr aus dem Foto: ${photoReview.details.creditRate.toLocaleString("de-DE")} %`:"⚠ Kreditkartengebühr nicht eindeutig erkannt – bitte manuell prüfen."} {photoReview.details?.debitShare!==undefined?`· Kartenanteil Debit: ${photoReview.details.debitShare.toLocaleString("de-DE")} %`:"· Kartenanteil nicht sicher erkannt."}</p>}
         <label className="checkbox-field"><input type="checkbox" checked={cardMixConfirmed} onChange={e=>setCardMixConfirmed(e.target.checked)}/> Kartenmix wurde anhand der Bestandsanalyse überprüft (auch bei unveränderter 80/20-Vorgabe)</label>
         <p className="hint">Nur ein bestätigter Kartenmix wird als Näherung für die Domestic-Vorauswahl verwendet. EC/Debit und Domestic sind unterschiedliche Kategorien.</p>
         <label className="checkbox-field"><input type="checkbox" checked={feeRatesConfirmed} onChange={e=>setFeeRatesConfirmed(e.target.checked)}/> Gebührensätze des Bestandsanbieters wurden anhand der Abrechnung geprüft (auch wenn die vorgeschlagenen Werte unverändert sind)</label>
