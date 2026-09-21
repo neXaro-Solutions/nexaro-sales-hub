@@ -233,7 +233,7 @@ export function VapeShop({ demo, onOffer, resetCart = 0 }: { demo: boolean; onOf
             <small>pro VE = {p.pieces_per_ve||10} Packungen · {money(vapeSaleGross(vapeSaleNet(p.ve_ek_net,margin)))} brutto</small><small><Tags size={13} style={{verticalAlign:"middle"}} /> {money(vapeSaleNet(p.ve_ek_net,margin)/(p.pieces_per_ve||10))} netto / Packung (nur Rechenwert)</small></>:
             p.single_approved&&p.single_ek_net?<b>{money(vapeSaleNet(p.single_ek_net,margin))} netto / Stück</b>:null}
           <span className="vape-card-link">Artikel öffnen <ArrowRight size={15}/></span></div>
-        </button>)}</div>}
+        </button><button type="button" className="nx-vape-add" disabled={demo||!p.ve_approved||!p.ve_ek_net||p.pieces_per_ve!==10} onClick={()=>addToCart(p)}><ShoppingCart size={16}/> In den Warenkorb <Plus size={15}/></button></article>)}</div>}
     {pages>1&&<div className="vape-pagination">
       <button className="secondary" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Zurück</button>
       <span>Seite {Math.min(page,pages-1)+1} / {pages}</span>
