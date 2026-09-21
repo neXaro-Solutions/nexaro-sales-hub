@@ -1,9 +1,22 @@
 import {describe,it,expect} from "vitest";
-import {recommendSumup,compareSelectedSumup,selectedPackageName} from "../src/lib/sumup-needs";
+import {recommendSumup,compareSelectedSumup,selectedPackageName,deriveDomesticShare} from "../src/lib/sumup-needs";
 import {emptySidekickSelection,chooseSidekickLicense,sidekickLicenseMonthly,sidekickOfferLines,normalizeSidekickSelection} from "../src/lib/sumup-sidekick";
 import type {ExistingProviderInput} from "../src/lib/fieldSalesComparison";
 const input:ExistingProviderInput={volume:6000,transactions:150,debitShare:80,debitRate:.99,creditRate:2.59,serviceFee:0,terminalFee:0,perTransaction:0,confirmedTotal:118.45};
 describe("SumUp needs-based package and honest cost comparison",()=>{
+ it("leaves Domestic empty when only the unconfirmed 80/20 default exists",()=>{
+  expect(deriveDomesticShare({debitShare:80,cardMixConfirmed:false})).toBeNull();
+ });
+ it("suggests an editable, clearly labelled proxy when 80/20 was confirmed",()=>{
+  expect(deriveDomesticShare({debitShare:80,cardMixConfirmed:true})).toMatchObject({value:80,source:"estimate"});
+ });
+ it("prefers explicitly documented eligible vs other card groups over the Debit proxy",()=>{
+  expect(deriveDomesticShare({debitShare:80,cardMixConfirmed:true,eligibleVolume:3000,otherVolume:1000})).toMatchObject({value:75,source:"documented"});
+ });
+ it("rejects invalid or incomplete evidence",()=>{
+  expect(deriveDomesticShare({debitShare:80,cardMixConfirmed:false,eligibleVolume:3000})).toBeNull();
+  expect(deriveDomesticShare({debitShare:101,cardMixConfirmed:true})).toBeNull();
+ });
  it("distinguishes Kassensystem Plus from Zahlungen Plus",()=>{
   const s={...emptySidekickSelection,licenses:["posplus"]};
   expect(selectedPackageName(s).title).toBe("Kassensystem Plus");
