@@ -5,7 +5,7 @@ export type SumupSidekickLicense = {id:string;name:string;price:number;period:"m
 export type SumupSidekickFee = {domestic:number;other:number;online:number};
 export type SumupSidekickSelection = {
   offerType:"carry"|"order"; hardware:{id:string;quantity:number}[];licenses:string[];
-  campaignIndex:number|null;campaignAuthorized:boolean;domesticShare:number|null;domesticShareSource?:"estimate"|"documented"|"manual";onlineShare:number;
+  campaignIndex:number|null;campaignAuthorized:boolean;campaignSource?:"estimate"|"manual";domesticShare:number|null;domesticShareSource?:"estimate"|"documented"|"manual";onlineShare:number;
   payout:"three"|"daily"|"external";discount:number;
 };
 export const sumupSidekickHardware:SumupSidekickHardware[]=[
@@ -53,7 +53,7 @@ export function chooseSidekickLicense(selection:SumupSidekickSelection,id:string
  return normalizeSidekickSelection({...selection,licenses:exists?selection.licenses.filter(x=>x!==id):[...selection.licenses,id]},exists?undefined:id);
 }
 export const emptySidekickSelection:SumupSidekickSelection={
-  offerType:"order",hardware:[],licenses:[],campaignIndex:null,campaignAuthorized:false,
+  offerType:"order",hardware:[],licenses:[],campaignIndex:null,campaignAuthorized:false,campaignSource:undefined,
   domesticShare:null,domesticShareSource:undefined,onlineShare:0,payout:"daily",discount:0
 };
 export function sidekickHardwareNet(selection:SumupSidekickSelection):number{
