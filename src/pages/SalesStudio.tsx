@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Camera, ArrowRight, ArrowLeft, Save, FileText } from "lucide-react";
 import { EditableNumberInput } from "../components/EditableNumberInput";
 import { Card, Field, External } from "../components/UI";
@@ -73,6 +73,18 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   step:1|2|3;setStep:(step:1|2|3)=>void;
 }) {
   const {data,save}=useStore();
+  const studioTop=useRef<HTMLDivElement>(null);
+  const previousStep=useRef(step);
+  useLayoutEffect(()=>{
+    if(previousStep.current===2&&step===3){
+      studioTop.current?.scrollIntoView({block:"start",behavior:"auto"});
+      // iOS in-app browsers can restore the former scroll offset after the React render.
+      const frame=requestAnimationFrame(()=>studioTop.current?.scrollIntoView({block:"start",behavior:"auto"}));
+      previousStep.current=step;
+      return ()=>cancelAnimationFrame(frame);
+    }
+    previousStep.current=step;
+  },[step]);
   const opportunity=data.opportunities.find(o=>o.customer_id===customerId&&o.division==="sumup");
   const saved=(opportunity?.details.salesStudio||{}) as SavedStudio;
   const [current,setCurrent]=useState<ExistingProviderInput>(()=>({...defaultCurrent,...saved.current}));
@@ -195,7 +207,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
         source:catalogSource,hardwareSource:catalogHardwareSource}}
     });
   }
-  return <div className="sales-studio field-studio">
+  return <div ref={studioTop} className="sales-studio field-studio" style={{scrollMarginTop:16}}>
     <div className="section-intro"><div>
       <span className="eyebrow">NE X A R O · VERTRIEB VOR ORT</span>
       <h2>SumUp Vertriebsstudio</h2>
