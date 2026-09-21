@@ -15,7 +15,8 @@ export async function recognizeStatement(
   try {
     if (bitmap.width * bitmap.height > 40_000_000)
       throw Error("Bitte ein Foto mit höchstens 40 Megapixeln verwenden.");
-    const scale = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height));
+    // Keep small digits and percentage signs in high-resolution A4 statements legible.
+    const scale = Math.min(1, 3600 / Math.max(bitmap.width, bitmap.height));
     canvas = document.createElement("canvas");
     canvas.width = Math.round(bitmap.width * scale);
     canvas.height = Math.round(bitmap.height * scale);
