@@ -8,7 +8,7 @@ const folded=(s:string)=>s.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLo
 const role=/\b(?:außendienst|aussendienst|vertrieb|sales|marketing|geschäftsführung|geschaeftsfuehrung|geschäftsführer|geschaeftsfuehrer|inhaber|customer\s+success|management|beratung|consultant|account\s+manager)\b/i;
 const slogan=/\b(?:ideen|bewegen|märkte|maerkte|lösungen\s+für|loesungen\s+fuer|starke\s+zukunft|menschen|erfolg|einfach|sicher|zahlungen)\b/i;
 const fieldLine=/^(?:telefon|tel\.?|fon|phone|mobil|mobile|handy|fax|e-?mail|mail|web|website|www|http|straße|str\.?|plz|postcode|ort|stadt|city|company|unternehmen|firma|ansprechpartner|contact)\s*[:：\s]/i;
-const companyWords=/\b(?:solutions?|solution|gmbh|ug|gbr|kg|ohg|ag|studio|agentur|café|cafe|restaurant|service|services|handel|shop|store|beratung|consulting|gastronomie|bäckerei|baeckerei)\b/i;
+const companyWords=/(?:solutions?|gmbh|ug|gbr|kg|ohg|studio|agentur|café|cafe|restaurant|services?|handel|shop|store|beratung|consulting|gastronomie|bäckerei|baeckerei)/i;
 const isAddress=(s:string)=>/^[\p{L}\p{M}][\p{L}\p{M}\s.'-]{2,85}\s+\d{1,4}\s*[a-z]?$/iu.test(s);
 const isPerson=(s:string)=>{
  const words=s.split(/\s+/);
