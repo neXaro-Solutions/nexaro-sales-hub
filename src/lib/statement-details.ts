@@ -59,6 +59,18 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
  else if(named.length===1&&named[0].length<=90){details.provider=named[0];evidence.provider=explicit[0];}
  const merchant=lines.filter(line=>/^(?:händler(?:name)?|kunde(?:nname)?|merchant(?: name)?|firma|firmenname|unternehmen|geschäft|shop)\s*[:：]/i.test(line));
  if(merchant.length===1){const n=cleanLabel(merchant[0].replace(/^[^:：]+[:：]/,""));if(n.length>=2&&n.length<=100){details.merchant=n;evidence.merchant=merchant[0];}}
+ if(!details.merchant){
+  // Unlabelled business letterheads are common; accept only one distinct, clearly
+  // named legal entity, never a PSP brand and never overwrite the central customer.
+  const legal=lines.slice(0,16).filter(line=>
+    /\b(?:GmbH|UG|GbR|OHG|KG|e\.?\s*K\.?)\b/i.test(line)&&
+    !/\b(?:rechnung|bank|iban|ust[-\s]?id|steuer|konto|betrag|gebühr)\b/i.test(line)&&
+    !providerNames.some(([,rx])=>rx.test(line))&&
+    !/\d{4,}/.test(line)&&line.length>=5&&line.length<=100
+  );
+  if(legal.length===1){details.merchant=legal[0];evidence.merchant=legal[0];}
+ }
+
  const collectors:Record<string,{value:number;line:string}[]>={};
  const add=(field:keyof StatementDetails,value:number,line:string)=>{
   (collectors[field]??=[]).push({value,line});
@@ -93,6 +105,17 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
      !/%|gebühr|satz|rate|fee/i.test(line)&&amounts.length===1)add("eligibleVolume",amounts[0],line);
   if(/(?:sonstige|andere|nicht\s+geeignete)\s*karten\s*(?:umsatz|volumen|betrag)?/i.test(line)&&
      !/%|gebühr|satz|rate|fee/i.test(line)&&amounts.length===1)add("otherVolume",amounts[0],line);
+  // A labelled "Kartenmix EC/Debit 80 % / Kredit 20 %" can be read
+  // without confusing two fee percentages with a transaction share.
+  if(/kartenmix|kartenanteile|umsatzaufteilung/i.test(line)){
+   const pair=/(?:ec|debit|girocard)[^\d%]{0,18}(\d{1,3}(?:[.,]\d+)?)\s*%[^\d%]{0,22}(?:kredit|credit|premium)[^\d%]{0,18}(\d{1,3}(?:[.,]\d+)?)\s*%/i.exec(line);
+   if(pair){
+    const debit=Number(pair[1].replace(",",".")),credit=Number(pair[2].replace(",","."));
+    if(debit>=0&&debit<=100&&Math.abs(debit+credit-100)<.2)add("debitShare",debit,line);
+   }
+   const short=/kartenmix\s*:?\s*(\d{1,3})\s*[/|]\s*(\d{1,3})(?:\s*%|\s*$)/i.exec(line);
+   if(short&&Number(short[1])+Number(short[2])===100)add("debitShare",Number(short[1]),line);
+  }
   // Support an OCR table with a label on one line and its value immediately below.
   const solo=findPercent(next);
   if(/^(?:ec\s*\/\s*debit|ec|debit|girocard)\s*(?:gebühr|entgelt|satz|rate)$/i.test(line)&&solo.length===1)add("debitRate",solo[0],line+" → "+next);
