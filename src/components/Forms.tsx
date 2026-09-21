@@ -21,6 +21,8 @@ export function CustomerForm({
     email:customer?.email||"",phone:customer?.phone||"",
     street:customer?.street||"",zip:customer?.zip||"",
     city:customer?.city||"",industry:customer?.industry||"",
+    mobile:customer?.notes?.match(/^Mobil \(Visitenkarte\):\s*(.+)$/m)?.[1]||"",
+    jobTitle:customer?.notes?.match(/^Position \(Visitenkarte\):\s*(.+)$/m)?.[1]||"",
     notes:customer?.notes||""
   });
   const [geo,setGeo]=useState<GeoCustomerDraft|null>(null);
@@ -31,9 +33,14 @@ export function CustomerForm({
   const [cardWarning,setCardWarning]=useState<string[]>([]);
   const [cardFields,setCardFields]=useState<string[]>([]);
   const [cardImported,setCardImported]=useState(false);
+  const [cardRawText,setCardRawText]=useState("");
+  const [cardEvidence,setCardEvidence]=useState<Record<string,string>>({});
+  const [cardConfidence,setCardConfidence]=useState<number|null>(null);
+  const photoFilled=useRef<Record<string,string>>({});
   const abortRef=useRef<AbortController|null>(null);
   useEffect(()=>()=>abortRef.current?.abort(),[]);
   const update=(key:keyof typeof fields,next:string)=>{
+    delete photoFilled.current[key];
     if(["company","street","zip","city"].includes(key)&&geo)setGeo(null);
     setFields(old=>({...old,[key]:next}));
   };
@@ -58,24 +65,31 @@ export function CustomerForm({
     abortRef.current?.abort();
     const ctrl=new AbortController();abortRef.current=ctrl;
     setCardError("");setCardWarning([]);setCardFields([]);setCardProgress(0);setCardBusy(true);
+    setCardRawText("");setCardEvidence({});setCardConfidence(null);
     try{
       const result=await recognizeStatement(file,ctrl.signal,setCardProgress);
       if(ctrl.signal.aborted)return;
       const parsed=readBusinessCardText(result.text);
+      setCardRawText(result.text);
+      setCardEvidence(parsed.evidence);
+      setCardConfidence(result.confidence);
       const items=Object.entries(parsed.fields).filter(([key,val])=>key!=="website"&&!!val);
       setFields(old=>{
         const next={...old};
         for(const [key,val] of items){
           const k=key as keyof typeof next;
           // Import never silently replaces an existing customer detail.
-          if(!next[k].trim())next[k]=val!;
+          if(!next[k].trim()||next[k]===photoFilled.current[k]){
+            next[k]=val!;
+            photoFilled.current[k]=val!;
+          }
         }
         if(parsed.fields.website&&!next.notes.includes(parsed.fields.website))
           next.notes=[next.notes,"Webseite laut Visitenkarte: "+parsed.fields.website].filter(Boolean).join("\n");
         return next;
       });
       setCardWarning(parsed.warnings);
-      setCardFields(items.map(([key])=>({company:"Unternehmen",contact:"Ansprechpartner",email:"E-Mail",phone:"Telefon",street:"Straße",zip:"PLZ",city:"Ort"} as Record<string,string>)[key]||key));
+      setCardFields(items.map(([key])=>({company:"Unternehmen",contact:"Ansprechpartner",jobTitle:"Position",email:"E-Mail",phone:"Telefon",mobile:"Mobil",street:"Straße",zip:"PLZ",city:"Ort"} as Record<string,string>)[key]||key));
       setCardImported(items.length>0);
       if(!items.length)setCardError("Keine eindeutigen Visitenkartenangaben erkannt. Bitte ein scharfes, gerade aufgenommenes Foto verwenden oder Daten manuell ergänzen.");
     }catch(e){if(!ctrl.signal.aborted)setCardError((e as Error).message);}
@@ -103,6 +117,11 @@ export function CustomerForm({
         {cardBusy&&<p className="notice" role="status"><Camera size={16}/> Texterkennung läuft … {cardProgress}%</p>}
         {cardFields.length>0&&<p className="notice" role="status"><ImageUp size={16}/> Erkannt und in freie Felder übertragen: {cardFields.join(", ")}. Bitte auf Richtigkeit prüfen.</p>}
         {cardWarning.map((message,i)=><p className="hint" key={i}>⚠ {message}</p>)}
+        {cardRawText&&<details className="photo-recognition-evidence"><summary>Erkannte Angaben und OCR-Originaltext kontrollieren</summary>
+          <p className="hint">Die OCR-Zeichensicherheit von {cardConfidence===null?"unbekannt":Math.round(cardConfidence)+" %"} ist keine Garantie für korrekte Firmennamen. Bitte alle Felder prüfen.</p>
+          {Object.entries(cardEvidence).map(([field,line])=><p className="hint" key={field}><strong>{field}:</strong> {line}</p>)}
+          <details><summary>Erkannten Originaltext anzeigen</summary><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",maxHeight:340,overflow:"auto",fontSize:12}}>{cardRawText}</pre></details>
+        </details>}
         {cardError&&<p className="error" role="alert">{cardError}</p>}
       </section>
       <AsyncForm onSubmit={async f=>{
@@ -113,7 +132,10 @@ export function CustomerForm({
           street:value(f,"street"),zip:value(f,"zip"),
           city:value(f,"city"),industry:value(f,"industry"),
           source:customer?.source||geo?.source||(cardImported?"Visitenkarte (OCR)":"Manuell"),
-          notes:value(f,"notes"),lat:customer?.lat??geo?.lat??null,lng:customer?.lng??geo?.lng??null,
+          notes:[value(f,"notes").replace(/^Mobil \(Visitenkarte\):.*(?:\r?\n|$)/gm,"").replace(/^Position \(Visitenkarte\):.*(?:\r?\n|$)/gm,"").trim(),
+            value(f,"mobile")?"Mobil (Visitenkarte): "+value(f,"mobile"):"",
+            value(f,"jobTitle")?"Position (Visitenkarte): "+value(f,"jobTitle"):""].filter(Boolean).join("\n"),
+          lat:customer?.lat??geo?.lat??null,lng:customer?.lng??geo?.lng??null,
           ...(!customer?{interests:["sumup","vape"] as Division[]}:{})
         });
         await refresh();onClose();
@@ -122,8 +144,10 @@ export function CustomerForm({
           {([
             ["company","Unternehmen *","text",200,true],
             ["contact","Ansprechpartner","text",160,false],
+            ["jobTitle","Position / Tätigkeit","text",160,false],
             ["email","E-Mail","email",254,false],
             ["phone","Telefon","tel",40,false],
+            ["mobile","Mobilnummer","tel",40,false],
             ["street","Straße / Hausnummer","text",200,false],
             ["zip","PLZ","text",12,false],
             ["city","Ort *","text",120,true],
