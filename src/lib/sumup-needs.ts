@@ -50,5 +50,5 @@ export function compareSelectedSumup(input:ExistingProviderInput,selection:Sumup
 export function selectedPackageName(selection:SumupSidekickSelection){
  const normalized=normalizeSidekickSelection(selection);
  const software=normalized.licenses.filter(x=>x!=="payments").map(id=>({posplus:"Kassensystem Plus",posannual:"Kassensystem Plus jährlich",kds:"SumUp KDS",beauty:"Beauty Plus"} as Record<string,string>)[id]||id);
- return {software, payment:selectedSumupPaymentPlan(normalized)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen",title:[...software,selectedSumupPaymentPlan(selection)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen"].join(" + ")};
+ return {software, payment:selectedSumupPaymentPlan(normalized)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen",title:software.length?software.join(" + "):selectedSumupPaymentPlan(normalized)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen"};
 }
