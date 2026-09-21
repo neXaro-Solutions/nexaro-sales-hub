@@ -12,6 +12,40 @@ const example=[
 "Hardware Preis 9,00 €"
 ].join("\n");
 describe("statement photo field extraction",()=>{
+ it("extracts the user-provided TESTPAY demo settlement including the four-column table",()=>{
+  const raw=[
+   "TESTPAY","Einfach. Sicher. Zahlungen.","TESTABRECHNUNG – FIKTIVE DATEN",
+   "Diese Abrechnung dient ausschließlich Demo- und Präsentationszwecken.",
+   "Stadtcafé Musterblick","Alexanderplatz 1","10178 Berlin",
+   "Monatsabrechnung","Zeitraum: 01.08.2025 – 31.08.2025",
+   "Kundennummer: TP-1002387","Rechnungsnummer: 2025-08-77124",
+   "Rechnungsdatum: 01.09.2025",
+   "Kartenumsatz gesamt: 12.530,00 €",
+   "Transaktionen: 1.057",
+   "Durchschnittlicher Umsatz pro Transaktion: 11,86 €",
+   "Position Umsatz Gebührensatz Gebührenbetrag",
+   "Debitkarten (80 %) 10.024,00 € 1,25 % 125,30 €",
+   "Kreditkarten (20 %) 2.506,00 € 2,50 % 62,65 €",
+   "Summe Transaktionsgebühren 187,95 €",
+   "Monatliche Servicegebühr 39,95 €",
+   "Monatliche Hardwaregebühr 9,00 €",
+   "Gesamtgebühren monatlich 236,90 €",
+   "TESTPAY GmbH","Musterstraße 10 | 10115 Berlin"
+  ].join("\n");
+  const result=analyzeStatementText(raw);
+  expect(result.details.provider).toBe("Testpay");
+  expect(result.details.merchant).toBe("Stadtcafé Musterblick");
+  expect(result.details.debitShare).toBe(80);
+  expect(result.details.debitRate).toBe(1.25);
+  expect(result.details.creditRate).toBe(2.50);
+  expect(result.details.serviceFee).toBe(39.95);
+  expect(result.details.terminalFee).toBe(9);
+  expect(result.values.volume).toBe(12530);
+  expect(result.values.transactions).toBe(1057);
+  expect(result.values.currentTotal).toBe(236.90);
+  expect(result.evidence.merchant).toContain("Alexanderplatz 1");
+ });
+
  it("recognizes the provider, merchant and both card group shares/fees",()=>{
   const result=analyzeStatementText(example);
   expect(result.details.provider).toBe("Testpay");
