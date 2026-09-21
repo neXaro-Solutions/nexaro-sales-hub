@@ -98,7 +98,7 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
   // Four-column settlements: "Debitkarten (80 %) 10.024,00 € 1,25 % 125,30 €".
   // The first percentage is a share; the second is the card fee rate.
   const debitRow=/\b(?:ec|girocard|debitkarten?|debit\s*karten?)\b/i.test(line);
-  const creditRow=/\b(?:kreditkarten?|credit\s*cards?)\b/i.test(line);
+  const creditRow=/\b(?:kredit(?:karten?)?|credit(?:\s*cards?)?|premium)\b/i.test(line);
   if((debitRow||creditRow)&&shares.length===2&&shares[0]<=100&&shares[1]<=100){
    if(debitRow&&!creditRow){add("debitShare",shares[0],line);add("debitRate",shares[1],line);}
    if(creditRow&&!debitRow)add("creditRate",shares[1],line);
