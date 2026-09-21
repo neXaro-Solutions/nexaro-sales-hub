@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Camera, ImagePlus, Search, ShoppingBag, ArrowRight, X, ScanBarcode, PackageCheck, Tags } from "lucide-react";
+import { Camera, ImagePlus, Search, ShoppingBag, ArrowRight, X, ScanBarcode, PackageCheck, Tags, ShoppingCart, Minus, Plus, Trash2, FileText } from "lucide-react";
 import { client } from "../lib/client";
 import { recognizeStatement } from "../lib/ocr";
 import { vapeSaleNet, vapeSaleGross } from "../lib/vapePricing";
@@ -22,7 +22,11 @@ function ImageView({ product, url, className = "" }: { product: Product; url?: s
     </div>;
 }
 
-export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: OfferDraft) => void }) {
+type CartEntry = { product: Product; quantity: number; unitPrice: number };
+export function VapeShop({ demo, onOffer, resetCart = 0 }: { demo: boolean; onOffer: (draft: OfferDraft) => void; resetCart?: number }) {
+  const [cart,setCart] = useState<CartEntry[]>([]);
+  const [cartNotice,setCartNotice] = useState("");
+  useEffect(() => { if (resetCart > 0) { setCart([]); setCartNotice(""); } }, [resetCart]);
   const [products,setProducts] = useState<Product[]>([]);
   const [pictures,setPictures] = useState<Record<string,string>>({});
   const [query,setQuery] = useState("");
@@ -137,24 +141,59 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
     finally{setImageBusy(false);}
   }
   function open(p:Product){setActive(p);setUnit(p.ve_approved?"VE":"Stück");setQuantity(1);setError("");}
-  function offer(p:Product) {
-    const validVE=!!(p.ve_approved&&p.ve_ek_net&&p.pieces_per_ve);
-    const validSingle=!!(p.single_approved&&p.supplier_single_available&&p.single_ek_net);
-    const price=unit==="VE"&&validVE?p.ve_ek_net:unit==="Stück"&&validSingle?p.single_ek_net:null;
-    if(!price||!Number.isSafeInteger(quantity)||quantity<1)return;
+  function addToCart(p: Product, amount = 1) {
+    if (demo || !p.ve_approved || !p.ve_ek_net || p.pieces_per_ve !== 10 ||
+        !Number.isSafeInteger(amount) || amount < 1 || amount > 1000) return;
+    const unitPrice = vapeSaleNet(p.ve_ek_net,margin);
+    setCart(existing => {
+      const found = existing.find(x => x.product.id === p.id);
+      if (found) return existing.map(x => x.product.id === p.id
+        ? {...x, quantity:Math.min(1000,x.quantity+amount), unitPrice} : x);
+      return existing.length >= 100 ? existing : [...existing,{product:p,quantity:amount,unitPrice}];
+    });
+    setCartNotice(p.name + " zum Warenkorb hinzugefügt.");
     setActive(null);
-    onOffer({division:"vape",lines:[{
-      name:p.name+" · "+(unit==="VE"?"1 VE = "+p.pieces_per_ve+" Stück":"Einzelstück")+
-        (p.supplier_article_no?" · Art. "+p.supplier_article_no:""),
-      quantity,price:vapeSaleNet(price,margin),vat:19
-    }]});
   }
+  function setCartQuantity(id: string, amount: number) {
+    if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000) return;
+    setCart(existing=>existing.map(x=>x.product.id===id?{...x,quantity:amount}:x));
+  }
+  function checkout() {
+    if (demo || !cart.length) return;
+    onOffer({division:"vape",lines:cart.map(({product,quantity,unitPrice})=>({
+      name:product.name+" · 1 VE = 10 Verkaufspackungen"+
+        (product.supplier_article_no?" · Art. "+product.supplier_article_no:""),
+      quantity,price:unitPrice,vat:19
+    }))});
+  }
+  const cartNet = Math.round(cart.reduce((sum,x)=>sum+x.quantity*x.unitPrice,0)*100)/100;
+  const cartVes = cart.reduce((sum,x)=>sum+x.quantity,0);
   return <section className="vape-shop">
     <div className="vape-shop-head">
       <div><span className="eyebrow">FÜR DEN AUSSENDIENST</span><h2>Freigegebene Vape-Produkte</h2>
-        <p>Foto aufnehmen, Produkt finden, geprüften VK sehen und direkt ins Angebot übernehmen.</p></div>
+        <p>Foto aufnehmen, Produkte auswählen, im Warenkorb sammeln und gemeinsam als Angebot übernehmen.</p></div>
       <div className="vape-shop-count">{loading?"…":approved.length}<small>verkaufsfertige Artikel</small></div>
     </div>
+    <section className="card nx-vape-cart" aria-label="Vape Warenkorb">
+      <div className="nx-vape-cart-head"><div><h3><ShoppingCart size={21}/> Warenkorb <span className="badge positive">{cart.length} Artikel</span></h3>
+        <p>Mehrere Sorten sammeln · Mengen immer in vollständigen 10er-VE.</p></div>
+        <strong>{money(cartNet)} netto</strong></div>
+      {cart.length ? <div className="nx-vape-cart-rows">{cart.map(({product,quantity,unitPrice})=>
+        <div className="nx-vape-cart-row" key={product.id}>
+          <div className="nx-vape-cart-name"><strong>{product.name}</strong><small>{money(unitPrice)} netto / VE · 10 Packungen</small></div>
+          <div className="nx-vape-cart-qty"><button type="button" className="icon-button" disabled={quantity<=1} aria-label={product.name+" eine VE weniger"} onClick={()=>setCartQuantity(product.id,quantity-1)}><Minus size={17}/></button>
+            <input aria-label={product.name+" Anzahl VE"} type="number" min="1" max="1000" step="1" value={quantity} onChange={e=>setCartQuantity(product.id,Number(e.target.value))}/>
+            <button type="button" className="icon-button" disabled={quantity>=1000} aria-label={product.name+" eine VE mehr"} onClick={()=>setCartQuantity(product.id,quantity+1)}><Plus size={17}/></button></div>
+          <b>{money(quantity*unitPrice)}</b>
+          <button type="button" className="icon-button" aria-label={product.name+" entfernen"} onClick={()=>setCart(old=>old.filter(x=>x.product.id!==product.id))}><Trash2 size={17}/></button>
+        </div>)}</div> : <p className="nx-vape-cart-empty">Noch leer – wähle ein Produkt und tippe auf „In den Warenkorb“.</p>}
+      {cartNotice && <p className="hint" role="status">{cartNotice}</p>}
+      <div className="nx-vape-cart-total"><span>{cartVes} VE · {cartVes*10} Verkaufspackungen</span><span>19 % MwSt.: {money(vapeSaleGross(cartNet)-cartNet)}</span><b>Gesamt brutto: {money(vapeSaleGross(cartNet))}</b></div>
+      <div className="nx-vape-cart-actions">
+        <button type="button" className="primary" disabled={!cart.length||demo} onClick={checkout}><FileText size={17}/> Alle Positionen ins Angebot <ArrowRight size={17}/></button>
+        <button type="button" className="secondary" disabled={!cart.length} onClick={()=>{if(window.confirm("Warenkorb leeren?"))setCart([]);}}>Warenkorb leeren</button>
+      </div>
+    </section>
     <div className="card vape-scan">
       <h3><Camera size={19}/> Produkt beim Händler erkennen</h3>
       <p>Barcode/EAN und lesbarer Verpackungstext werden ausschließlich mit deinen freigegebenen CRM-Artikeln abgeglichen. Du bestätigst den Treffer.</p>
@@ -170,7 +209,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
       {matches.length>0&&<div className="vape-matches"><strong>Mögliche Treffer – bitte Artikel prüfen</strong>
         {matches.map(m=><button className="vape-match" key={m.item.id} onClick={()=>open(m.item)}>
           <ScanBarcode size={17}/><span><b>{m.item.name}</b><small>{m.reason} · {m.score}% Text-/Code-Übereinstimmung · {m.item.ve_approved||m.item.single_approved?"verkaufsfertig":"noch nicht freigegeben"}</small></span><ArrowRight size={16}/>
-        </button>)}</div>}
+        </button><button type="button" className="nx-vape-add" disabled={demo||!p.ve_approved||!p.ve_ek_net||p.pieces_per_ve!==10} onClick={()=>addToCart(p)}><ShoppingCart size={16}/> In den Warenkorb <Plus size={15}/></button></article>)}</div>}
     </div>
     <div className="card">
       <div className="vape-shop-filters">
@@ -186,7 +225,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
     </div>
     {error&&<p className="error" role="alert">{error}</p>}
     {loading?<p role="status">Produkte werden geladen …</p>:shown.length===0?<div className="card"><p>Keine passenden freigegebenen Artikel gefunden.</p></div>:
-      <div className="vape-products">{visible.map(p=><button type="button" className="vape-product-card" key={p.id} onClick={()=>open(p)}>
+      <div className="vape-products">{visible.map(p=><article className="vape-product-card" key={p.id}><button type="button" className="nx-vape-card-main" onClick={()=>open(p)}>
         <ImageView product={p} url={imageFor(p)} className="vape-product-image"/>
         <div className="vape-product-info"><small>{p.category||"Vape"} · {p.supplier_article_no||"ohne Art.-Nr."}</small>
           <strong>{p.name}</strong><span className="badge vape">{p.ve_approved?"VE freigegeben":"Stück freigegeben"}</span>
@@ -230,7 +269,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
         <button className="primary wide" disabled={demo||!Number.isSafeInteger(quantity)||quantity<1||
           (unit==="VE"?!(active.ve_approved&&active.ve_ek_net&&active.pieces_per_ve):
             !(active.single_approved&&active.supplier_single_available&&active.single_ek_net))}
-          onClick={()=>offer(active)}><ShoppingBag size={18}/> Ins Angebot übernehmen <ArrowRight size={16}/></button>
+          onClick={()=>addToCart(active,quantity)}><ShoppingCart size={18}/> {quantity} VE in den Warenkorb <Plus size={16}/></button>
       </section>
     </div>}
   </section>;
