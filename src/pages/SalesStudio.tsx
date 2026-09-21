@@ -12,6 +12,8 @@ import type { OfferDraft } from "./Offers";
 import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
 import { RangeNumber } from "../components/RangeNumber";
 import { CardMixBars } from "../components/CardMixBars";
+import { SidekickMatrix } from "../components/SidekickMatrix";
+import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 
 const defaultCurrent: ExistingProviderInput = {
   volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
@@ -63,7 +65,7 @@ type SavedStudio = {
   current?:ExistingProviderInput; provider?:string; competitorHardware?:string;
   otherHardware?:string; contract?:string; payout?:string; future?:string;
   wishes?:Wish[]; plan?:SumupPlan; hardwareId?:HardwareId; quantity?:number;
-  notes?:string; hardwareDiscount?:number;
+  notes?:string; hardwareDiscount?:number; sidekick?:SumupSidekickSelection;
 };
 const numeric=(s:string)=>Number(s);
 const editable=(value:number,onChange:(v:number)=>void,props:{step?:string;min?:string;max?:string}={})=>
@@ -91,6 +93,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const [quantity,setQuantity]=useState(saved.quantity||1);
   const [hardwareDiscount,setHardwareDiscount]=useState(saved.hardwareDiscount??0);
   const [notes,setNotes]=useState(saved.notes||"");
+  const [sidekick,setSidekick]=useState<SumupSidekickSelection>(saved.sidekick||emptySidekickSelection);
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState("");
   const [readReview,setReadReview]=useState("");
@@ -158,7 +161,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     setSaving(true);setNotice("");
     try{
       const savedData={current,provider,competitorHardware:hardware,otherHardware,contract,payout,
-        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,hardwareDiscount,notes};
+        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,hardwareDiscount,notes,sidekick};
       await save("opportunities",{
         ...opportunity,customer_id:customerId,division:"sumup",stage:opportunity?.stage||"Neu",
         potential:current.volume,
@@ -172,13 +175,13 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     if(!good||!estimate.data)return;
     onOffer({
       division:"sumup",...(customerId?{customer_id:customerId}:{}),
-      lines:[{name:"SumUp "+selectedHardware.name+" · Hardware"+(hardwareDiscount?" · "+hardwareDiscount+" % Nachlass":""),quantity,
+      lines:(sidekick.hardware.length||sidekick.licenses.length)?sidekickOfferLines(sidekick):[{name:"SumUp "+selectedHardware.name+" · Hardware"+(hardwareDiscount?" · "+hardwareDiscount+" % Nachlass":""),quantity,
         price:hardwarePrice.discountedUnit,vat:19}],
-      notes:offerNotes(),
+      notes:offerNotes()+"\n"+sidekickNotes(sidekick),
       snapshot:{salesStudio:{current,provider,competitorHardware:hardware,otherHardware,
         contract,payout,future,wishes:needs,plan:selectedPlan,
         sumupHardware:selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:hardwarePrice,
-        comparison:estimate.data,checkedAt:catalogCheckedAt,
+        comparison:estimate.data,sidekick,checkedAt:catalogCheckedAt,
         source:catalogSource,hardwareSource:catalogHardwareSource}}
     });
   }
@@ -280,6 +283,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       </Card>
     </>}
     {step===3&&<>
+      <SidekickMatrix value={sidekick} onChange={next=>{setSidekick(next);if(next.licenses.includes("payments"))setPlan("plus");}} monthlyVolume={current.volume} oldTotal={estimate.data?.oldTotal||0}/>
       <Card title="03 · Vergleichsangebot" eyebrow="IST-ANBIETER GEGEN SUMUP · MONATLICHE KOSTEN">
         {!estimate.data?<p className="error" role="alert">{estimate.error}</p>:<>
           <div className="field-compare">
