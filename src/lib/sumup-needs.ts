@@ -1,6 +1,6 @@
 import {round} from "./calculations";
 import {compareFieldSales,type ExistingProviderInput,type SumupPlan} from "./fieldSalesComparison";
-import {sidekickLicenseMonthly,sidekickScenario,sumupSidekickHardware,type SumupSidekickSelection} from "./sumup-sidekick";
+import {sidekickLicenseMonthly,sidekickScenario,normalizeSidekickSelection,type SumupSidekickSelection} from "./sumup-sidekick";
 
 export type CustomerGoal="receipt"|"standalone"|"pos"|"mobile"|"savings"|"payout"|"scanner"|"cashdrawer"|"kitchen"|"beauty"|"hospitality"|"multiple";
 export const customerGoals:{id:CustomerGoal;label:string}[]=[
@@ -16,30 +16,29 @@ export function recommendSumup(input:ExistingProviderInput,goals:CustomerGoal[],
  const mobile=has("mobile",/mobil|unterwegs|am tisch|außendienst/);
  const requiresPos=pos||kitchen||hospitality||scanner||drawer||multi;
  let hardwareId=requiresPos?(scanner&&drawer?"posbundle":drawer?"posdual":receipt?"posprinter":"pos"):receipt?"terminal":standalone?"solo":mobile&&/telefon|tap to pay/i.test(existing)?"tap":mobile?"lite":"solo";
- const licenses:string[]=[];
- if(requiresPos)licenses.push("posplus");
- if(beauty)licenses.push("beauty");
- if(kitchen)licenses.push("kds");
  const standard=compareFieldSales(input,"standard"),plus=compareFieldSales(input,"plus");
  const paymentPlan:SumupPlan=plus.sumupTotal<standard.sumupTotal?"plus":"standard";
- if(paymentPlan==="plus")licenses.push("payments");
+ // Bedarf entscheidet über die eine Plus-Variante, nicht die niedrigste isolierte Kartengebühr.
+ const primary=requiresPos?"posplus":beauty?"beauty":paymentPlan==="plus"?"payments":null;
+ const licenses:string[]=[...(primary?[primary]:[]),...(kitchen?["kds"]:[])];
  const payout:SumupSidekickSelection["payout"]=has("payout",/schnell|sofort|3 stunden|auszahlung/)?"three":"daily";
  const reasons=[requiresPos?"Kassen-, Artikel- oder Zusatzgeräte-Anforderungen sprechen für Kassensystem Plus.":receipt?"Papierbelege benötigen eine Drucklösung.":mobile?"Mobilität steht im Vordergrund.":"Schlanke Zahlungsannahme ohne zusätzliche Kassensoftware."];
- if(beauty)reasons.push("Beauty Plus wegen des angegebenen Salonbedarfs.");
+ if(beauty)reasons.push(requiresPos?"Kassensystem Plus hat wegen der ausdrücklich benötigten Kassenfunktionen Vorrang vor Beauty Plus.":"Beauty Plus wegen des angegebenen Salonbedarfs.");
  if(kitchen)reasons.push("KDS zur Anzeige und Verwaltung von Küchenbestellungen.");
- reasons.push(paymentPlan==="plus"?"Zahlungen Plus ist bei den eingegebenen Umsätzen rechnerisch günstiger als die öffentliche Standardgebühr.":"Umsatzbasiertes Zahlen ist bei den eingegebenen Umsätzen rechnerisch nicht teurer als Zahlungen Plus.");
+ reasons.push(primary==="payments"?"Zahlungen Plus ist ohne speziellen POS-/Beauty-Bedarf bei den eingegebenen Umsätzen rechnerisch günstiger.":primary?"Die ausgewählte Plus-Variante richtet sich nach dem Funktionsbedarf; Zahlungen Plus wird nicht zusätzlich hinzugefügt.":"Umsatzbasiertes Zahlen ohne zusätzliche Plus-Lizenz.");
  if(!goals.length&&!future.trim())reasons.push("Noch keine Zukunftswünsche erfasst; Empfehlung nur vorläufig.");
  return {hardwareId,licenses,paymentPlan,payout,reasons};
 }
 export function selectedSumupPaymentPlan(selection:SumupSidekickSelection):SumupPlan{
- return selection.licenses.includes("payments")?"plus":"standard";
+ return normalizeSidekickSelection(selection).licenses.includes("payments")?"plus":"standard";
 }
 export function compareSelectedSumup(input:ExistingProviderInput,selection:SumupSidekickSelection){
- const plan=selectedSumupPaymentPlan(selection);
+ const normalized=normalizeSidekickSelection(selection);
+ const plan=selectedSumupPaymentPlan(normalized);
  const standard=compareFieldSales(input,plan);
- const recurring=sidekickLicenseMonthly(selection)-(plan==="plus"?19:0);
- const approved=selection.campaignAuthorized&&selection.campaignIndex!==null&&selection.domesticShare!==null;
- const campaign=approved?sidekickScenario(input.volume,selection):null;
+ const recurring=sidekickLicenseMonthly(normalized)-(plan==="plus"?19:0);
+ const approved=normalized.campaignAuthorized&&normalized.campaignIndex!==null&&normalized.domesticShare!==null;
+ const campaign=approved?sidekickScenario(input.volume,normalized):null;
  const sumupTotal=round(campaign??(standard.sumupTotal+recurring));
  const sumupBase=round(standard.sumupBase+recurring);
  const sumupVariable=round(sumupTotal-sumupBase);
@@ -49,6 +48,7 @@ export function compareSelectedSumup(input:ExistingProviderInput,selection:Sumup
  " gewählte Lizenzen sind enthalten. Domestic-Anteil und Kredit-/Premium-/Firmenkarten sind nicht gleichbedeutend mit dem bisherigen Debit-/Kredit-Mix. Hardware, Wechselkosten und Vertragsbindung sind separat."};
 }
 export function selectedPackageName(selection:SumupSidekickSelection){
- const software=selection.licenses.filter(x=>x!=="payments").map(id=>({posplus:"Kassensystem Plus",posannual:"Kassensystem Plus jährlich",kds:"SumUp KDS",beauty:"Beauty Plus"} as Record<string,string>)[id]||id);
- return {software, payment:selectedSumupPaymentPlan(selection)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen",title:[...software,selectedSumupPaymentPlan(selection)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen"].join(" + ")};
+ const normalized=normalizeSidekickSelection(selection);
+ const software=normalized.licenses.filter(x=>x!=="payments").map(id=>({posplus:"Kassensystem Plus",posannual:"Kassensystem Plus jährlich",kds:"SumUp KDS",beauty:"Beauty Plus"} as Record<string,string>)[id]||id);
+ return {software, payment:selectedSumupPaymentPlan(normalized)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen",title:[...software,selectedSumupPaymentPlan(selection)==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen"].join(" + ")};
 }
