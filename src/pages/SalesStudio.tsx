@@ -14,7 +14,7 @@ import { RangeNumber } from "../components/RangeNumber";
 import { CardMixBars } from "../components/CardMixBars";
 import { SidekickMatrix } from "../components/SidekickMatrix";
 import {customerGoals,recommendSumup,deriveDomesticShare,deriveCampaignPrefill,compareSelectedSumup,selectedPackageName,selectedSumupPaymentPlan,type CustomerGoal} from "../lib/sumup-needs";
-import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,sumupSidekickHardware,normalizeSidekickSelection,chooseSidekickLicense,type SumupSidekickSelection} from "../lib/sumup-sidekick";
+import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,sumupSidekickHardware,normalizeSidekickSelection,withoutFixedTerm,chooseSidekickLicense,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 
 const defaultCurrent: ExistingProviderInput = {
   volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
@@ -116,13 +116,13 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       ? "Automatisch aus dem Foto übernommen (noch nicht geprüft): "+fields.join(", ")+". Bitte alle Angaben kontrollieren und fehlende Werte ergänzen."
       : "Aus dem Foto konnten keine eindeutigen Werte zugeordnet werden. Bitte Ist-Bestand manuell erfassen.");
   },[photoReview?.confirmedAt,photoAvailable]);
-  const effectiveSidekick=noFixedTerm?normalizeSidekickSelection({...sidekick,licenses:[],campaignIndex:null,campaignAuthorized:false,campaignSource:undefined}):sidekick;
+  const effectiveSidekick=noFixedTerm?withoutFixedTerm(sidekick):sidekick;
   const selectedPlan=selectedSumupPaymentPlan(effectiveSidekick);
   const packageName=selectedPackageName(effectiveSidekick);
   const advisor=useMemo(()=>{try{return recommendSumup(current,needs,future,hardware+" "+otherHardware)}catch{return null;}},[current,needs,future,hardware,otherHardware]);
   function applyRecommendation(){
     if(!advisor){setNotice("Bitte zuerst gültige Gebühren und Umsätze erfassen.");return;}
-    setSidekick(old=>normalizeSidekickSelection({...old,licenses:noFixedTerm?[]:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout,campaignIndex:null,campaignAuthorized:false,campaignSource:undefined}));
+    setSidekick(old=>{const next=normalizeSidekickSelection({...old,licenses:noFixedTerm?[]:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout,campaignIndex:null,campaignAuthorized:false,campaignSource:undefined});return noFixedTerm?withoutFixedTerm(next):next;});
     if(allowedHardware.some(h=>h.id===advisor.hardwareId))setHardwareId(advisor.hardwareId as HardwareId);
     setStep(3);
   }
@@ -254,7 +254,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
         <p className="hint">Ein hier eingegebener geprüfter Gesamtbetrag ersetzt die berechneten Ist-Gebühren – er wird nicht zusätzlich aufgeschlagen.</p>
       </Card>
       <Card title="05 · Vertrag & Wünsche" eyebrow="ENTSCHEIDUNGSKRITERIEN DES HÄNDLERS">
-        <label className="checkbox-field"><input type="checkbox" checked={noFixedTerm} onChange={e=>{const checked=e.target.checked;setNoFixedTerm(checked);if(checked)setSidekick(old=>normalizeSidekickSelection({...old,licenses:[],campaignIndex:null,campaignAuthorized:false,campaignSource:undefined}));}}/> Kein Laufzeitvertrag gewünscht</label>
+        <label className="checkbox-field"><input type="checkbox" checked={noFixedTerm} onChange={e=>{const checked=e.target.checked;setNoFixedTerm(checked);if(checked)setSidekick(old=>withoutFixedTerm(old));}}/> Kein Laufzeitvertrag gewünscht</label>
         {noFixedTerm&&<p className="notice" role="status">Automatische Vorgabe für das Vergleichsangebot: Umsatzbasiertes Zahlen · 1,39 % pro Vor-Ort-Kartenzahlung · 0,00 € monatliche Tarifgrundgebühr. Plus-Lizenzen sind in diesem Modus deaktiviert.</p>}
         <div className="form-grid">
           <Field label="Vertragslaufzeit / Kündigungsfrist">
