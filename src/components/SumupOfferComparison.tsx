@@ -1,4 +1,6 @@
 import { money } from "../lib/calculations";
+import {selectedPackageName} from "../lib/sumup-needs";
+import {sumupSidekickFees,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 import type { ExistingProviderInput, SumupPlan } from "../lib/fieldSalesComparison";
 
 type RecordedComparison = {
@@ -13,7 +15,7 @@ type HardwarePricing = {
 type RecordedStudio = {
   current:ExistingProviderInput; provider?:string; competitorHardware?:string;
   otherHardware?:string; contract?:string; payout?:string; future?:string;
-  plan:SumupPlan; comparison:RecordedComparison; checkedAt?:string; source?:string;
+  plan:SumupPlan; comparison:RecordedComparison; checkedAt?:string; source?:string; sidekick?:SumupSidekickSelection;
   sumupHardware?:string; quantity?:number; hardwarePricing?:HardwarePricing;
 };
 const payoutLabels:Record<string,string> = {
@@ -47,19 +49,21 @@ export function SumupOfferComparison({snapshot,compact=false}:{
   const studio=readComparison(snapshot);
   if(!studio)return null;
   const {current:c,comparison:a}=studio;
-  const plan=studio.plan==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen";
+  const plan=studio.sidekick?selectedPackageName(studio.sidekick).title:(studio.plan==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen");
+  const licenses=studio.sidekick?selectedPackageName(studio.sidekick).software:[];
+  const campaign=studio.sidekick?.campaignAuthorized&&studio.sidekick.campaignIndex!==null?sumupSidekickFees[studio.sidekick.campaignIndex]:null;
   const previous=studio.provider?.trim()||"Bisheriger Anbieter";
   const device=studio.sumupHardware||"Gerät noch festlegen";
   const hardware=studio.hardwarePricing;
   const saving=a.monthlyDifference;
   const rows=[
     ["Monatskosten",money(a.oldTotal),money(a.sumupTotal)],
-    ["EC / Debit",percent(c.debitRate),percent(a.sumupDebit)],
-    ["Kredit / Premium",percent(c.creditRate),percent(a.sumupCredit)+"*"],
-    ["Monatliche Grund-/Terminalgebühren",money(a.fixedOld),money(a.sumupBase)+" Tarifgebühr"],
+    ["EC / Debit",percent(c.debitRate),campaign?"Domestic: "+percent(campaign.domestic):percent(a.sumupDebit)],
+    ["Kredit / Premium",percent(c.creditRate),campaign?"International / Premium / Corporate: "+percent(campaign.other)+"*":percent(a.sumupCredit)+"*"],
+    ["Monatliche Grund-/Terminalgebühren",money(a.fixedOld),money(a.sumupBase)+" Zahlungstarif und gewählte Software"],
     ["Hardware",studio.competitorHardware==="Sonstiges"?(studio.otherHardware||"Sonstiges"):(studio.competitorHardware||"Nicht erfasst"),device],
     ["Vertragsbindung",studio.contract?.trim()||"Noch zu prüfen","Keine Mindestvertragslaufzeit im Standard; Plus monatlich kündbar – Bedingungen prüfen"],
-    ["Auszahlung",payoutLabels[studio.payout||"unknown"]||"Noch zu prüfen","SumUp Geschäftskonto: i. d. R. Folgetag; extern: 1–2 Werktage"],
+    ["Auszahlung",payoutLabels[studio.payout||"unknown"]||"Noch zu prüfen",studio.sidekick?.payout==="three"?"SumUp Konto: alle 3 Stunden (Sidekick)":studio.sidekick?.payout==="external"?"Externes Konto: laut Sidekick 3–5 Tage":"SumUp Konto: täglich (Sidekick)"],
   ];
   return <section className={"sumup-offer-comparison"+(compact?" sumup-offer-edit":"")}
     aria-label="Bisheriger Anbieter und gewählter SumUp-Tarif im Vergleich">
@@ -69,7 +73,7 @@ export function SumupOfferComparison({snapshot,compact=false}:{
     </div>
     <div className="sumup-quick-summary">
       <div><span>{previous} / Monat</span><strong>{money(a.oldTotal)}</strong></div>
-      <div><span>SumUp {plan} / Monat</span><strong>{money(a.sumupTotal)}</strong></div>
+      <div><span>SumUp {plan} / Monat (inkl. Software)</span><strong>{money(a.sumupTotal)}</strong></div>
     </div>
     <div className={"sumup-benefit "+(saving>0?"sumup-benefit-positive":saving<0?"sumup-benefit-negative":"")}>
       <span>{saving>0?"Rechnerisch geringere Monatsgebühren mit SumUp":saving<0?
@@ -91,9 +95,10 @@ export function SumupOfferComparison({snapshot,compact=false}:{
     </div>
     <div className="sumup-tariff-card">
       <strong>Ausgewählter Tarif: {plan}</strong>
-      <span>Vor Ort · EC/Debit: {percent(a.sumupDebit)} · Kredit/Premium modelliert: {percent(a.sumupCredit)}</span>
-      <span>Tarifgrundgebühr: {money(a.sumupBase)} / Monat · Kartenumsatz: {money(c.volume)} / Monat</span>
-      <span>{studio.plan==="plus"?
+      <span>{campaign?"Individuell freigegeben · Domestic: "+percent(campaign.domestic)+" · International / Premium / Corporate: "+percent(campaign.other):"Öffentlich · EC/Debit modelliert: "+percent(a.sumupDebit)+" · Kredit/Premium modelliert: "+percent(a.sumupCredit)}</span>
+      {licenses.length>0&&<span>Enthaltene Software: {licenses.join(", ")} · zusätzlich zum Zahlungstarif</span>}
+      <span>Monatliche Grundgebühren inkl. Software: {money(a.sumupBase)} / Monat · Kartenumsatz: {money(c.volume)} / Monat</span>
+      <span>{campaign?"Individuell freigegebene Sidekick-Kondition; Domestic-Anteil separat erfasst.":studio.plan==="plus"?
         "0,79 % gelten für berechtigte EWR-Verbraucherkarten; Firmen-/Premium-/Nicht-EWR-Karten einschließlich Amex 1,39 %.":
         "1,39 % für Vor-Ort-Zahlungen im Standardtarif, ohne monatliche Tarifgrundgebühr."}</span>
     </div>
