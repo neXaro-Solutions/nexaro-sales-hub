@@ -41,6 +41,17 @@ export const sumupSidekickFees:SumupSidekickFee[]=[
   {domestic:.89,other:1.99,online:2.5},
   {domestic:.85,other:1.99,online:2.5}
 ];
+export const sumupPlusIds=["posplus","posannual","payments","beauty"] as const;
+export function normalizeSidekickSelection(selection:SumupSidekickSelection,chosen?:string):SumupSidekickSelection{
+ const ids=[...new Set(selection.licenses)];
+ const primary=chosen&&sumupPlusIds.some(id=>id===chosen)?chosen:ids.find(id=>sumupPlusIds.some(p=>p===id));
+ const licenses=ids.filter(id=>!sumupPlusIds.some(p=>p===id)||id===primary);
+ return {...selection,licenses};
+}
+export function chooseSidekickLicense(selection:SumupSidekickSelection,id:string):SumupSidekickSelection{
+ const exists=selection.licenses.includes(id);
+ return normalizeSidekickSelection({...selection,licenses:exists?selection.licenses.filter(x=>x!==id):[...selection.licenses,id]},exists?undefined:id);
+}
 export const emptySidekickSelection:SumupSidekickSelection={
   offerType:"order",hardware:[],licenses:[],campaignIndex:null,campaignAuthorized:false,
   domesticShare:null,onlineShare:0,payout:"daily",discount:0
@@ -54,7 +65,7 @@ export function sidekickHardwareNet(selection:SumupSidekickSelection):number{
   },0)*100)/100;
 }
 export function sidekickLicenseMonthly(selection:SumupSidekickSelection):number{
-  if(selection.licenses.includes("posplus")&&selection.licenses.includes("posannual"))throw Error("Monats- und Jahresabo dürfen nicht parallel gewählt werden.");
+  if(selection.licenses.filter(id=>sumupPlusIds.some(x=>x===id)).length>1)throw Error("Es darf nur eine Plus-Variante ausgewählt werden.");
   return sumupSidekickLicenses.filter(l=>selection.licenses.includes(l.id)).reduce((sum,l)=>sum+l.price/(l.period==="annual"?12:1),0);
 }
 export function sidekickScenario(monthlyVolume:number,selection:SumupSidekickSelection):number|null{
@@ -78,6 +89,7 @@ export function sidekickNotes(selection:SumupSidekickSelection):string{
   ].join("\n");
 }
 export function sidekickOfferLines(selection:SumupSidekickSelection){
+  sidekickLicenseMonthly(selection);
   const lines=selection.hardware.map(item=>{
     const product=sumupSidekickHardware.find(p=>p.id===item.id);
     if(!product)throw Error("Unbekanntes Hardwareprodukt.");
