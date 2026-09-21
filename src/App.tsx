@@ -20,6 +20,7 @@ import {
 import { client } from "./lib/client";
 import { DataProvider, useStore } from "./lib/store";
 import { Brand, Field } from "./components/UI";
+import { PageVisual } from "./components/PageVisual";
 import { CustomerForm, TaskForm } from "./components/Forms";
 import { Dashboard } from "./pages/Dashboard";
 import { Customers } from "./pages/Customers";
@@ -210,6 +211,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               </button>
             </div>
           )}
+          {!loading && <PageVisual page={page} />}
           {loading ? (
             <div className="loading">Dein Arbeitsbereich wird geladen …</div>
           ) : (
