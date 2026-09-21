@@ -14,7 +14,7 @@ type HardwarePricing = {
 };
 type RecordedStudio = {
   current:ExistingProviderInput; provider?:string; competitorHardware?:string;
-  otherHardware?:string; contract?:string; payout?:string; future?:string;
+  otherHardware?:string; contract?:string; payout?:string; future?:string; noFixedTerm?:boolean;
   plan:SumupPlan; comparison:RecordedComparison; checkedAt?:string; source?:string; sidekick?:SumupSidekickSelection;
   sumupHardware?:string; quantity?:number; hardwarePricing?:HardwarePricing;
 };
@@ -51,7 +51,7 @@ export function SumupOfferComparison({snapshot,compact=false}:{
   const {current:c,comparison:a}=studio;
   const plan=studio.sidekick?selectedPackageName(studio.sidekick).title:(studio.plan==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen");
   const licenses=studio.sidekick?selectedPackageName(studio.sidekick).software:[];
-  const campaign=studio.sidekick?.campaignAuthorized&&studio.sidekick.campaignIndex!==null?sumupSidekickFees[studio.sidekick.campaignIndex]:null;
+  const campaign=studio.sidekick?.campaignIndex!==null&&studio.sidekick?.campaignIndex!==undefined&&studio.sidekick.domesticShare!==null?sumupSidekickFees[studio.sidekick.campaignIndex]:null;
   const previous=studio.provider?.trim()||"Bisheriger Anbieter";
   const device=studio.sumupHardware||"Gerät noch festlegen";
   const hardware=studio.hardwarePricing;
@@ -62,7 +62,7 @@ export function SumupOfferComparison({snapshot,compact=false}:{
     ["Kredit / Premium",percent(c.creditRate),campaign?"International / Premium / Corporate: "+percent(campaign.other)+"*":percent(a.sumupCredit)+"*"],
     ["Monatliche Grund-/Terminalgebühren",money(a.fixedOld),money(a.sumupBase)+" Zahlungstarif und gewählte Software"],
     ["Hardware",studio.competitorHardware==="Sonstiges"?(studio.otherHardware||"Sonstiges"):(studio.competitorHardware||"Nicht erfasst"),device],
-    ["Vertragsbindung",studio.contract?.trim()||"Noch zu prüfen","Keine Mindestvertragslaufzeit im Standard; Plus monatlich kündbar – Bedingungen prüfen"],
+    ["Vertragsbindung",studio.contract?.trim()||"Noch zu prüfen",studio.noFixedTerm?"Keine Laufzeitbindung gewünscht · Standard 1,39 % / 0 € Monat":"Laufzeit und Kündigung nach gewählter Lizenz prüfen"],
     ["Auszahlung",payoutLabels[studio.payout||"unknown"]||"Noch zu prüfen",studio.sidekick?.payout==="three"?"SumUp Konto: alle 3 Stunden (Sidekick)":studio.sidekick?.payout==="external"?"Externes Konto: laut Sidekick 3–5 Tage":"SumUp Konto: täglich (Sidekick)"],
   ];
   return <section className={"sumup-offer-comparison"+(compact?" sumup-offer-edit":"")}
@@ -95,10 +95,10 @@ export function SumupOfferComparison({snapshot,compact=false}:{
     </div>
     <div className="sumup-tariff-card">
       <strong>Ausgewählter Tarif: {plan}</strong>
-      <span>{campaign?"Individuell freigegeben · Domestic: "+percent(campaign.domestic)+" · International / Premium / Corporate: "+percent(campaign.other):"Öffentlich · EC/Debit modelliert: "+percent(a.sumupDebit)+" · Kredit/Premium modelliert: "+percent(a.sumupCredit)}</span>
+      <span>{campaign?"Unverbindlich simuliert · Domestic: "+percent(campaign.domestic)+" · International / Premium / Corporate: "+percent(campaign.other):"Öffentlich · EC/Debit modelliert: "+percent(a.sumupDebit)+" · Kredit/Premium modelliert: "+percent(a.sumupCredit)}</span>
       {licenses.length>0&&<span>Enthaltene Software: {licenses.join(", ")} · zusätzlich zum Zahlungstarif</span>}
       <span>Monatliche Grundgebühren inkl. Software: {money(a.sumupBase)} / Monat · Kartenumsatz: {money(c.volume)} / Monat</span>
-      <span>{campaign?"Individuell freigegebene Sidekick-Kondition; Domestic-Anteil separat erfasst.":studio.plan==="plus"?
+      <span>{campaign?"Sidekick-Modellkondition: Vor Abschluss individuelle Freigabe durch SumUp erforderlich; Domestic-Anteil separat erfasst.":studio.plan==="plus"?
         "0,79 % gelten für berechtigte EWR-Verbraucherkarten; Firmen-/Premium-/Nicht-EWR-Karten einschließlich Amex 1,39 %.":
         "1,39 % für Vor-Ort-Zahlungen im Standardtarif, ohne monatliche Tarifgrundgebühr."}</span>
     </div>
@@ -121,7 +121,7 @@ export function SumupOfferComparison({snapshot,compact=false}:{
           <tr className="sumup-offer-total"><th>Gesamtkosten / Monat</th><td>{money(a.oldTotal)}</td><td>{money(a.sumupTotal)}</td></tr>
         </tbody>
       </table></div>
-      <p className="sumup-offer-fineprint">* Die modellierte 20-%-Gruppe wird vorsichtig vollständig mit 1,39 % berechnet; berechtigte EWR-Verbraucherkreditkarten können in Zahlungen Plus unter 0,79 % fallen. Online-Zahlungen sind nicht enthalten (Standardgebühr: 2,50 %). SumUp-Kartenzahlungen mit persönlicher SumUp-Karte können 0 % Transaktionsgebühr haben. Individuelle Sonderkonditionen, steuerliche Behandlung und Auszahlungsweg vor verbindlicher Zusage prüfen.</p>
+      <p className="sumup-offer-fineprint">* Die modellierte 20-%-Gruppe wird im Standardvergleich mit 1,39 % berechnet. Für ausgewählte Sidekick-Gebühren gilt der gesondert erfasste Domestic-/Sonderkartenmix; dieser kann vom Debit-/Kredit-Mix abweichen. Ohne bestätigte Kartengruppen handelt es sich um eine Näherung. Online-Zahlungen können gesonderten Gebühren unterliegen (Sidekick-Modell: 2,50 %). SumUp-Kartenzahlungen mit persönlicher SumUp-Karte können 0 % Transaktionsgebühr haben. Individuelle Sonderkonditionen, steuerliche Behandlung und Auszahlungsweg vor verbindlicher Zusage prüfen.</p>
       <p className="sumup-offer-fineprint">Preisstand der CRM-Referenzdaten: {studio.checkedAt||"vor Versand prüfen"} · <a target="_blank" rel="noopener noreferrer" href="https://www.sumup.com/de-de/preise/">Offizielle SumUp-Gebühren</a> · <a target="_blank" rel="noopener noreferrer" href="https://www.sumup.com/de-de/kartenterminals/">Hardwaredetails</a>.</p>
     </details>
   </section>;
