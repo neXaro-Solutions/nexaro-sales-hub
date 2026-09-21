@@ -13,7 +13,8 @@ import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
 import { RangeNumber } from "../components/RangeNumber";
 import { CardMixBars } from "../components/CardMixBars";
 import { SidekickMatrix } from "../components/SidekickMatrix";
-import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,type SumupSidekickSelection} from "../lib/sumup-sidekick";
+import {customerGoals,recommendSumup,compareSelectedSumup,selectedPackageName,selectedSumupPaymentPlan,type CustomerGoal} from "../lib/sumup-needs";
+import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,sumupSidekickHardware,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 
 const defaultCurrent: ExistingProviderInput = {
   volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
@@ -42,15 +43,8 @@ const competitorHardware = [
 ] as const;
 const allowedHardware = hardwareCatalog.filter(h=>["tap","lite","solo","terminal","dock","pos"].includes(h.id));
 type HardwareId = typeof allowedHardware[number]["id"];
-type Wish = "Drucker"|"Ohne Smartphone"|"Kasse"|"Mobil"|"Kosten"|"Auszahlung";
-const wishes: {id:Wish;label:string}[] = [
-  {id:"Drucker",label:"Papierbelege / integrierter Drucker"},
-  {id:"Ohne Smartphone",label:"Ohne Smartphone kassieren"},
-  {id:"Kasse",label:"Kassen- und Artikelverwaltung"},
-  {id:"Mobil",label:"Mobil und unterwegs kassieren"},
-  {id:"Kosten",label:"Monatliche Kosten senken"},
-  {id:"Auszahlung",label:"Häufigere Auszahlungen"}
-];
+type Wish = CustomerGoal;
+const wishes=customerGoals;
 const payLabel: Record<string,string> = {
   daily:"Täglich",weekly:"Wöchentlich",fortnightly:"Alle zwei Wochen",monthly:"Einmal im Monat",unknown:"Noch offen"
 };
@@ -87,13 +81,12 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const [contract,setContract]=useState(saved.contract||"");
   const [payout,setPayout]=useState(saved.payout||"unknown");
   const [future,setFuture]=useState(saved.future||"");
-  const [needs,setNeeds]=useState<Wish[]>(saved.wishes||[]);
-  const [plan,setPlan]=useState<SumupPlan| "">(saved.plan||"");
+  const [needs,setNeeds]=useState<Wish[]>(()=>((saved.wishes||[]) as string[]).map(w=>({"Drucker":"receipt","Ohne Smartphone":"standalone","Kasse":"pos","Mobil":"mobile","Kosten":"savings","Auszahlung":"payout"} as Record<string,string>)[w]||w).filter(w=>customerGoals.some(g=>g.id===w)) as Wish[]);
   const [hardwareId,setHardwareId]=useState<HardwareId| "">(saved.hardwareId||"");
   const [quantity,setQuantity]=useState(saved.quantity||1);
   const [hardwareDiscount,setHardwareDiscount]=useState(saved.hardwareDiscount??0);
   const [notes,setNotes]=useState(saved.notes||"");
-  const [sidekick,setSidekick]=useState<SumupSidekickSelection>(saved.sidekick||emptySidekickSelection);
+  const [sidekick,setSidekick]=useState<SumupSidekickSelection>(()=>saved.sidekick||{...emptySidekickSelection,licenses:saved.plan==="plus"?["payments"]:[]});
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState("");
   const [readReview,setReadReview]=useState("");
@@ -120,16 +113,21 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       ? "Automatisch aus dem Foto übernommen (noch nicht geprüft): "+fields.join(", ")+". Bitte alle Angaben kontrollieren und fehlende Werte ergänzen."
       : "Aus dem Foto konnten keine eindeutigen Werte zugeordnet werden. Bitte Ist-Bestand manuell erfassen.");
   },[photoReview?.confirmedAt,photoAvailable]);
-  const selectedPlan:SumupPlan=plan||(
-    current.volume>0&&(()=>{
-      try{return compareFieldSales(current,"plus").sumupTotal<compareFieldSales(current,"standard").sumupTotal;}catch{return false;}
-    })()?"plus":"standard");
+  const selectedPlan=selectedSumupPaymentPlan(sidekick);
+  const packageName=selectedPackageName(sidekick);
+  const advisor=useMemo(()=>{try{return recommendSumup(current,needs,future,hardware+" "+otherHardware)}catch{return null;}},[current,needs,future,hardware,otherHardware]);
+  function applyRecommendation(){
+    if(!advisor){setNotice("Bitte zuerst gültige Gebühren und Umsätze erfassen.");return;}
+    setSidekick(old=>({...old,licenses:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout,campaignIndex:null,campaignAuthorized:false}));
+    if(allowedHardware.some(h=>h.id===advisor.hardwareId))setHardwareId(advisor.hardwareId as HardwareId);
+    setStep(3);
+  }
   const suggestedHardware=suggest(hardware+" "+otherHardware,needs);
   const selectedHardware=allowedHardware.find(h=>h.id===(hardwareId||suggestedHardware)) || allowedHardware.find(h=>h.id==="solo")!;
   const estimate=useMemo(()=>{
-    try{return {data:compareFieldSales(current,selectedPlan),error:""};}
+    try{return {data:compareSelectedSumup(current,sidekick),error:""};}
     catch(e){return {data:null,error:e instanceof Error?e.message:"Ungültige Eingabe"};}
-  },[current,selectedPlan]);
+  },[current,sidekick]);
   const standard=useMemo(()=>{
     try{return compareFieldSales(current,"standard");}catch{return null;}
   },[current]);
@@ -180,7 +178,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       notes:offerNotes()+"\n"+sidekickNotes(sidekick),
       snapshot:{salesStudio:{current,provider,competitorHardware:hardware,otherHardware,
         contract,payout,future,wishes:needs,plan:selectedPlan,
-        sumupHardware:selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:hardwarePrice,
+        sumupHardware:sidekick.hardware.length?sidekick.hardware.map(x=>x.quantity+" × "+(sumupSidekickHardware.find(p=>p.id===x.id)?.name||x.id)).join(", "):selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:sidekick.hardware.length?undefined:hardwarePrice,
         comparison:estimate.data,sidekick,checkedAt:catalogCheckedAt,
         source:catalogSource,hardwareSource:catalogHardwareSource}}
     });
@@ -275,15 +273,16 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
           <button className="secondary" disabled={saving||!customerId} onClick={()=>void persist()}>
             <Save size={15}/>{saving?"Speichern …":"Bestand speichern"}
           </button>
-          <button className="primary" disabled={!estimate.data||current.volume<=0} onClick={()=>setStep(3)}>
-            Vergleichsangebot erstellen <ArrowRight size={17}/>
+          <button className="primary" disabled={!estimate.data||current.volume<=0} onClick={applyRecommendation}>
+            Wünsche auswerten & Angebot konfigurieren <ArrowRight size={17}/>
           </button>
         </div>
         {notice&&<p role="status" className="notice">{notice}</p>}
       </Card>
     </>}
     {step===3&&<>
-      <SidekickMatrix value={sidekick} onChange={next=>{setSidekick(next);if(next.licenses.includes("payments"))setPlan("plus");}} monthlyVolume={current.volume} oldTotal={estimate.data?.oldTotal||0}/>
+      {advisor&&<Card title="Deine bedarfsbasierte SumUp-Konfiguration" eyebrow="ZUKUNFTSWÜNSCHE · NACHVOLLZIEHBARE EMPFEHLUNG"><p><strong>{packageName.title}</strong></p><p className="hint">{advisor.reasons.join(" ")}</p><p className="hint">Du kannst jede Auswahl in der Matrix ändern. Kassensystem Plus ist Software; Zahlungen Plus ist ein eigenständiger Zahlungstarif.</p><button className="secondary" type="button" onClick={applyRecommendation}>Vorschlag erneut übernehmen</button></Card>}
+      <SidekickMatrix value={sidekick} onChange={setSidekick} monthlyVolume={current.volume} oldTotal={estimate.data?.oldTotal||0}/>
       <Card title="03 · Vergleichsangebot" eyebrow="IST-ANBIETER GEGEN SUMUP · MONATLICHE KOSTEN">
         {!estimate.data?<p className="error" role="alert">{estimate.error}</p>:<>
           <div className="field-compare">
@@ -293,10 +292,10 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
               <p>EC/Debit {current.debitShare}% · {current.debitRate}%<br/>Kredit/Premium {round(100-current.debitShare)}% · {current.creditRate}%</p>
               <p>Auszahlung: {payLabel[payout]}</p>
             </section>
-            <section className="field-compare-new"><span className="eyebrow">ANGEBOT SUMUP</span><h3>{selectedPlan==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen"}</h3>
-              <strong>{money(estimate.data.sumupTotal)}</strong><small>Modellgebühren / Monat</small>
+            <section className="field-compare-new"><span className="eyebrow">ANGEBOT SUMUP</span><h3>{packageName.title}</h3>
+              <strong>{money(estimate.data.sumupTotal)}</strong><small>Zahlungen und gewählte Software / Monat</small>
               <p>Debit {estimate.data.sumupDebit}% · Kredit/Premium modellhaft {estimate.data.sumupCredit}%</p>
-              <p>Grundgebühr: {money(estimate.data.sumupBase)} / Monat</p>
+              <p>Zahlungstarif: {packageName.payment} · Software: {packageName.software.join(", ")||"keine"}</p><p>Tarif und Software zusammen: {money(estimate.data.sumupBase)} / Monat</p>
               <p>Regulärer Hardwarepreis separat</p>
             </section>
           </div>
@@ -309,8 +308,8 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       </Card>
       <Card title="Tarif & vergleichbare SumUp-Hardware" eyebrow="VORSCHLAG · MANUELL ÄNDERBAR">
         <div className="form-grid">
-          <Field label="SumUp-Tarif">
-            <select value={selectedPlan} onChange={e=>setPlan(e.target.value as SumupPlan)}>
+          <Field label="Zahlungstarif (getrennt von Kassensystem Plus)">
+            <select value={selectedPlan} onChange={e=>setSidekick(old=>({...old,licenses:e.target.value==="plus"?[...old.licenses.filter(x=>x!=="payments"),"payments"]:old.licenses.filter(x=>x!=="payments")}))}>
               <option value="standard">Umsatzbasiertes Zahlen · keine Grundgebühr</option>
               <option value="plus">Zahlungen Plus · 19 € monatlich (Modell)</option>
             </select>
