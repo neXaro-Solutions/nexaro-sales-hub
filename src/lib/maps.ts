@@ -149,7 +149,7 @@ export async function findProspects(
       },
     )
     .filter((p:Prospect|null):p is Prospect=>!!p&&!!p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng))
-    .sort((a,b)=>{
+    .sort((a:Prospect,b:Prospect)=>{
       const lat1=Math.PI/180*center.lat;
       const dx=(a.lng-center.lng)*Math.cos(lat1),dy=a.lat-center.lat;
       const ex=(b.lng-center.lng)*Math.cos(lat1),ey=b.lat-center.lat;
