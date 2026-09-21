@@ -14,7 +14,7 @@ import { RangeNumber } from "../components/RangeNumber";
 import { CardMixBars } from "../components/CardMixBars";
 import { SidekickMatrix } from "../components/SidekickMatrix";
 import {customerGoals,recommendSumup,compareSelectedSumup,selectedPackageName,selectedSumupPaymentPlan,type CustomerGoal} from "../lib/sumup-needs";
-import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,sumupSidekickHardware,type SumupSidekickSelection} from "../lib/sumup-sidekick";
+import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,sumupSidekickHardware,normalizeSidekickSelection,chooseSidekickLicense,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 
 const defaultCurrent: ExistingProviderInput = {
   volume: 0, transactions: 0, debitShare: 80, debitRate: 1.95, creditRate: 2.59,
@@ -86,7 +86,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const [quantity,setQuantity]=useState(saved.quantity||1);
   const [hardwareDiscount,setHardwareDiscount]=useState(saved.hardwareDiscount??0);
   const [notes,setNotes]=useState(saved.notes||"");
-  const [sidekick,setSidekick]=useState<SumupSidekickSelection>(()=>saved.sidekick||{...emptySidekickSelection,licenses:saved.plan==="plus"?["payments"]:[]});
+  const [sidekick,setSidekick]=useState<SumupSidekickSelection>(()=>normalizeSidekickSelection(saved.sidekick||{...emptySidekickSelection,licenses:saved.plan==="plus"?["payments"]:[]}));
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState("");
   const [readReview,setReadReview]=useState("");
@@ -118,7 +118,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const advisor=useMemo(()=>{try{return recommendSumup(current,needs,future,hardware+" "+otherHardware)}catch{return null;}},[current,needs,future,hardware,otherHardware]);
   function applyRecommendation(){
     if(!advisor){setNotice("Bitte zuerst gültige Gebühren und Umsätze erfassen.");return;}
-    setSidekick(old=>({...old,licenses:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout,campaignIndex:null,campaignAuthorized:false}));
+    setSidekick(old=>normalizeSidekickSelection({...old,licenses:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout,campaignIndex:null,campaignAuthorized:false}));
     if(allowedHardware.some(h=>h.id===advisor.hardwareId))setHardwareId(advisor.hardwareId as HardwareId);
     setStep(3);
   }
@@ -159,7 +159,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     setSaving(true);setNotice("");
     try{
       const savedData={current,provider,competitorHardware:hardware,otherHardware,contract,payout,
-        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,hardwareDiscount,notes,sidekick};
+        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,hardwareDiscount,notes,sidekick:normalizeSidekickSelection(sidekick)};
       await save("opportunities",{
         ...opportunity,customer_id:customerId,division:"sumup",stage:opportunity?.stage||"Neu",
         potential:current.volume,
@@ -171,15 +171,16 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   }
   function createOffer(){
     if(!good||!estimate.data)return;
+    const offerSelection=normalizeSidekickSelection(sidekick);
     onOffer({
       division:"sumup",...(customerId?{customer_id:customerId}:{}),
-      lines:(sidekick.hardware.length||sidekick.licenses.length)?sidekickOfferLines(sidekick):[{name:"SumUp "+selectedHardware.name+" · Hardware"+(hardwareDiscount?" · "+hardwareDiscount+" % Nachlass":""),quantity,
+      lines:(sidekick.hardware.length||sidekick.licenses.length)?sidekickOfferLines(offerSelection):[{name:"SumUp "+selectedHardware.name+" · Hardware"+(hardwareDiscount?" · "+hardwareDiscount+" % Nachlass":""),quantity,
         price:hardwarePrice.discountedUnit,vat:19}],
-      notes:offerNotes()+"\n"+sidekickNotes(sidekick),
+      notes:offerNotes()+"\n"+sidekickNotes(offerSelection),
       snapshot:{salesStudio:{current,provider,competitorHardware:hardware,otherHardware,
         contract,payout,future,wishes:needs,plan:selectedPlan,
-        sumupHardware:sidekick.hardware.length?sidekick.hardware.map(x=>x.quantity+" × "+(sumupSidekickHardware.find(p=>p.id===x.id)?.name||x.id)).join(", "):selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:sidekick.hardware.length?undefined:hardwarePrice,
-        comparison:estimate.data,sidekick,checkedAt:catalogCheckedAt,
+        sumupHardware:offerSelection.hardware.length?offerSelection.hardware.map(x=>x.quantity+" × "+(sumupSidekickHardware.find(p=>p.id===x.id)?.name||x.id)).join(", "):selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:sidekick.hardware.length?undefined:hardwarePrice,
+        comparison:estimate.data,sidekick:offerSelection,checkedAt:catalogCheckedAt,
         source:catalogSource,hardwareSource:catalogHardwareSource}}
     });
   }
@@ -281,8 +282,8 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       </Card>
     </>}
     {step===3&&<>
-      {advisor&&<Card title="Deine bedarfsbasierte SumUp-Konfiguration" eyebrow="ZUKUNFTSWÜNSCHE · NACHVOLLZIEHBARE EMPFEHLUNG"><p><strong>{packageName.title}</strong></p><p className="hint">{advisor.reasons.join(" ")}</p><p className="hint">Du kannst jede Auswahl in der Matrix ändern. Kassensystem Plus ist Software; Zahlungen Plus ist ein eigenständiger Zahlungstarif.</p><button className="secondary" type="button" onClick={applyRecommendation}>Vorschlag erneut übernehmen</button></Card>}
-      <SidekickMatrix value={sidekick} onChange={setSidekick} monthlyVolume={current.volume} oldTotal={estimate.data?.oldTotal||0}/>
+      {advisor&&<Card title="Deine bedarfsbasierte SumUp-Konfiguration" eyebrow="ZUKUNFTSWÜNSCHE · NACHVOLLZIEHBARE EMPFEHLUNG"><p><strong>{packageName.title}</strong></p><p className="hint">{advisor.reasons.join(" ")}</p><p className="hint">Eine Plus-Variante wird durch den erfassten Bedarf bestimmt. Der Wechsel in der Matrix ersetzt die bisherige Plus-Auswahl; KDS ist eine passende Zusatzoption.</p><button className="secondary" type="button" onClick={applyRecommendation}>Vorschlag erneut übernehmen</button></Card>}
+      <SidekickMatrix value={sidekick} onChange={next=>setSidekick(normalizeSidekickSelection(next))} monthlyVolume={current.volume} oldTotal={estimate.data?.oldTotal||0}/>
       <Card title="03 · Vergleichsangebot" eyebrow="IST-ANBIETER GEGEN SUMUP · MONATLICHE KOSTEN">
         {!estimate.data?<p className="error" role="alert">{estimate.error}</p>:<>
           <div className="field-compare">
@@ -306,12 +307,15 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
           <p className="hint">{estimate.data.note} Bestehende Vertragsbindung und etwaige Wechselkosten sind nicht eingerechnet.</p>
         </>}
       </Card>
-      <Card title="Tarif & vergleichbare SumUp-Hardware" eyebrow="VORSCHLAG · MANUELL ÄNDERBAR">
+      <Card title="Passende SumUp-Variante & Hardware" eyebrow="BEDARF → ANALYSE → PRODUKTAUSWAHL → ANGEBOT">
         <div className="form-grid">
-          <Field label="Zahlungstarif (getrennt von Kassensystem Plus)">
-            <select value={selectedPlan} onChange={e=>setSidekick(old=>({...old,licenses:e.target.value==="plus"?[...old.licenses.filter(x=>x!=="payments"),"payments"]:old.licenses.filter(x=>x!=="payments")}))}>
+          <Field label="Gewählte Plus-Variante / Standard">
+            <select value={sidekick.licenses.find(id=>["posplus","posannual","payments","beauty"].includes(id))||"standard"} onChange={e=>setSidekick(old=>e.target.value==="standard"?normalizeSidekickSelection({...old,licenses:old.licenses.filter(id=>!["posplus","posannual","payments","beauty"].includes(id))}):chooseSidekickLicense({...old,licenses:old.licenses.filter(id=>!["posplus","posannual","payments","beauty"].includes(id))},e.target.value))}>
               <option value="standard">Umsatzbasiertes Zahlen · keine Grundgebühr</option>
-              <option value="plus">Zahlungen Plus · 19 € monatlich (Modell)</option>
+              <option value="payments">Zahlungen Plus · 19 € monatlich</option>
+              <option value="posplus">Kassensystem Plus · 49 € monatlich</option>
+              <option value="posannual">Kassensystem Plus jährlich · 588 € jährlich</option>
+              <option value="beauty">Beauty Plus · 99 € monatlich</option>
             </select>
           </Field>
           {sidekick.hardware.length===0&&<>          <Field label="Passende SumUp-Hardware">
