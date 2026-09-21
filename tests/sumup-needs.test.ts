@@ -1,9 +1,19 @@
 import {describe,it,expect} from "vitest";
-import {recommendSumup,compareSelectedSumup,selectedPackageName,deriveDomesticShare} from "../src/lib/sumup-needs";
+import {recommendSumup,compareSelectedSumup,selectedPackageName,deriveDomesticShare,deriveCampaignPrefill} from "../src/lib/sumup-needs";
 import {emptySidekickSelection,chooseSidekickLicense,sidekickLicenseMonthly,sidekickOfferLines,normalizeSidekickSelection} from "../src/lib/sumup-sidekick";
 import type {ExistingProviderInput} from "../src/lib/fieldSalesComparison";
 const input:ExistingProviderInput={volume:6000,transactions:150,debitShare:80,debitRate:.99,creditRate:2.59,serviceFee:0,terminalFee:0,perTransaction:0,confirmedTotal:118.45};
 describe("SumUp needs-based package and honest cost comparison",()=>{
+ it("does not suggest a fee campaign from untouched default existing-provider rates",()=>{
+  expect(deriveCampaignPrefill(1.95,false)).toBeNull();
+ });
+ it("suggests the nearest available campaign, without authorizing it",()=>{
+  expect(deriveCampaignPrefill(.99,true)).toMatchObject({index:3,rate:1.05});
+  expect(deriveCampaignPrefill(1.25,true)).toMatchObject({index:1,rate:1.29});
+ });
+ it("does not suggest a campaign for invalid confirmed input",()=>{
+  expect(deriveCampaignPrefill(NaN,true)).toBeNull();
+ });
  it("leaves Domestic empty when only the unconfirmed 80/20 default exists",()=>{
   expect(deriveDomesticShare({debitShare:80,cardMixConfirmed:false})).toBeNull();
  });
