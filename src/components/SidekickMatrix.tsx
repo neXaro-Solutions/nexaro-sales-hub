@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {sumupSidekickHardware,sumupSidekickLicenses,sumupSidekickFees,sidekickHardwareNet,sidekickLicenseMonthly,sidekickScenario,type SumupSidekickSelection} from "../lib/sumup-sidekick";
+import {sumupSidekickHardware,sumupSidekickLicenses,sumupSidekickFees,sidekickHardwareNet,sidekickLicenseMonthly,sidekickScenario,chooseSidekickLicense,normalizeSidekickSelection,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 import "../sidekick-matrix.css";
 type Props={value:SumupSidekickSelection;onChange:(s:SumupSidekickSelection)=>void;monthlyVolume:number;oldTotal:number;};
 const icons:Record<string,string>={tap:"📲",lite:"💳",solo:"💳",terminal:"📱",drawer:"🗃️",mpop:"🧾",epson:"🖨️",scanner:"▥",lan:"🔌",soloprinter:"🧾",solodock:"⚡",pos:"🏪",posprinter:"🏪",posdual:"🏪",posbundle:"🏪",kdsdevice:"🍽️"};
@@ -8,13 +8,9 @@ export function SidekickMatrix({value,onChange,monthlyVolume,oldTotal}:Props){
  const [all,setAll]=useState(false);
  const update=(patch:Partial<SumupSidekickSelection>)=>onChange({...value,...patch});
  const qty=(id:string,count:number)=>update({hardware:[...value.hardware.filter(p=>p.id!==id),...(count>0?[{id,quantity:Math.min(20,count)}]:[])]});
- const license=(id:string)=>{
-   const next=value.licenses.includes(id)?value.licenses.filter(x=>x!==id):[...value.licenses,id];
-   if(id==="posplus"&&next.includes("posplus")&&next.includes("posannual"))next.splice(next.indexOf("posannual"),1);
-   if(id==="posannual"&&next.includes("posannual")&&next.includes("posplus"))next.splice(next.indexOf("posplus"),1);
-   update({licenses:next});
- };
- const total=sidekickHardwareNet(value),monthly=sidekickLicenseMonthly(value),scenario=sidekickScenario(monthlyVolume,value);
+ const license=(id:string)=>onChange(chooseSidekickLicense(value,id));
+ const safe=normalizeSidekickSelection(value);
+ const total=sidekickHardwareNet(safe),monthly=sidekickLicenseMonthly(safe),scenario=sidekickScenario(monthlyVolume,safe);
  const max=Math.max(oldTotal,scenario??0,1);
  return <section className="nxside" aria-label="SumUp Sidekick Angebotsmatrix">
   <header className="nxside-hero"><span className="eyebrow">NEXARO · SUMUP ANGEBOTSMATRIX</span><h3>Das passende Angebot zusammenstellen</h3><p>Dein mobiler Beratungsablauf mit offiziellen Referenzpreisen ohne Aktionen. Für SumUp und Vape bleibt die Kundenakte zentral.</p></header>
@@ -22,7 +18,7 @@ export function SidekickMatrix({value,onChange,monthlyVolume,oldTotal}:Props){
   <h4>2 · Hardware & Zubehör</h4><p className="hint">Produktillustrationen sind schematisch. Bundle-Komponenten nicht zusätzlich doppelt hinzufügen.</p>
   <div className="nxside-grid">{sumupSidekickHardware.filter(p=>all||p.group!=="accessory").map(p=>{const num=value.hardware.find(x=>x.id===p.id)?.quantity||0;return <article className={"nxside-choice "+(num?"selected":"")} key={p.id}><div className="nxside-picture"><img src={"./product-illustrations/"+p.illustration+".svg"} alt={"Schematische Illustration: "+p.name} loading="lazy"/><span aria-hidden="true">{icons[p.id]||"📦"}</span></div><strong>{p.name}</strong><small>{p.description}</small><b>{money(p.price)} netto</b><div className="nxside-actions"><button type="button" className="secondary" onClick={()=>qty(p.id,num?0:1)}>{num?"Entfernen":"Hinzufügen"}</button>{num>0&&<span><button type="button" onClick={()=>qty(p.id,num-1)} aria-label={p.name+" reduzieren"}>−</button>{num}<button type="button" onClick={()=>qty(p.id,num+1)} aria-label={p.name+" erhöhen"}>+</button></span>}</div></article>})}</div>
   <button className="secondary" type="button" onClick={()=>setAll(!all)}>{all?"Weniger anzeigen":"Alle Zubehörartikel anzeigen"}</button>
-  <h4>3 · Lizenzen</h4><div className="nxside-grid">{sumupSidekickLicenses.map(p=><button type="button" className={"nxside-choice "+(value.licenses.includes(p.id)?"selected":"")} onClick={()=>license(p.id)} key={p.id}><span className="nxside-icon">🧩</span><strong>{p.name}</strong><small>{p.description}</small><b>{money(p.price)} / {p.period==="annual"?"Jahr":"Monat"}</b><span>{value.licenses.includes(p.id)?"✓ Ausgewählt":"+ Auswählen"}</span></button>)}</div>
+  <h4>3 · Genau eine Plus-Variante wählen</h4><p className="hint">Kassensystem Plus, Kassensystem Plus jährlich, Zahlungen Plus und Beauty Plus sind alternativ. Ein Wechsel ersetzt die bisherige Plus-Variante; KDS bleibt nur bei passendem Funktionsbedarf eine Zusatzoption.</p><div className="nxside-grid">{sumupSidekickLicenses.map(p=><button type="button" className={"nxside-choice "+(safe.licenses.includes(p.id)?"selected":"")} onClick={()=>license(p.id)} key={p.id}><span className="nxside-icon">🧩</span><strong>{p.name}</strong><small>{p.description}</small><b>{money(p.price)} / {p.period==="annual"?"Jahr":"Monat"}</b><span>{value.licenses.includes(p.id)?"✓ Ausgewählt":"+ Auswählen"}</span></button>)}</div>
   <h4>4 · Konditionen & Auszahlungen</h4><p className="hint">Sidekick-Fee-Campaigns sind keine allgemein gültigen Standardtarife. Bitte für den konkreten Händler freigeben lassen.</p>
   <div className="nxside-grid">{sumupSidekickFees.map((p,i)=><button key={i} type="button" className={"nxside-choice "+(value.campaignIndex===i?"selected":"")} onClick={()=>update({campaignIndex:i,campaignAuthorized:false})}><span className="nxside-icon">%</span><strong>{p.domestic.toFixed(2).replace(".",",")} % Domestic</strong><small>Internationale / Premium- / Firmenkarten: {p.other.toFixed(2).replace(".",",")} %, Karte nicht anwesend: 2,50 %</small></button>)}</div>
   <label className="nxside-field">Domestic-Anteil am Vor-Ort-Umsatz (%)<input type="number" min="0" max="100" step="1" placeholder="Noch nicht bekannt" value={value.domesticShare??""} onChange={e=>update({domesticShare:e.target.value===""?null:Number(e.target.value)})}/></label>
