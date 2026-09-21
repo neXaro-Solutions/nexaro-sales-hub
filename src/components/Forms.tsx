@@ -1,110 +1,116 @@
+import { useEffect, useRef, useState } from "react";
+import { Camera, ImageUp } from "lucide-react";
+import { recognizeStatement } from "../lib/ocr";
+import { readBusinessCardText } from "../lib/business-card";
 import { useStore } from "../lib/store";
 import { Modal, AsyncForm, Field, value } from "./UI";
 import { today } from "../lib/calculations";
 import type { Customer, Task, Division } from "../lib/types";
 import { appointmentTime, berlinDateTime } from "../lib/appointments";
 export function CustomerForm({
-  customer,
-  onClose,
+  customer,onClose,
 }: {
   customer?: Customer;
   division?: Division;
   onClose: () => void;
 }) {
-  const { save, refresh } = useStore();
+  const {save,refresh}=useStore();
+  const [fields,setFields]=useState({
+    company:customer?.company||"",contact:customer?.contact||"",
+    email:customer?.email||"",phone:customer?.phone||"",
+    street:customer?.street||"",zip:customer?.zip||"",
+    city:customer?.city||"",industry:customer?.industry||"",
+    notes:customer?.notes||""
+  });
+  const [cardBusy,setCardBusy]=useState(false);
+  const [cardProgress,setCardProgress]=useState(0);
+  const [cardError,setCardError]=useState("");
+  const [cardWarning,setCardWarning]=useState<string[]>([]);
+  const [cardFields,setCardFields]=useState<string[]>([]);
+  const [cardImported,setCardImported]=useState(false);
+  const abortRef=useRef<AbortController|null>(null);
+  useEffect(()=>()=>abortRef.current?.abort(),[]);
+  const update=(key:keyof typeof fields,next:string)=>setFields(old=>({...old,[key]:next}));
+  async function importBusinessCard(file:File|undefined){
+    if(!file)return;
+    abortRef.current?.abort();
+    const ctrl=new AbortController();abortRef.current=ctrl;
+    setCardError("");setCardWarning([]);setCardFields([]);setCardProgress(0);setCardBusy(true);
+    try{
+      const result=await recognizeStatement(file,ctrl.signal,setCardProgress);
+      if(ctrl.signal.aborted)return;
+      const parsed=readBusinessCardText(result.text);
+      const items=Object.entries(parsed.fields).filter(([key,val])=>key!=="website"&&!!val);
+      setFields(old=>{
+        const next={...old};
+        for(const [key,val] of items){
+          const k=key as keyof typeof next;
+          // Import never silently replaces an existing customer detail.
+          if(!next[k].trim())next[k]=val!;
+        }
+        if(parsed.fields.website&&!next.notes.includes(parsed.fields.website))
+          next.notes=[next.notes,"Webseite laut Visitenkarte: "+parsed.fields.website].filter(Boolean).join("\n");
+        return next;
+      });
+      setCardWarning(parsed.warnings);
+      setCardFields(items.map(([key])=>({company:"Unternehmen",contact:"Ansprechpartner",email:"E-Mail",phone:"Telefon",street:"Straße",zip:"PLZ",city:"Ort"} as Record<string,string>)[key]||key));
+      setCardImported(items.length>0);
+      if(!items.length)setCardError("Keine eindeutigen Visitenkartenangaben erkannt. Bitte ein scharfes, gerade aufgenommenes Foto verwenden oder Daten manuell ergänzen.");
+    }catch(e){if(!ctrl.signal.aborted)setCardError((e as Error).message);}
+    finally{if(abortRef.current===ctrl)setCardBusy(false);}
+  }
   return (
-    <Modal
-      title={customer ? "Kundenakte bearbeiten" : "Neuen Kunden zentral erfassen"}
-      onClose={onClose}
-    >
-      <AsyncForm
-        onSubmit={async (f) => {
-          await save("customers", {
-            ...customer,
-            company: value(f, "company"),
-            contact: value(f, "contact"),
-            email: value(f, "email"),
-            phone: value(f, "phone"),
-            street: value(f, "street"),
-            zip: value(f, "zip"),
-            city: value(f, "city"),
-            industry: value(f, "industry"),
-            source: customer?.source || "Manuell",
-            notes: value(f, "notes"),
-            lat: customer?.lat ?? null,
-            lng: customer?.lng ?? null,
-            ...(!customer ? { interests: ["sumup", "vape"] as Division[] } : {}),
-          });
-          await refresh();
-          onClose();
-        }}
-      >
-        <p className="hint">Eine gemeinsame Kundenakte für SumUp und Vape. Eine Bereichsauswahl ist nicht erforderlich.</p>
+    <Modal title={customer?"Kundenakte bearbeiten":"Neuen Kunden zentral erfassen"} onClose={onClose}>
+      <p className="hint">Eine gemeinsame Kundenakte für SumUp und Vape. Eine Bereichsauswahl ist nicht erforderlich.</p>
+      <section className="business-card-import" aria-label="Visitenkarte auslesen">
+        <h3>Visitenkarte fotografieren oder importieren</h3>
+        <p className="hint">Im Browser auf Desktop und Mobilgerät verfügbar. Erkennbare Angaben werden in die Felder eingetragen, bestehende Kundendaten nicht überschrieben. Bitte vor dem Speichern prüfen.</p>
         <div className="form-grid">
-          <Field label="Unternehmen *">
-            <input
-              name="company"
-              required
-              maxLength={200}
-              defaultValue={customer?.company}
-            />
+          <Field label="Visitenkarte aus Dateien / Galerie auswählen">
+            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={cardBusy}
+              onChange={e=>{void importBusinessCard(e.target.files?.[0]);e.target.value="";}}/>
           </Field>
-          <Field label="Ansprechpartner">
-            <input
-              name="contact"
-              maxLength={160}
-              defaultValue={customer?.contact}
-            />
-          </Field>
-          <Field label="E-Mail">
-            <input
-              name="email"
-              type="email"
-              maxLength={254}
-              defaultValue={customer?.email}
-            />
-          </Field>
-          <Field label="Telefon">
-            <input
-              name="phone"
-              type="tel"
-              maxLength={40}
-              defaultValue={customer?.phone}
-            />
-          </Field>
-          <Field label="Straße / Hausnummer">
-            <input
-              name="street"
-              maxLength={200}
-              defaultValue={customer?.street}
-            />
-          </Field>
-          <Field label="PLZ">
-            <input name="zip" maxLength={12} defaultValue={customer?.zip} />
-          </Field>
-          <Field label="Ort *">
-            <input
-              name="city"
-              required
-              maxLength={120}
-              defaultValue={customer?.city}
-            />
-          </Field>
-          <Field label="Branche">
-            <input
-              name="industry"
-              maxLength={100}
-              defaultValue={customer?.industry}
-            />
+          <Field label="Visitenkarte mit Kamera fotografieren">
+            <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={cardBusy}
+              onChange={e=>{void importBusinessCard(e.target.files?.[0]);e.target.value="";}}/>
           </Field>
         </div>
-        <Field label="Notizen">
-          <textarea
-            name="notes"
-            maxLength={5000}
-            defaultValue={customer?.notes}
-          />
-        </Field>
+        {cardBusy&&<p className="notice" role="status"><Camera size={16}/> Texterkennung läuft … {cardProgress}%</p>}
+        {cardFields.length>0&&<p className="notice" role="status"><ImageUp size={16}/> Erkannt und in freie Felder übertragen: {cardFields.join(", ")}. Bitte auf Richtigkeit prüfen.</p>}
+        {cardWarning.map((message,i)=><p className="hint" key={i}>⚠ {message}</p>)}
+        {cardError&&<p className="error" role="alert">{cardError}</p>}
+      </section>
+      <AsyncForm onSubmit={async f=>{
+        await save("customers",{
+          ...customer,
+          company:value(f,"company"),contact:value(f,"contact"),
+          email:value(f,"email"),phone:value(f,"phone"),
+          street:value(f,"street"),zip:value(f,"zip"),
+          city:value(f,"city"),industry:value(f,"industry"),
+          source:customer?.source||(cardImported?"Visitenkarte (OCR)":"Manuell"),
+          notes:value(f,"notes"),lat:customer?.lat??null,lng:customer?.lng??null,
+          ...(!customer?{interests:["sumup","vape"] as Division[]}:{})
+        });
+        await refresh();onClose();
+      }}>
+        <div className="form-grid">
+          {([
+            ["company","Unternehmen *","text",200,true],
+            ["contact","Ansprechpartner","text",160,false],
+            ["email","E-Mail","email",254,false],
+            ["phone","Telefon","tel",40,false],
+            ["street","Straße / Hausnummer","text",200,false],
+            ["zip","PLZ","text",12,false],
+            ["city","Ort *","text",120,true],
+            ["industry","Branche","text",100,false]
+          ] as const).map(([key,label,type,maxLength,required])=>
+            <Field label={label} key={key}><input name={key} type={type}
+              value={fields[key]} required={required} maxLength={maxLength}
+              onChange={e=>update(key,e.target.value)}/></Field>
+          )}
+        </div>
+        <Field label="Notizen"><textarea name="notes" maxLength={5000} value={fields.notes}
+          onChange={e=>update("notes",e.target.value)}/></Field>
       </AsyncForm>
     </Modal>
   );
