@@ -112,23 +112,36 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   useEffect(()=>{
     if(!photoAvailable||!photoReview)return;
     const recognized=new Set(photoReview.recognizedFields||[]);
+    const detail=photoReview.details||{};
     const hasVolume=recognized.has("volume"),hasOnline=recognized.has("onlineVolume");
     setCurrent(old=>({
       ...old,
-      ...(hasVolume||hasOnline ? {volume:round(
-        (hasVolume?photoInput.volume:0)+(hasOnline?photoInput.onlineVolume:0)
-      )} : {}),
-      ...(recognized.has("transactions") ? {transactions:photoInput.transactions} : {}),
-      ...(recognized.has("currentTotal") ? {confirmedTotal:photoInput.currentTotal??null} : {})
+      ...(hasVolume||hasOnline?{volume:round((hasVolume?photoInput.volume:0)+(hasOnline?photoInput.onlineVolume:0))}:{}),
+      ...(recognized.has("transactions")?{transactions:photoInput.transactions}:{}),
+      ...(recognized.has("currentTotal")?{confirmedTotal:photoInput.currentTotal??null}:{}),
+      ...(detail.debitShare!==undefined?{debitShare:detail.debitShare}:{}),
+      ...(detail.debitRate!==undefined?{debitRate:detail.debitRate}:{}),
+      ...(detail.creditRate!==undefined?{creditRate:detail.creditRate}:{}),
+      ...(detail.serviceFee!==undefined?{serviceFee:detail.serviceFee}:{}),
+      ...(detail.terminalFee!==undefined?{terminalFee:detail.terminalFee}:{}),
+      ...(detail.perTransaction!==undefined?{perTransaction:detail.perTransaction}:{})
     }));
+    if(detail.provider)setProvider(detail.provider);
+    // Photo values stay unverified until the salesperson checks the source.
+    if(detail.debitShare!==undefined)setCardMixConfirmed(false);
+    if(detail.debitRate!==undefined||detail.creditRate!==undefined)setFeeRatesConfirmed(false);
     const labels:Record<string,string>={
-      volume:"Kartenumsatz",onlineVolume:"Online-Umsatz",
-      transactions:"Transaktionen",currentTotal:"Gesamtgebühren"
+      volume:"Kartenumsatz",onlineVolume:"Online-Umsatz",transactions:"Transaktionen",
+      currentTotal:"Gesamtgebühren",provider:"Zahlungsanbieter",merchant:"Firmenname",
+      debitShare:"EC-/Debit-Anteil",debitRate:"EC-/Debit-Gebühr",
+      creditRate:"Kreditkartengebühr",serviceFee:"Servicegebühr",
+      terminalFee:"Hardwaregebühr",perTransaction:"Gebühr je Transaktion",
+      eligibleVolume:"geeignete Karten (€)",otherVolume:"andere Karten (€)"
     };
     const fields=(photoReview.recognizedFields||[]).map(x=>labels[x]||x);
     setReadReview(fields.length
-      ? "Automatisch aus dem Foto übernommen (noch nicht geprüft): "+fields.join(", ")+". Bitte alle Angaben kontrollieren und fehlende Werte ergänzen."
-      : "Aus dem Foto konnten keine eindeutigen Werte zugeordnet werden. Bitte Ist-Bestand manuell erfassen.");
+      ?"Automatisch aus dem Foto übernommen (NOCH NICHT GEPRÜFT): "+fields.join(", ")+". Bitte jeden Wert mit der Abrechnung kontrollieren."
+      :"Keine eindeutigen Werte erkannt. Bitte das Foto besser zuschneiden oder die Angaben manuell erfassen.");
   },[photoReview?.confirmedAt,photoAvailable]);
   const suggestedFee=deriveCampaignPrefill(current.debitRate,feeRatesConfirmed);
   const suggestedMix=deriveDomesticShare({debitShare:current.debitShare,cardMixConfirmed});
@@ -228,6 +241,14 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     {step===2&&<>
       <Card title="02 · Händler & Umsatz" eyebrow="IST-BESTAND · AKTUELLER ANBIETER">
         {readReview&&<p role="status" className="notice">{readReview}</p>}
+        <button type="button" className="secondary" onClick={onCapture}><Camera size={17}/> Abrechnung erneut fotografieren / hochladen</button>
+        {photoReview?.details?.merchant&&<p className="notice"><strong>Erkannter Händler / Firmenname:</strong> {photoReview.details.merchant}. Bitte mit der zentralen Kundenakte abgleichen; diese wird nicht ohne Bestätigung überschrieben.</p>}
+        {photoReview&&<details className="photo-recognition-evidence"><summary>Fotoauslesung und erkannte Textstellen überprüfen</summary>
+          <p className="hint">Die Erkennung ist ein Vorschlag und keine Prüfung der Abrechnung. Nicht eindeutig erkennbare Werte bleiben unverändert und müssen ergänzt werden.</p>
+          {photoReview.confidence!==null&&<p className="hint">Durchschnittliche OCR-Zeichensicherheit: {Math.round(photoReview.confidence)} % (keine inhaltliche Genauigkeitsgarantie).</p>}
+          {Object.entries(photoReview.evidence||{}).map(([name,line])=><p className="hint" key={name}><strong>{name}:</strong> {line}</p>)}
+          {(photoReview.warnings||[]).map((warning,i)=><p key={i} className="hint">⚠ {warning}</p>)}
+        </details>}
         <div className="form-grid">
           <Field label="Aktueller Anbieter"><input value={provider} onChange={e=>setProvider(e.target.value)}
             placeholder="z. B. VR Payment, TeleCash, Worldline …"/></Field>
