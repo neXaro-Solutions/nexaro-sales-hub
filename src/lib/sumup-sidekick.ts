@@ -52,6 +52,9 @@ export function chooseSidekickLicense(selection:SumupSidekickSelection,id:string
  const exists=selection.licenses.includes(id);
  return normalizeSidekickSelection({...selection,licenses:exists?selection.licenses.filter(x=>x!==id):[...selection.licenses,id]},exists?undefined:id);
 }
+export function withoutFixedTerm(selection:SumupSidekickSelection):SumupSidekickSelection{
+ return normalizeSidekickSelection({...selection,licenses:[],campaignIndex:null,campaignSource:undefined,campaignAuthorized:false});
+}
 export const emptySidekickSelection:SumupSidekickSelection={
   offerType:"order",hardware:[],licenses:[],campaignIndex:null,campaignAuthorized:false,campaignSource:undefined,
   domesticShare:null,domesticShareSource:undefined,onlineShare:0,payout:"daily",discount:0
