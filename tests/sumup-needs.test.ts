@@ -7,9 +7,13 @@ describe("SumUp needs-based package and honest cost comparison",()=>{
  it("does not suggest a fee campaign from untouched default existing-provider rates",()=>{
   expect(deriveCampaignPrefill(1.95,false)).toBeNull();
  });
- it("suggests the nearest available campaign, without authorizing it",()=>{
-  expect(deriveCampaignPrefill(.99,true)).toMatchObject({index:3,rate:1.05});
-  expect(deriveCampaignPrefill(1.25,true)).toMatchObject({index:1,rate:1.29});
+ it("suggests exact or nearest LOWER available campaign, without authorizing it",()=>{
+  expect(deriveCampaignPrefill(.99,true)).toMatchObject({index:4,rate:.89});
+  expect(deriveCampaignPrefill(1.39,true)).toMatchObject({index:0,rate:1.39});
+  expect(deriveCampaignPrefill(1.07,true)).toMatchObject({index:3,rate:1.05});
+  expect(deriveCampaignPrefill(1.25,true)).toMatchObject({index:2,rate:1.19});
+  expect(deriveCampaignPrefill(.7,true)).toMatchObject({index:5,rate:.85});
+  expect(deriveCampaignPrefill(2,true)).toMatchObject({index:0,rate:1.39});
  });
  it("does not suggest a campaign for invalid confirmed input",()=>{
   expect(deriveCampaignPrefill(NaN,true)).toBeNull();
@@ -68,9 +72,9 @@ describe("SumUp needs-based package and honest cost comparison",()=>{
   expect(chosen.licenses).toEqual(["kds","posannual"]);
   expect(sidekickLicenseMonthly(chosen)).toBe(64);
  });
- it("does not apply unapproved fee campaigns",()=>{
+ it("uses a selected fee campaign only as an explicitly labelled non-binding comparison scenario",()=>{
   const s={...emptySidekickSelection,licenses:["posplus"],campaignIndex:5,domesticShare:90,campaignAuthorized:false};
-  expect(compareSelectedSumup(input,s).sumupTotal).toBeCloseTo(6000*.0139+49,2);
+  expect(compareSelectedSumup(input,s).sumupTotal).toBeCloseTo(6000*.9*.0085+6000*.1*.0199+49,2);
   expect(compareSelectedSumup(input,{...s,campaignAuthorized:true}).sumupTotal).toBeCloseTo(6000*.9*.0085+6000*.1*.0199+49,2);
  });
  it("chooses POS and kitchen software from future wishes before recommending a payment plan",()=>{
