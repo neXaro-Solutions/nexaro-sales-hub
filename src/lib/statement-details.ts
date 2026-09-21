@@ -60,6 +60,21 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
  const merchant=lines.filter(line=>/^(?:händler(?:name)?|kunde(?:nname)?|merchant(?: name)?|firma|firmenname|unternehmen|geschäft|shop)\s*[:：]/i.test(line));
  if(merchant.length===1){const n=cleanLabel(merchant[0].replace(/^[^:：]+[:：]/,""));if(n.length>=2&&n.length<=100){details.merchant=n;evidence.merchant=merchant[0];}}
  if(!details.merchant){
+  // A shop's name on a statement often has NO "Händler:" label.
+  // Accept only a header line directly above a street plus a German postal address;
+  // never treat the payment provider's legal footer as the merchant.
+  for(let i=0;i<Math.min(lines.length-2,18);i++){
+   const candidate=lines[i],street=lines[i+1],city=lines[i+2];
+   if(!/^[^\d]{2,70}\s+\d{1,4}\s*[a-z]?\s*$/i.test(street)||
+      !/^\d{5}\s+\S.{1,65}$/.test(city)||
+      candidate.length<3||candidate.length>90||
+      /^(?:test(?:ab)?rechnung|monat(?:s)?abrechnung|zeitraum|seite|einfach|sicher|zahlungen)/i.test(candidate)||
+      providerNames.some(([,rx])=>rx.test(candidate))||
+      /(?:^|\s)\d{4,}(?:\s|$)/.test(candidate))continue;
+   details.merchant=candidate;evidence.merchant=candidate+" / "+street+" / "+city;break;
+  }
+ }
+ if(!details.merchant){
   // Unlabelled business letterheads are common; accept only one distinct, clearly
   // named legal entity, never a PSP brand and never overwrite the central customer.
   const legal=lines.slice(0,16).filter(line=>
@@ -80,13 +95,14 @@ export function analyzeStatementText(raw:string):StatementAnalysis{
   const normalized=line.toLocaleLowerCase("de-DE");
   const shares= findPercent(line);
   const amounts=findMoney(line);
-  const labelAmount=(rx:RegExp)=>{
-   const m=rx.exec(line);
-   if(!m)return null;
-   const after=line.slice(m.index+m[0].length);
-   const a=findMoney(after).filter(x=>x!==0||/0[,\. ]?00/.test(after));
-   return a.length===1?a[0]:null;
-  };
+  // Four-column settlements: "Debitkarten (80 %) 10.024,00 € 1,25 % 125,30 €".
+  // The first percentage is a share; the second is the card fee rate.
+  const debitRow=/\b(?:ec|girocard|debitkarten?|debit\s*karten?)\b/i.test(line);
+  const creditRow=/\b(?:kreditkarten?|credit\s*cards?)\b/i.test(line);
+  if((debitRow||creditRow)&&shares.length===2&&shares[0]<=100&&shares[1]<=100){
+   if(debitRow&&!creditRow){add("debitShare",shares[0],line);add("debitRate",shares[1],line);}
+   if(creditRow&&!debitRow)add("creditRate",shares[1],line);
+  }
   if(/(?:ec|girocard|debit)(?:\s*[-/]\s*(?:karte|card|umsatz|anteil))?\s*(?:[-/]\s*(?:ec|debit))?\s*(?:anteil|kartenmix|umsatzanteil)?/i.test(line)&&
      !/kredit|credit|premium|corporate|international/i.test(line)){
    if((/(?:anteil|kartenmix)/i.test(line)||/^(?:ec\s*\/\s*debit|ec|debit|girocard)\s+\d/i.test(line))&&shares.length===1&&!/(?:gebühr|entgelt|satz|rate|msc|disagio|fee)/i.test(line))add("debitShare",shares[0],line);
