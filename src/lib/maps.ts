@@ -1,3 +1,4 @@
+import { isExcludedChain } from "./business-search";
 export type Prospect = {
   id: string;
   name: string;
@@ -90,13 +91,19 @@ export async function findProspects(
     radius > 30
   )
     throw Error("Ungültiger Suchbereich.");
-  const selector =
-    category === "shops"
-      ? '["shop"]'
-      : category === "food"
-        ? '["amenity"~"cafe|restaurant|fast_food|bar|pub"]'
-        : '["shop"~"kiosk|tobacco|convenience|e-cigarette"]';
-  const q = `[out:json][timeout:40];nwr["name"]${selector}(around:${radius * 1000},${center.lat},${center.lng});out center tags 60;`;
+  const radiusMeters=Math.round(radius*1000);
+  const selectors:Record<string,string[]>={
+    all:['["shop"]','["amenity"~"^(restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|dentist|doctors|veterinary|fuel|car_wash|car_rental|marketplace|biergarten|nightclub)$"]','["craft"]','["office"]','["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]','["healthcare"]','["leisure"~"^(fitness_centre|sports_centre|bowling_alley)$"]'],
+    shops:['["shop"]'],food:['["amenity"~"^(cafe|restaurant|fast_food|bar|pub|biergarten)$"]'],
+    vape:['["shop"~"^(kiosk|tobacco|convenience|e-cigarette)$"]'],
+    services:['["craft"]','["shop"~"^(hairdresser|beauty|car_repair|laundry|dry_cleaning|copyshop|mobile_phone|computer)$"]','["amenity"~"^(car_wash|car_rental)$"]'],
+    health:['["shop"~"^(beauty|hairdresser|optician|medical_supply)$"]','["amenity"~"^(pharmacy|clinic|dentist|doctors|veterinary)$"]','["healthcare"]'],
+    lodging:['["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]'],
+    office:['["office"]']
+  };
+  const chosen=selectors[category]||selectors.all;
+  const union=chosen.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
+  const q=`[out:json][timeout:40];(${union});out center tags 350;`;
   const response = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
     body: new URLSearchParams({ data: q }),
@@ -122,6 +129,7 @@ export async function findProspects(
         tags?: Record<string, string>;
       }) => {
         const t = e.tags || {};
+        if(isExcludedChain(t))return null;
         return {
           id: `${e.type}/${e.id}`,
           name: t.name || "",
@@ -138,8 +146,6 @@ export async function findProspects(
         };
       },
     )
-    .filter(
-      (p: Prospect) =>
-        p.name && Number.isFinite(p.lat) && Number.isFinite(p.lng),
-    );
+    .filter((p:Prospect|null):p is Prospect=>!!p&&!!p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng))
+    .slice(0,60);
 }
