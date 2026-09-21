@@ -63,7 +63,7 @@ describe("web business-card scan mapping",()=>{
    "10117 Berlin Mitte","Telefon: +49 30 12345678","Mobil: +49 176 12345678",
    "E-Mail: kontakt@nexaro-solutions.de","Web: www.nexaro-solutions.de",
    "8Ror ©","LÖSUNGEN","FÜR EINE","STARKE","ZUR URN IT",
-   "MENSCHEN","IHDJEFEAN","ERFOLG"].join("\\n");
+   "MENSCHEN","IHDJEFEAN","ERFOLG"].join("\n");
   const read=readBusinessCardText(raw);
   expect(read.fields.company).toBe("neXaro Solutions");
   expect(read.fields.contact).toBe("Sebastian Pötschke");
