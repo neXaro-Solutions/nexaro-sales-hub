@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, ImageUp } from "lucide-react";
 import { recognizeStatement } from "../lib/ocr";
 import { readBusinessCardText } from "../lib/business-card";
+import { GeoCustomerCapture,type GeoCustomerDraft } from "./GeoCustomerCapture";
 import { useStore } from "../lib/store";
 import { Modal, AsyncForm, Field, value } from "./UI";
 import { today } from "../lib/calculations";
@@ -14,7 +15,7 @@ export function CustomerForm({
   division?: Division;
   onClose: () => void;
 }) {
-  const {save,refresh}=useStore();
+  const {data,save,refresh}=useStore();
   const [fields,setFields]=useState({
     company:customer?.company||"",contact:customer?.contact||"",
     email:customer?.email||"",phone:customer?.phone||"",
@@ -22,6 +23,8 @@ export function CustomerForm({
     city:customer?.city||"",industry:customer?.industry||"",
     notes:customer?.notes||""
   });
+  const [geo,setGeo]=useState<GeoCustomerDraft|null>(null);
+  const [geoWarning,setGeoWarning]=useState("");
   const [cardBusy,setCardBusy]=useState(false);
   const [cardProgress,setCardProgress]=useState(0);
   const [cardError,setCardError]=useState("");
@@ -30,7 +33,26 @@ export function CustomerForm({
   const [cardImported,setCardImported]=useState(false);
   const abortRef=useRef<AbortController|null>(null);
   useEffect(()=>()=>abortRef.current?.abort(),[]);
-  const update=(key:keyof typeof fields,next:string)=>setFields(old=>({...old,[key]:next}));
+  const update=(key:keyof typeof fields,next:string)=>{
+    if(["company","street","zip","city"].includes(key)&&geo)setGeo(null);
+    setFields(old=>({...old,[key]:next}));
+  };
+  function useGeoLocation(candidate:GeoCustomerDraft){
+    if(customer)return;
+    setGeo(candidate);
+    setFields(old=>({
+      ...old,company:candidate.company,street:candidate.street||old.street,
+      zip:candidate.zip||old.zip,city:candidate.city||old.city,
+      phone:candidate.phone||old.phone,email:candidate.email||old.email,
+      industry:candidate.industry||old.industry,
+      notes:[old.notes,candidate.website&&!old.notes.includes(candidate.website)?"Webseite laut öffentlichem Standortdatensatz: "+candidate.website:"",
+        "Herkunft der Standortdaten: "+candidate.provenance].filter(Boolean).join("\n")
+    }));
+    const dupe=data.customers.find(x=>x.company.trim().toLowerCase()===candidate.company.trim().toLowerCase()&&
+     (!candidate.street||x.street.trim().toLowerCase()===candidate.street.trim().toLowerCase())&&
+     (!candidate.city||x.city.trim().toLowerCase()===candidate.city.trim().toLowerCase()));
+    setGeoWarning(dupe?"Achtung: Dieser Betrieb existiert möglicherweise bereits in der zentralen Kundenakte. Vor dem Speichern auf Duplikate prüfen: "+dupe.company:"");
+  }
   async function importBusinessCard(file:File|undefined){
     if(!file)return;
     abortRef.current?.abort();
@@ -62,6 +84,9 @@ export function CustomerForm({
   return (
     <Modal title={customer?"Kundenakte bearbeiten":"Neuen Kunden zentral erfassen"} onClose={onClose}>
       <p className="hint">Eine gemeinsame Kundenakte für SumUp und Vape. Eine Bereichsauswahl ist nicht erforderlich.</p>
+      {!customer&&<GeoCustomerCapture onSelect={useGeoLocation}/>}
+      {geo&&<p className="notice" role="status">📍 <strong>{geo.company}</strong> aus öffentlichen Standortdaten übernommen. GPS-Koordinaten gehören zum ausgewählten Geschäft, nicht zu deinem eigenen Standort. Bitte Namen und Adresse kontrollieren.</p>}
+      {geoWarning&&<p className="error" role="alert">{geoWarning}</p>}
       <section className="business-card-import" aria-label="Visitenkarte auslesen">
         <h3>Visitenkarte fotografieren oder importieren</h3>
         <p className="hint">Im Browser auf Desktop und Mobilgerät verfügbar. Erkennbare Angaben werden in die Felder eingetragen, bestehende Kundendaten nicht überschrieben. Bitte vor dem Speichern prüfen.</p>
@@ -87,8 +112,8 @@ export function CustomerForm({
           email:value(f,"email"),phone:value(f,"phone"),
           street:value(f,"street"),zip:value(f,"zip"),
           city:value(f,"city"),industry:value(f,"industry"),
-          source:customer?.source||(cardImported?"Visitenkarte (OCR)":"Manuell"),
-          notes:value(f,"notes"),lat:customer?.lat??null,lng:customer?.lng??null,
+          source:customer?.source||geo?.source||(cardImported?"Visitenkarte (OCR)":"Manuell"),
+          notes:value(f,"notes"),lat:customer?.lat??geo?.lat??null,lng:customer?.lng??geo?.lng??null,
           ...(!customer?{interests:["sumup","vape"] as Division[]}:{})
         });
         await refresh();onClose();
