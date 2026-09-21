@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Camera, ImagePlus, Search, ShoppingBag, ArrowRight, X, ScanBarcode, PackageCheck, Tags, ShoppingCart, Minus, Plus, Trash2, FileText } from "lucide-react";
+import { Camera, ImagePlus, Search, ArrowRight, X, ScanBarcode, PackageCheck, Tags, ShoppingCart, Minus, Plus, Trash2, FileText } from "lucide-react";
 import { client } from "../lib/client";
 import { recognizeStatement } from "../lib/ocr";
 import { vapeSaleNet, vapeSaleGross } from "../lib/vapePricing";
@@ -219,7 +219,7 @@ export function VapeShop({ demo, onOffer, resetCart = 0 }: { demo: boolean; onOf
           <option value="">Alle Kategorien</option>{categories.map(x=><option key={x}>{x}</option>)}
         </select>
         <select aria-label="Marke" value={brand} onChange={e=>{setBrand(e.target.value);setPage(0);}}><option value="">Alle Marken</option>{brands.map(x=><option key={x}>{x}</option>)}</select>
-        <label className="vape-margin">Marge <strong>{margin}%</strong><input aria-label="Marge" type="range" min="15" max="25" step="1" value={margin} onChange={e=>setMargin(Number(e.target.value))}/></label>
+        <label className="vape-margin">Marge <strong>{margin}%</strong><input aria-label="Marge" type="range" min="15" max="25" step="1" value={margin} onChange={e=>{ const next=Number(e.target.value);setMargin(next);setCart(current=>current.map(item=>({...item,unitPrice:vapeSaleNet(item.product.ve_ek_net!,next)}))); }}/></label>
       </div>
       <p className="hint"><PackageCheck size={15} style={{verticalAlign:"middle"}} /> {shown.length} Artikel · Mindestabnahme 1 VE = 10 Verkaufspackungen · 25 % Standardmarge, bis 15 % anpassbar · VK netto.</p>
     </div>
