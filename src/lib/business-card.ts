@@ -1,51 +1,115 @@
-export type BusinessCardFields={
- company?:string;contact?:string;email?:string;phone?:string;street?:string;zip?:string;
- city?:string;website?:string;
+export type BusinessCardFields = {
+ company?:string; contact?:string; jobTitle?:string; email?:string;
+ phone?:string; mobile?:string; street?:string; zip?:string; city?:string; website?:string;
 };
-export function readBusinessCardText(raw:string):{fields:BusinessCardFields;warnings:string[]}{
- const lines=raw.split(/\r?\n/).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean).slice(0,50);
- const fields:BusinessCardFields={};const warnings:string[]=[];
- const emails=[...new Set((raw.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi)||[]).map(s=>s.toLowerCase()))];
- if(emails.length===1)fields.email=emails[0];
- if(emails.length>1)warnings.push("Mehrere E-Mail-Adressen: Bitte die geschäftliche E-Mail auswählen.");
- const label=(regex:RegExp)=>lines.map(line=>line.match(regex)?.[1]?.trim()).filter((x):x is string=>!!x);
- const company=label(/^(?:unternehmen|firma|firmenname|company|geschäft|händler)\s*[:：]\s*(.+)$/i);
- const contacts=label(/^(?:ansprechpartner(?:in)?|kontaktperson|contact|inhaber(?:in)?|geschäftsführer(?:in)?)\s*[:：]\s*(.+)$/i);
- if(company.length===1)fields.company=company[0];
- if(contacts.length===1)fields.contact=contacts[0];
- const streetLine=lines.find(line=>/^(?:(?:straße|str\.?|street)\s*[:：]\s*)?[\p{L}][\p{L}\p{M}\s.'-]{2,85}\s+\d{1,4}\s*[a-z]?$/iu.test(line));
- if(streetLine)fields.street=streetLine.replace(/^(?:straße|str\.?|street)\s*[:：]\s*/i,"");
- const zipLine=lines.map(line=>line.match(/(?:^|[,\s])(\d{5})\s+([\p{L}\p{M}][\p{L}\p{M}\s.'-]{1,65})$/u)).find(Boolean);
- if(zipLine){fields.zip=zipLine[1];fields.city=zipLine[2].trim();}
- if(!fields.zip){
-  const zip=label(/^(?:plz|postcode)\s*[:：]\s*(\d{5})$/i);
-  if(zip.length===1)fields.zip=zip[0];
+export type BusinessCardRead = {fields:BusinessCardFields; warnings:string[]; evidence:Partial<Record<keyof BusinessCardFields,string>>};
+const tidy=(s:string)=>s.replace(/^[\s:;|·–-]+|[\s:;|·–-]+$/g,"").replace(/\s+/g," ").trim();
+const folded=(s:string)=>s.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+const role=/\b(?:außendienst|aussendienst|vertrieb|sales|marketing|geschäftsführung|geschaeftsfuehrung|geschäftsführer|geschaeftsfuehrer|inhaber|customer\s+success|management|beratung|consultant|account\s+manager)\b/i;
+const slogan=/\b(?:ideen|bewegen|märkte|maerkte|lösungen\s+für|loesungen\s+fuer|starke\s+zukunft|menschen|erfolg|einfach|sicher|zahlungen)\b/i;
+const fieldLine=/^(?:telefon|tel\.?|fon|phone|mobil|mobile|handy|fax|e-?mail|mail|web|website|www|http|straße|str\.?|plz|postcode|ort|stadt|city|company|unternehmen|firma|ansprechpartner|contact)\s*[:：\s]/i;
+const companyWords=/\b(?:solutions?|solution|gmbh|ug|gbr|kg|ohg|ag|studio|agentur|café|cafe|restaurant|service|services|handel|shop|store|beratung|consulting|gastronomie|bäckerei|baeckerei)\b/i;
+const isAddress=(s:string)=>/^[\p{L}\p{M}][\p{L}\p{M}\s.'-]{2,85}\s+\d{1,4}\s*[a-z]?$/iu.test(s);
+const isPerson=(s:string)=>{
+ const words=s.split(/\s+/);
+ return words.length>=2&&words.length<=4&&!companyWords.test(s)&&!role.test(s)&&!slogan.test(s)&&
+  words.every(w=>/^[\p{Lu}][\p{L}\p{M}'-]+$/u.test(w))&&
+  !/\d|@|www\.|https?:/i.test(s);
+};
+const onlyDigits=(s:string)=>s.replace(/\D/g,"");
+function extractNumber(s:string):string|undefined{
+ const raw=s.replace(/^(?:telefon|tel\.?|fon|phone|mobil|mobile|handy|fax)\s*[:：-]?\s*/i,"");
+ const match=raw.match(/(?:\+\s*\d{1,3}|0\d{2,5})(?:[\s/().-]*\d){6,15}/);
+ if(!match)return undefined;
+ const n=tidy(match[0]).replace(/[\s\-./()]+$/,"");
+ const length=onlyDigits(n).length;
+ return length>=8&&length<=17?n:undefined;
+}
+export function readBusinessCardText(raw:string):BusinessCardRead{
+ // Dedupe repeated lines: the card OCR may scan the full image and its header separately.
+ const lines=[...new Set(raw.split(/\r?\n/).map(tidy).filter(Boolean))].slice(0,90);
+ const fields:BusinessCardFields={},warnings:string[]=[],evidence:BusinessCardRead["evidence"]={};
+ const put=(key:keyof BusinessCardFields,val:string|undefined,source:string)=>{
+  const value=val&&tidy(val);
+  if(value){fields[key]=value;evidence[key]=source;}
+ };
+ const labelled=(rx:RegExp)=>lines.map(line=>({line,value:line.match(rx)?.[1]})).filter((x):x is {line:string;value:string}=>!!x.value);
+ const companies=labelled(/^(?:unternehmen|firma|firmenname|company|geschäft|händler)\s*[:：]\s*(.+)$/i);
+ if(companies.length===1)put("company",companies[0].value,companies[0].line);
+ const persons=labelled(/^(?:ansprechpartner(?:in)?|kontaktperson|contact|inhaber(?:in)?|geschäftsführer(?:in)?)\s*[:：]\s*(.+)$/i);
+ if(persons.length===1)put("contact",persons[0].value,persons[0].line);
+ const emails=[...new Set([...raw.matchAll(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi)].map(m=>m[0].toLowerCase()))];
+ if(emails.length===1)put("email",emails[0],lines.find(line=>line.toLowerCase().includes(emails[0]))||emails[0]);
+ if(emails.length>1)warnings.push("Mehrere E-Mail-Adressen erkannt – geschäftliche Adresse bitte auswählen.");
+ const street=lines.find(isAddress);
+ if(street)put("street",street,street);
+ const zipRow=lines.map(line=>({line,match:line.match(/(?:^|[,\s])(\d{5})\s+([\p{L}\p{M}][\p{L}\p{M}\s.'-]{1,65})$/u)})).find(x=>x.match);
+ if(zipRow?.match){put("zip",zipRow.match[1],zipRow.line);put("city",zipRow.match[2],zipRow.line);}
+ if(!fields.zip){const z=labelled(/^(?:plz|postcode)\s*[:：]\s*(\d{5})$/i);if(z.length===1)put("zip",z[0].value,z[0].line);}
+ if(!fields.city){const city=labelled(/^(?:ort|stadt|city)\s*[:：]\s*(.+)$/i);if(city.length===1)put("city",city[0].value,city[0].line);}
+ // Recognize two numbers independently. An unlabeled number is not guessed to be mobile.
+ const phoneRx=/^(?:telefon|tel\.?|fon|phone)\s*[:：-]?\s*(.*)$/i;
+ const mobileRx=/^(?:mobil|mobile|handy)\s*[:：-]?\s*(.*)$/i;
+ for(let i=0;i<lines.length;i++){
+  const line=lines[i], tel=line.match(phoneRx),mob=line.match(mobileRx);
+  const next=lines[i+1]||"";
+  if(tel&&!fields.phone)put("phone",extractNumber(tel[1]||next),tel[1]?line:line+" → "+next);
+  if(mob&&!fields.mobile)put("mobile",extractNumber(mob[1]||next),mob[1]?line:line+" → "+next);
  }
- if(!fields.city){
-  const city=label(/^(?:ort|stadt|city)\s*[:：]\s*(.+)$/i);
-  if(city.length===1)fields.city=city[0];
+ if(!fields.phone){
+  const lone=lines.filter(l=>!/(?:fax|iban|ust[-\s]?id|steuer|rechnung)/i.test(l))
+   .map(l=>({line:l,val:extractNumber(l)})).filter(x=>!!x.val);
+  if(lone.length===1)put("phone",lone[0].val,lone[0].line);
  }
- const numbers=lines.filter(line=>/(?:\+\d{1,3}|0\d{2,5})[\d\s/().-]{5,}/.test(line)&&!/(?:iban|ust|steuer|fax|kundennummer|rechnung)/i.test(line));
- const labeled=numbers.filter(line=>/^(?:tel(?:efon)?|mobil|mobile|handy|phone|fon)\s*[:：]/i.test(line));
- const chosen=labeled.length===1?labeled[0]:numbers.length===1?numbers[0]:null;
- if(chosen){
-  const hit=chosen.replace(/^(?:tel(?:efon)?|mobil|mobile|handy|phone|fon)\s*[:：]\s*/i,"").match(/(?:\+\d{1,3}|0\d{2,5})[\d\s/().-]{5,}/);
-  if(hit)fields.phone=hit[0].trim();
- }
- const websites=[...new Set((raw.match(/(?:https?:\/\/)?(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s]*)?/gi)||[])
-  .filter(x=>!x.includes("@")&&!emails.some(e=>e.endsWith(x))&&!/^\d/.test(x)))];
- const sites=websites.filter(x=>/^(?:https?:\/\/|www\.)/i.test(x));
- if(sites.length===1)fields.website=sites[0];
- if(!fields.company){
-  // Only a clear header immediately above a valid street address qualifies.
-  const i=lines.indexOf(streetLine||"");
-  if(i>0){
-   const candidate=lines[i-1];
-   if(candidate.length>=3&&candidate.length<=120&&!/[@\d]{4}|https?:|www\./i.test(candidate))fields.company=candidate;
+ const siteRows=lines.filter(line=>/^(?:web(?:seite|site)?|homepage)\s*[:：]/i.test(line));
+ const urls=[...new Set([...raw.matchAll(/(?:https?:\/\/|www\.)[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s]*)?/gi)].map(m=>m[0]))]
+  .filter(s=>!emails.some(e=>e.endsWith(s)));
+ if(urls.length===1)put("website",urls[0],siteRows[0]||urls[0]);
+ // Job titles are NOT company names. The line before the address is typically
+ // the person's role. Prefer a company-specific headline above the person's name.
+ const roleRows=lines.filter(l=>role.test(l)&&!/^.+@/.test(l)&&l.length<=90);
+ if(roleRows.length===1)put("jobTitle",roleRows[0],roleRows[0]);
+ if(!fields.contact){
+  const streetIndex=street?lines.indexOf(street):lines.length;
+  const nameCandidates=lines.slice(0,Math.min(streetIndex,24)).filter(l=>isPerson(l)&&!fieldLine.test(l));
+  if(nameCandidates.length===1)put("contact",nameCandidates[0],nameCandidates[0]);
+  else if(nameCandidates.length>1){
+   const beforeRole=nameCandidates.filter(n=>roleRows.some(roleLine=>lines.indexOf(n)<lines.indexOf(roleLine)));
+   if(beforeRole.length===1)put("contact",beforeRole[0],beforeRole[0]);
   }
  }
- if(!fields.company)warnings.push("Unternehmen nicht eindeutig erkannt – bitte ergänzen.");
- if(!fields.contact)warnings.push("Ansprechpartner nicht eindeutig erkannt – bitte ergänzen.");
+ if(!fields.company){
+  const contactIndex=fields.contact?lines.findIndex(l=>l===fields.contact):lines.length;
+  const upper=lines.slice(0,Math.min(Math.max(contactIndex,0),20));
+  const candidates=upper.filter(l=>!role.test(l)&&!slogan.test(l)&&!fieldLine.test(l)&&!isAddress(l)&&
+    !/\d{4,}|@|www\.|https?:/i.test(l)&&l.length>=3&&l.length<=90&&!isPerson(l));
+  const emailStem=fields.email?.split("@")[1]?.split(".")[0]||"";
+  const siteStem=fields.website?.replace(/^https?:\/\//i,"").replace(/^www\./i,"").split(".")[0]||"";
+  const stems=[emailStem,siteStem].map(folded).filter(x=>x.length>=5);
+  let candidate=candidates.find(l=>stems.some(stem=>stem.includes(folded(l))||folded(l).includes(stem)));
+  if(!candidate)candidate=candidates.find(l=>companyWords.test(l));
+  if(!candidate&&candidates.length===1)candidate=candidates[0];
+  if(candidate)put("company",candidate,candidate);
+  // A logo may be returned as two adjacent OCR lines, e.g. "neXaro" / "Solutions".
+  if(!candidate)for(let i=0;i<upper.length-1;i++){
+   const joined=upper[i]+" "+upper[i+1];
+   if(!role.test(joined)&&!slogan.test(joined)&&!fieldLine.test(joined)&&
+      companyWords.test(joined)&&stems.some(stem=>stem.includes(folded(joined)))){
+    put("company",joined,upper[i]+" → "+upper[i+1]);break;
+   }
+  }
+ }
+ // Last-resort business letterhead: never promote a position or a person's name.
+ if(!fields.company&&street){
+  const i=lines.indexOf(street);
+  const candidate=lines[i-1]||"";
+  if(candidate.length>=3&&!role.test(candidate)&&!isPerson(candidate)&&!fieldLine.test(candidate)&&
+    !slogan.test(candidate)&&!/\d{4,}|@|www\./i.test(candidate))
+   put("company",candidate,candidate);
+ }
+ if(!fields.company)warnings.push("Unternehmen nicht sicher erkannt – bitte Firmenlogo oder Firmennamen prüfen. Berufsbezeichnungen werden nicht als Unternehmen übernommen.");
+ if(!fields.contact)warnings.push("Ansprechpartner nicht sicher erkannt – bitte ergänzen.");
+ if(!fields.phone&&!fields.mobile)warnings.push("Keine eindeutige Telefonnummer erkannt.");
  if(!fields.street||!fields.zip||!fields.city)warnings.push("Adresse nicht vollständig erkannt – bitte prüfen.");
- return {fields,warnings};
+ return {fields,warnings,evidence};
 }
