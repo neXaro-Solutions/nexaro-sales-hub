@@ -92,7 +92,7 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
     const catalog = new Map(products.filter(p => p.source_url.startsWith("pdf://nexaro-vape-20260921/"))
       .map(p => [p.source_url.split("/").pop(), p]));
     const selected = Array.from(files);
-    const invalid = selected.filter(f => !/^\\d{3}\\.jpe?g$/i.test(f.name) || f.size > 5_000_000);
+    const invalid = selected.filter(f => !new RegExp("^[0-9]{3}[.]jpe?g$", "i").test(f.name) || f.size > 5_000_000);
     if (invalid.length) { setError("Bitte ausschließlich die nummerierten JPG-Dateien 001.jpg bis 170.jpg aus dem PDF-Bildpaket auswählen (je max. 5 MB)."); return; }
     if (!window.confirm(selected.length + " PDF-Produktbilder den vorhandenen Katalogartikeln zuordnen? Bestehende Artikeltexte und Preise bleiben unverändert.")) return;
     setBusy(true);setError("");setNotice("");
