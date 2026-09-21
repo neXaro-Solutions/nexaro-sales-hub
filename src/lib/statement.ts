@@ -22,13 +22,10 @@ export function extractStatement(text: string) {
     costs: [],
   };
   const patterns: Record<StatementField, RegExp> = {
-    volume:
-      /(?:kartenumsatz(?:\s+vor\s+ort)?|umsatz\s+vor\s+ort|präsenzumsatz|gesamtumsatz|umsatz\s+gesamt|transaktionsvolumen)/i,
+    volume: /(?:karten[-\s]?umsatz(?:\s+(?:vor\s+ort|gesamt|im\s+monat))?|umsatz\s+(?:vor\s+ort|kartenzahlungen|gesamt)|präsenzumsatz|gesamtumsatz|transaktionsvolumen|kartenzahlungsvolumen)/i,
     onlineVolume: /(?:online[-\s]?umsatz|umsatz\s+online)/i,
-    transactions:
-      /(?:anzahl\s*(?:der\s*)?(?:transaktionen|zahlungen)|transaktionen\s*(?:gesamt|anzahl)?)/i,
-    costs:
-      /(?:gesamtkosten(?:\s+netto)?|gesamtgebühren(?:\s+netto)?|gebühren\s+gesamt(?:\s+netto)?|summe\s+(?:der\s+)?(?:entgelte|gebühren)(?:\s+netto)?|rechnungsbetrag\s+netto)/i,
+    transactions: /(?:anzahl\s*(?:der\s*)?(?:karten[-\s]?)?(?:transaktionen|zahlungen)|(?:karten[-\s]?)?transaktionen\s*(?:gesamt|anzahl)?)/i,
+    costs: /(?:gesamt[-\s]?(?:kosten|gebühren)(?:\s+netto)?|(?:kosten|gebühren)\s+(?:gesamt|pro\s+monat)(?:\s+netto)?|summe\s+(?:der\s+)?(?:entgelte|gebühren)(?:\s+netto)?|rechnungsbetrag\s+netto)/i,
   };
   for (const line of text
     .split(/\r?\n/)
