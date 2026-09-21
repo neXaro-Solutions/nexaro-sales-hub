@@ -1,0 +1,36 @@
+import {useMemo,useState} from "react";
+import {sumupSidekickHardware,sumupSidekickLicenses,sumupSidekickFees,emptySidekickSelection,sidekickHardwareNet,sidekickLicenseMonthly,sidekickScenario,type SumupSidekickSelection} from "../lib/sumup-sidekick";
+import "../sidekick-matrix.css";
+type Props={value:SumupSidekickSelection;onChange:(s:SumupSidekickSelection)=>void;monthlyVolume:number;oldTotal:number;};
+const icons:Record<string,string>={tap:"📲",lite:"💳",solo:"💳",terminal:"📱",drawer:"🗃️",mpop:"🧾",epson:"🖨️",scanner:"▥",lan:"🔌",soloprinter:"🧾",solodock:"⚡",pos:"🏪",posprinter:"🏪",posdual:"🏪",posbundle:"🏪",kdsdevice:"🍽️"};
+const money=(x:number)=>x.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+export function SidekickMatrix({value,onChange,monthlyVolume,oldTotal}:Props){
+ const [all,setAll]=useState(false);
+ const selected=useMemo(()=>sumupSidekickHardware.filter(p=>value.hardware.some(x=>x.id===p.id)),[value.hardware]);
+ const update=(patch:Partial<SumupSidekickSelection>)=>onChange({...value,...patch});
+ const qty=(id:string,count:number)=>update({hardware:[...value.hardware.filter(p=>p.id!==id),...(count>0?[{id,quantity:Math.min(20,count)}]:[])]});
+ const license=(id:string)=>{
+   const next=value.licenses.includes(id)?value.licenses.filter(x=>x!==id):[...value.licenses,id];
+   if(id==="posplus"&&next.includes("posplus"))next.splice(next.indexOf("posannual"),next.includes("posannual")?1:0);
+   if(id==="posannual"&&next.includes("posannual"))next.splice(next.indexOf("posplus"),next.includes("posplus")?1:0);
+   update({licenses:next});
+ };
+ const total=sidekickHardwareNet(value),monthly=sidekickLicenseMonthly(value),scenario=sidekickScenario(monthlyVolume,value);
+ const max=Math.max(oldTotal,scenario??0,1);
+ return <section className="nxside" aria-label="SumUp Sidekick Angebotsmatrix">
+  <header className="nxside-hero"><span className="eyebrow">NEXARO · SUMUP ANGEBOTSMATRIX</span><h3>Das passende Angebot zusammenstellen</h3><p>Dein mobiler Beratungsablauf mit offiziellen Referenzpreisen ohne Aktionen. Für SumUp und Vape bleibt die Kundenakte zentral.</p></header>
+  <h4>1 · Angebotstyp</h4><div className="nxside-grid">{([["carry","🧳","Carry & Sell","Hardware persönlich übergeben."],["order","📦","Order & Sell","Hardware und Abonnements zusammenstellen."]] as const).map(([id,icon,name,detail])=><button key={id} type="button" className={"nxside-choice "+(value.offerType===id?"selected":"")} onClick={()=>update({offerType:id})}><span className="nxside-icon">{icon}</span><strong>{name}</strong><small>{detail}</small></button>)}</div>
+  <h4>2 · Hardware & Zubehör</h4><p className="hint">Produktillustrationen sind schematisch. Bundle-Komponenten nicht zusätzlich doppelt hinzufügen.</p>
+  <div className="nxside-grid">{sumupSidekickHardware.filter(p=>all||p.group!=="accessory").map(p=>{const num=value.hardware.find(x=>x.id===p.id)?.quantity||0;return <article className={"nxside-choice "+(num?"selected":"")} key={p.id}><div className="nxside-picture"><img src={"./product-illustrations/"+p.illustration+".svg"} alt={"Schematische Illustration: "+p.name} loading="lazy"/><span aria-hidden="true">{icons[p.id]||"📦"}</span></div><strong>{p.name}</strong><small>{p.description}</small><b>{money(p.price)} netto</b><div className="nxside-actions"><button type="button" className="secondary" onClick={()=>qty(p.id,num?0:1)}>{num?"Entfernen":"Hinzufügen"}</button>{num>0&&<span><button type="button" onClick={()=>qty(p.id,num-1)} aria-label={p.name+" reduzieren"}>−</button>{num}<button type="button" onClick={()=>qty(p.id,num+1)} aria-label={p.name+" erhöhen"}>+</button></span>}</div></article>})}</div>
+  <button className="secondary" type="button" onClick={()=>setAll(!all)}>{all?"Weniger anzeigen":"Alle Zubehörartikel anzeigen"}</button>
+  <h4>3 · Lizenzen</h4><div className="nxside-grid">{sumupSidekickLicenses.map(p=><button type="button" className={"nxside-choice "+(value.licenses.includes(p.id)?"selected":"")} onClick={()=>license(p.id)} key={p.id}><span className="nxside-icon">🧩</span><strong>{p.name}</strong><small>{p.description}</small><b>{money(p.price)} / {p.period==="annual"?"Jahr":"Monat"}</b><span>{value.licenses.includes(p.id)?"✓ Ausgewählt":"+ Auswählen"}</span></button>)}</div>
+  <h4>4 · Konditionen & Auszahlungen</h4><p className="hint">Sidekick-Fee-Campaigns sind keine allgemein gültigen Standardtarife. Bitte für den konkreten Händler freigeben lassen.</p>
+  <div className="nxside-grid">{sumupSidekickFees.map((p,i)=><button key={i} type="button" className={"nxside-choice "+(value.campaignIndex===i?"selected":"")} onClick={()=>update({campaignIndex:i,campaignAuthorized:false})}><span className="nxside-icon">%</span><strong>{p.domestic.toFixed(2).replace(".",",")} % Domestic</strong><small>Internationale / Premium- / Firmenkarten: {p.other.toFixed(2).replace(".",",")} %, Karte nicht anwesend: 2,50 %</small></button>)}</div>
+  <label className="nxside-field">Domestic-Anteil am Vor-Ort-Umsatz (%)<input type="number" min="0" max="100" step="1" placeholder="Noch nicht bekannt" value={value.domesticShare??""} onChange={e=>update({domesticShare:e.target.value===""?null:Number(e.target.value)})}/></label>
+  <label className="nxside-field">Karte nicht anwesend / Online-Anteil (%)<input type="number" min="0" max="100" value={value.onlineShare} onChange={e=>update({onlineShare:Number(e.target.value)})}/></label>
+  <label className="nxside-field">Auszahlungsfrequenz<select value={value.payout} onChange={e=>update({payout:e.target.value as SumupSidekickSelection["payout"]})}><option value="three">SumUp Geschäftskonto · alle 3 Stunden (Sidekick)</option><option value="daily">SumUp Geschäftskonto · täglich</option><option value="external">Externes Konto · 3–5 Tage (Sidekick)</option></select></label>
+  <label className="nxside-field">Hardware-Nachlass: {value.discount} %<input type="range" min="0" max="25" step="1" value={value.discount} onChange={e=>update({discount:Number(e.target.value)})}/></label>
+  <label className="nxside-approve"><input type="checkbox" checked={value.campaignAuthorized} disabled={value.campaignIndex===null} onChange={e=>update({campaignAuthorized:e.target.checked})}/> Ich habe die individuelle Kondition für diesen Händler im SumUp Sidekick geprüft und bestätigt.</label>
+  <div className="nxside-summary"><h4>🧾 Angebotsübersicht</h4><p>Hardware einmalig netto: <b>{money(total)}</b></p><p>Software / Monat (Jahreslizenzen rechnerisch umgelegt): <b>{money(monthly)}</b></p>{scenario!==null&&<><p>Ist-Kosten: {money(oldTotal)} · SumUp-Modell inkl. Lizenzen: {money(scenario)}</p><div className="nxside-bars"><div><span>Ist</span><i style={{width:(oldTotal/max*100)+"%"}}/></div><div><span>SumUp</span><i style={{width:(scenario/max*100)+"%"}}/></div></div></>}<small>Keine automatische Übermittlung an SumUp. Hardware, Preise, Kartentypen, steuerliche Behandlung und individuelle Freigabe vor verbindlichem Versand prüfen.</small></div>
+ </section>;
+}
