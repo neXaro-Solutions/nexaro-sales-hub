@@ -33,7 +33,7 @@ describe("statement photo field extraction",()=>{
    "TESTPAY GmbH","Musterstraße 10 | 10115 Berlin"
   ].join("\n");
   const result=analyzeStatementText(raw);
-  expect(result.details.provider).toBe("Testpay");
+  expect(result.details.provider).toBe("TESTPAY");
   expect(result.details.merchant).toBe("Stadtcafé Musterblick");
   expect(result.details.debitShare).toBe(80);
   expect(result.details.debitRate).toBe(1.25);
@@ -48,7 +48,7 @@ describe("statement photo field extraction",()=>{
 
  it("recognizes the provider, merchant and both card group shares/fees",()=>{
   const result=analyzeStatementText(example);
-  expect(result.details.provider).toBe("Testpay");
+  expect(result.details.provider).toBe("TESTPAY");
   expect(result.details.merchant).toBe("Cafe Muster Berlin GmbH");
   expect(result.details.debitShare).toBe(80);
   expect(result.details.debitRate).toBe(1.25);
