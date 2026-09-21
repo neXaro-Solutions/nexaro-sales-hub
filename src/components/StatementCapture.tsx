@@ -22,6 +22,8 @@ export type StatementReview = {
   details?: StatementDetails;
   evidence?: Record<string,string>;
   warnings?: string[];
+  /** Transient diagnostic text; never part of the saved customer record. */
+  ocrText?: string;
 };
 export function StatementCapture({
   onClose,
@@ -142,6 +144,7 @@ export function StatementCapture({
                     details:d,
                     evidence:analyzed.evidence,
                     warnings:analyzed.warnings,
+                    ocrText:result.text,
                     eligibleVolume:d.eligibleVolume,
                     otherVolume:d.otherVolume,
                   });
