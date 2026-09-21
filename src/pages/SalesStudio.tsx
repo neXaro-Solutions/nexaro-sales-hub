@@ -294,7 +294,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
             </section>
             <section className="field-compare-new"><span className="eyebrow">ANGEBOT SUMUP</span><h3>{packageName.title}</h3>
               <strong>{money(estimate.data.sumupTotal)}</strong><small>Zahlungen und gewählte Software / Monat</small>
-              <p>Debit {estimate.data.sumupDebit}% · Kredit/Premium modellhaft {estimate.data.sumupCredit}%</p>
+              <p>{sidekick.campaignAuthorized&&sidekick.campaignIndex!==null&&sidekick.domesticShare!==null?"Individuelle Kondition bestätigt – Domestic / andere Karten getrennt laut Matrix":"Öffentlich modelliert: Debit "+estimate.data.sumupDebit+"% · Kredit/Premium "+estimate.data.sumupCredit+"%"}</p>
               <p>Zahlungstarif: {packageName.payment} · Software: {packageName.software.join(", ")||"keine"}</p><p>Tarif und Software zusammen: {money(estimate.data.sumupBase)} / Monat</p>
               <p>Regulärer Hardwarepreis separat</p>
             </section>
@@ -314,7 +314,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
               <option value="plus">Zahlungen Plus · 19 € monatlich (Modell)</option>
             </select>
           </Field>
-          <Field label="Passende SumUp-Hardware">
+          {sidekick.hardware.length===0&&<>          <Field label="Passende SumUp-Hardware">
             <select value={selectedHardware.id} onChange={e=>setHardwareId(e.target.value as HardwareId)}>
               {allowedHardware.map(h=><option key={h.id} value={h.id}>{h.name} · {h.price===null?"Preis prüfen":money(h.price)+" netto"}</option>)}
             </select>
@@ -328,9 +328,9 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
               value={hardwareDiscount} onChange={e=>setHardwareDiscount(Number(e.target.value))}/>
           </Field>
           <Field label="Hardware-Nachlass · netto"><strong className="field-computed">{money(hardwarePrice.discountTotal)}</strong></Field>
-          <Field label="Hardware-Angebotspreis · netto"><strong className="field-computed">{money(hardwarePrice.offerNet)}</strong></Field>
+          <Field label="Hardware-Angebotspreis · netto"><strong className="field-computed">{money(hardwarePrice.offerNet)}</strong></Field></>}
         </div>
-        <p className="hint">Regulärer Hardwarepreis als Basis; dein individuell gewährter Nachlass beträgt standardmäßig 0 % und ist bis 25 % einstellbar. Monatliche Zahlgebühren bleiben separat.</p>
+        {sidekick.hardware.length===0?<p className="hint">Ohne Geräteauswahl in der Matrix gilt der reguläre Hardwarevorschlag. Individueller Nachlass bis 25 %.</p>:<p className="hint">Die verbindliche Geräteauswahl und der Hardware-Rabatt befinden sich oben in der Sidekick-Matrix. Hier werden keine zusätzlichen Geräte berechnet.</p>}
         {standard&&plus&&<div className="mini-stats">
           <div><span>SumUp Standard / Monat</span><b>{money(standard.sumupTotal)}</b></div>
           <div><span>SumUp Zahlungen Plus / Monat</span><b>{money(plus.sumupTotal)}</b></div>
