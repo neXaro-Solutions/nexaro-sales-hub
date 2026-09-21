@@ -11,7 +11,7 @@ export const businessCategories = [
 
 const chainNames = [
  "kaufland","lidl","aldi","rewe","edeka","netto marken discount","penny","norma","real","tegut",
- "mcdonalds","burger king","kfc","subway","dominos","pizza hut","nordsee","backwerk",
+ "mcdonalds","mc donald s","mc donalds","burger king","kfc","subway","dominos","pizza hut","nordsee","backwerk",
  "starbucks","coffee fellows","tchibo","deutsche post","dhl","hermes paketshop",
  "rossmann","dm drogerie","müller drogerie","douglas","fielmann","apollo optik",
  "deichmann","h&m","zara","c&a","primark","new yorker","tk maxx","takko","kik",
@@ -30,7 +30,7 @@ const chainKeys = chainNames.map(clean);
 const franchises = /^(?:yes|only|brand|chain)$/i;
 /** Known chain/branch filter; conservatively avoid filtering independent shops on vague words. */
 export function isExcludedChain(tags:Record<string,string>):boolean{
- if(franchises.test(tags.franchise||"")||franchises.test(tags["brand:wikidata"]?"brand":""))return true;
+ if(franchises.test(tags.franchise||"")||/^(?:yes|true|1)$/i.test(tags["brand:franchise"]||""))return true;
  const fields=[tags.brand,tags["brand:name"],tags.operator,tags.name,tags["name:de"],tags["official_name"]].filter(Boolean);
  const known=fields.some(field=>{
   const v=clean(field);
