@@ -1,6 +1,6 @@
 import {describe,it,expect} from "vitest";
 import {recommendSumup,compareSelectedSumup,selectedPackageName,deriveDomesticShare,deriveCampaignPrefill} from "../src/lib/sumup-needs";
-import {emptySidekickSelection,chooseSidekickLicense,sidekickLicenseMonthly,sidekickOfferLines,normalizeSidekickSelection} from "../src/lib/sumup-sidekick";
+import {emptySidekickSelection,chooseSidekickLicense,sidekickLicenseMonthly,sidekickOfferLines,normalizeSidekickSelection,withoutFixedTerm} from "../src/lib/sumup-sidekick";
 import type {ExistingProviderInput} from "../src/lib/fieldSalesComparison";
 const input:ExistingProviderInput={volume:6000,transactions:150,debitShare:80,debitRate:.99,creditRate:2.59,serviceFee:0,terminalFee:0,perTransaction:0,confirmedTotal:118.45};
 describe("SumUp needs-based package and honest cost comparison",()=>{
@@ -33,6 +33,21 @@ describe("SumUp needs-based package and honest cost comparison",()=>{
   const c=compareSelectedSumup(input,s);
   expect(c.sumupTotal).toBeCloseTo(6000*.0139+49,2);
   expect(c.monthlyDifference).toBeCloseTo(118.45-c.sumupTotal,2);
+ });
+ it("no fixed-term removes Plus and KDS, campaign fee and monthly base, even for a previously saved package",()=>{
+   const previous={...emptySidekickSelection,licenses:["posplus","kds"],campaignIndex:5,campaignAuthorized:true,domesticShare:100,hardware:[{id:"terminal",quantity:1}]};
+   const selected=withoutFixedTerm(previous);
+   expect(selected.licenses).toEqual([]);
+   expect(selected.hardware).toEqual([{id:"terminal",quantity:1}]);
+   expect(selected.campaignIndex).toBeNull();
+   expect(selected.campaignAuthorized).toBe(false);
+   const costs=compareSelectedSumup(input,selected);
+   expect(costs.sumupBase).toBe(0);
+   expect(costs.sumupDebit).toBe(1.39);
+   expect(costs.sumupCredit).toBe(1.39);
+   expect(costs.sumupTotal).toBeCloseTo(6000*.0139,2);
+   expect(selectedPackageName(selected).title).toBe("Umsatzbasiertes Zahlen");
+   expect(sidekickOfferLines(selected).every(line=>line.name.includes("Hardware"))).toBe(true);
  });
  it("never combines Kassensystem Plus and Zahlungen Plus",()=>{
   const invalid={...emptySidekickSelection,licenses:["posplus","payments"]};
