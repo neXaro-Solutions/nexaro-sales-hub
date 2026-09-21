@@ -114,10 +114,14 @@ export function VapeReviewCatalog({ demo }: { demo: boolean }) {
         completed++;
         setNotice(completed + " von " + selected.length + " Produktbildern gespeichert …");
       }
+      await load();
       if (failed.length) setError(failed.length + " Bild(er) nicht übernommen: " + failed.slice(0,8).join("; ") +
         (failed.length>8 ? " …" : "") + ". Erneutes Auswählen der fehlenden Dateien ist möglich.");
       setNotice(completed + " PDF-Produktbilder erfolgreich zugeordnet.");
-    } finally {await load();setBusy(false);}
+    } catch (e) {
+      setError("Bildimport unterbrochen: " + (e instanceof Error ? e.message : "Unbekannter Fehler") +
+        ". Bereits übernommene Bilder bleiben erhalten.");
+    } finally {setBusy(false);}
   }
 
   async function readImport(file: File | undefined) {
