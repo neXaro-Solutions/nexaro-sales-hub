@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { DashboardWeather } from "../components/DashboardWeather";
+import { DashboardIllustration } from "../components/PageVisual";
 import { useStore } from "../lib/store";
 import { today, money, dateLabel, dayKey } from "../lib/calculations";
 import { Card, Metric, Empty, DivisionBadge, Badge } from "../components/UI";
@@ -97,25 +98,14 @@ export function Dashboard({
             <MapPin size={16} /> Tagesroute planen
           </button>
         </div>
-        <div className="welcome-art" aria-hidden="true">
-          <div className="x-shape">X</div>
-          <span>
-            PEOPLE
-            <br />
-            PAYMENT
-            <br />
-            PRODUCTS
-            <br />
-            <b>PROGRESS.</b>
-          </span>
-        </div>
+        <DashboardIllustration />
       </div>
       <Card title="Dein zentrales neXaro CRM" eyebrow="VERTRIEB · DOKUMENTE · WISSEN">
         <p>SumUp-Vertriebsstudio, Händlerverwaltung, B2B-Katalog, Angebote, Rechnungen und Wissensdatenbank in einem System. Stand der Integration: 20.09.2026.</p>
         <div className="button-row" style={{ flexWrap: "wrap" }}>
-          <button className="primary" onClick={() => navigate("sumup")}>SumUp-Beratung öffnen <ArrowRight size={15} /></button>
-          <button className="secondary" onClick={() => navigate("vape")}>Vape-B2B-Katalog <ArrowRight size={15} /></button>
-          <button className="secondary" onClick={() => navigate("offers")}>Angebote & Rechnungen <ArrowRight size={15} /></button>
+          <button className="primary" onClick={() => navigate("sumup")}><Target size={16} /> SumUp-Beratung öffnen <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("vape")}><Inbox size={16} /> Vape-B2B-Katalog <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("offers")}><Target size={16} /> Angebote & Rechnungen <ArrowRight size={15} /></button>
           <button className="secondary" onClick={() => navigate("knowledge")}>Wissensdatenbank <ArrowRight size={15} /></button>
           <a className="secondary" href="./testabrechnung.html" target="_blank" rel="noopener noreferrer">Testabrechnung drucken</a>
         </div>
@@ -254,7 +244,7 @@ export function Dashboard({
           eyebrow="ZWEI BEREICHE. EINE ZENTRALE."
         >
           <button className="division-card" onClick={() => navigate("sumup")}>
-            <span className="division-icon">S</span>
+            <span className="division-icon"><Target size={23} /></span>
             <div className="grow">
               <strong>SumUp Vertrieb</strong>
               <small>
@@ -268,7 +258,7 @@ export function Dashboard({
             <ArrowRight size={19} />
           </button>
           <button className="division-card" onClick={() => navigate("vape")}>
-            <span className="division-icon vape-icon">V</span>
+            <span className="division-icon vape-icon"><Inbox size={23} /></span>
             <div className="grow">
               <strong>Händlerverwaltung</strong>
               <small>{dealerCount} Kontakte · Termine & Dokumente</small>
