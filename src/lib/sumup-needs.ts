@@ -23,7 +23,7 @@ export function recommendSumup(input:ExistingProviderInput,goals:CustomerGoal[],
  const standard=compareFieldSales(input,"standard"),plus=compareFieldSales(input,"plus");
  const paymentPlan:SumupPlan=plus.sumupTotal<standard.sumupTotal?"plus":"standard";
  if(paymentPlan==="plus")licenses.push("payments");
- const payout=has("payout",/schnell|sofort|3 stunden|auszahlung/)?"three":"daily";
+ const payout:SumupSidekickSelection["payout"]=has("payout",/schnell|sofort|3 stunden|auszahlung/)?"three":"daily";
  const reasons=[requiresPos?"Kassen-, Artikel- oder Zusatzgeräte-Anforderungen sprechen für Kassensystem Plus.":receipt?"Papierbelege benötigen eine Drucklösung.":mobile?"Mobilität steht im Vordergrund.":"Schlanke Zahlungsannahme ohne zusätzliche Kassensoftware."];
  if(beauty)reasons.push("Beauty Plus wegen des angegebenen Salonbedarfs.");
  if(kitchen)reasons.push("KDS zur Anzeige und Verwaltung von Küchenbestellungen.");
