@@ -86,12 +86,20 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
   const emailStem=fields.email?.split("@")[1]?.split(".")[0]||"";
   const siteStem=fields.website?.replace(/^https?:\/\//i,"").replace(/^www\./i,"").split(".")[0]||"";
   const stems=[emailStem,siteStem].map(folded).filter(x=>x.length>=5);
-  let candidate=candidates.find(l=>stems.some(stem=>stem.includes(folded(l))||folded(l).includes(stem)));
-  if(!candidate)candidate=candidates.find(l=>companyWords.test(l));
-  if(!candidate&&candidates.length===1)candidate=candidates[0];
+  // First stitch an OCR-split wordmark before accepting a partial brand token.
+  for(let i=0;i<upper.length-1;i++){
+   const joined=upper[i]+" "+upper[i+1];
+   if(!role.test(joined)&&!slogan.test(joined)&&!fieldLine.test(joined)&&
+      companyWords.test(joined)&&stems.some(stem=>folded(joined)===stem)){
+    put("company",joined,upper[i]+" → "+upper[i+1]);break;
+   }
+  }
+  let candidate=fields.company?undefined:candidates.find(l=>stems.some(stem=>stem===folded(l)||stem.includes(folded(l))||folded(l).includes(stem)));
+  if(!candidate&&!fields.company)candidate=candidates.find(l=>companyWords.test(l));
+  if(!candidate&&!fields.company&&candidates.length===1)candidate=candidates[0];
   if(candidate)put("company",candidate,candidate);
   // A logo may be returned as two adjacent OCR lines, e.g. "neXaro" / "Solutions".
-  if(!candidate)for(let i=0;i<upper.length-1;i++){
+  if(!candidate&&!fields.company)for(let i=0;i<upper.length-1;i++){
    const joined=upper[i]+" "+upper[i+1];
    if(!role.test(joined)&&!slogan.test(joined)&&!fieldLine.test(joined)&&
       companyWords.test(joined)&&stems.some(stem=>stem.includes(folded(joined)))){
