@@ -2892,3 +2892,26 @@ progress {
  .route-prospect>button{min-height:46px;width:100%}
  .route-map-header button{width:100%}
 }
+
+
+/* Unified SumUp Vorteil: cost disadvantage is red, selected functional value is visibly separate. */
+.sumup-advantage{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:16px 0;padding:18px;border:1.5px solid #a4c77c;border-radius:15px;background:#efffdb;color:#223628;min-width:0}
+.sumup-advantage-label{font-size:16px;font-weight:800;letter-spacing:.015em}
+.sumup-advantage-value{font-size:clamp(28px,5vw,41px);line-height:1.16;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;color:#256519}
+.sumup-advantage-value>span{font-size:14px;font-weight:600}
+.sumup-advantage>small{font-size:12px;line-height:1.5;color:#4a5b4b}
+.sumup-advantage-negative{border:2px solid #d84d4d;background:#fff0f0;color:#7d2424}
+.sumup-advantage-negative .sumup-advantage-value{color:#b4232b}
+.sumup-advantage-negative>small{color:#873b3b}
+.sumup-advantage-even{border-color:#b6beb5;background:#f7faf5;color:#374638}
+.sumup-advantage-even .sumup-advantage-value{color:#374638}
+.sumup-advantage-value-panel{width:100%;margin-top:7px;padding:15px;border:1.5px solid #a8df53;border-left:5px solid #ff7829;border-radius:12px;background:#f0ffdc;color:#254326}
+.sumup-advantage-value-panel>b{display:block;font-size:16px;line-height:1.4;color:#2f6819}
+.sumup-advantage-value-panel ul{margin:10px 0;padding-left:20px;display:grid;gap:7px}
+.sumup-advantage-value-panel li{font-size:13px;line-height:1.4;color:#263f2b}
+.sumup-advantage-value-panel li::marker{color:#f47728}
+.sumup-advantage-value-panel p{margin:10px 0;font-size:13px;color:#334836}
+.sumup-advantage-value-panel small{display:block;margin-top:10px;font-size:11px;line-height:1.45;color:#50604e}
+.nx-document .sumup-advantage{break-inside:avoid}
+@media(max-width:650px){.sumup-advantage{padding:14px}.sumup-advantage-value-panel{padding:12px}.sumup-advantage-value-panel li{font-size:12px}}
+@media print{.sumup-advantage,.sumup-advantage-negative,.sumup-advantage-value-panel{print-color-adjust:exact;-webkit-print-color-adjust:exact}.sumup-advantage{break-inside:avoid}}
