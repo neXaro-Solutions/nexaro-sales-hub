@@ -209,7 +209,7 @@ export function VapeShop({ demo, onOffer, resetCart = 0 }: { demo: boolean; onOf
       {matches.length>0&&<div className="vape-matches"><strong>Mögliche Treffer – bitte Artikel prüfen</strong>
         {matches.map(m=><button className="vape-match" key={m.item.id} onClick={()=>open(m.item)}>
           <ScanBarcode size={17}/><span><b>{m.item.name}</b><small>{m.reason} · {m.score}% Text-/Code-Übereinstimmung · {m.item.ve_approved||m.item.single_approved?"verkaufsfertig":"noch nicht freigegeben"}</small></span><ArrowRight size={16}/>
-        </button><button type="button" className="nx-vape-add" disabled={demo||!p.ve_approved||!p.ve_ek_net||p.pieces_per_ve!==10} onClick={()=>addToCart(p)}><ShoppingCart size={16}/> In den Warenkorb <Plus size={15}/></button></article>)}</div>}
+        </button>)}</div>}
     </div>
     <div className="card">
       <div className="vape-shop-filters">
