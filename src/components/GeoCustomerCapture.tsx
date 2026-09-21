@@ -27,7 +27,7 @@ export function GeoCustomerCapture({onSelect}:{
  const [error,setError]=useState("");
  const [status,setStatus]=useState("");
  const sequence=useRef(0);
- async function load(position:{lat:number;lng:number},accuracy?:number){
+ async function load(position:{lat:number;lng:number}){
   const n=++sequence.current;
   setCenter(position);setResults([]);setBusy(true);setError("");
   setStatus("Suche nach Geschäften in der Umgebung …");
@@ -46,7 +46,7 @@ export function GeoCustomerCapture({onSelect}:{
   setBusy(true);setError("");setStatus("GPS wird ermittelt …");
   try{
    const pos=await locate();setGps(pos);
-   await load({lat:pos.lat,lng:pos.lng},pos.accuracy);
+   await load({lat:pos.lat,lng:pos.lng});
   }catch(e){setError((e as Error).message);setBusy(false);}
  }
  async function addressLookup(){
@@ -61,6 +61,7 @@ export function GeoCustomerCapture({onSelect}:{
   [p.name,p.street,p.zip,p.city].filter(Boolean).join(" ")||p.lat+","+p.lng
  );
  const registryUrl="https://www.handelsregister.de/rp_web/normalesuche/welcome.xhtml";
+ const webUrl=(value:string)=>{try{const u=new URL(/^https?:\/\//i.test(value)?value:"https://"+value);return ["https:","http:"].includes(u.protocol)?u.href:null;}catch{return null;}};
  function choose(p:Prospect){
   onSelect({
    company:p.name,street:p.street,zip:p.zip,city:p.city,
@@ -98,7 +99,8 @@ export function GeoCustomerCapture({onSelect}:{
    <h4>Geschäft am Standort auswählen</h4>
    {results.map(p=><div className="geo-candidate" key={p.id}>
     <div><strong>{p.name}</strong><small>{[p.street,p.zip,p.city].filter(Boolean).join(" · ")||"Adresse nicht vollständig hinterlegt"}</small>
-     <small>Ca. {Math.round(kilometers(p,center!)*1000)} m vom Suchpunkt · OpenStreetMap</small></div>
+     <small>Ca. {Math.round(kilometers(p,center!)*1000)} m vom Suchpunkt · OpenStreetMap</small>
+     {(p.phone||p.email||p.website)&&<small>{[p.phone,p.email].filter(Boolean).join(" · ")}{p.website&&webUrl(p.website)&&<> · <a href={webUrl(p.website)||undefined} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}>Webseite ↗</a></>}</small>}</div>
     <div className="button-row" style={{flexWrap:"wrap"}}>
      <button type="button" className="primary" onClick={()=>choose(p)}><MapPin size={14}/> Daten übernehmen</button>
      <a href={googleUrl(p)} className="secondary" target="_blank" rel="noopener noreferrer">Google Maps prüfen ↗</a>
