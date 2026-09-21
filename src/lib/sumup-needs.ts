@@ -29,6 +29,17 @@ export function recommendSumup(input:ExistingProviderInput,goals:CustomerGoal[],
  if(!goals.length&&!future.trim())reasons.push("Noch keine Zukunftswünsche erfasst; Empfehlung nur vorläufig.");
  return {hardwareId,licenses,paymentPlan,payout,reasons};
 }
+export type DomesticShareEvidence={debitShare:number;cardMixConfirmed:boolean;eligibleVolume?:number;otherVolume?:number};
+export function deriveDomesticShare(evidence:DomesticShareEvidence):{value:number;source:"documented"|"estimate";explanation:string}|null{
+ const eligible=evidence.eligibleVolume,other=evidence.otherVolume;
+ if(eligible!==undefined&&other!==undefined&&Number.isFinite(eligible)&&Number.isFinite(other)&&eligible>=0&&other>=0&&eligible+other>0){
+  return {value:Math.round(eligible/(eligible+other)*1000)/10,source:"documented",explanation:"Aus auf der Abrechnung ausdrücklich getrennt ausgewiesenen geeigneten und sonstigen Kartenzahlungen berechnet."};
+ }
+ if(evidence.cardMixConfirmed&&Number.isFinite(evidence.debitShare)&&evidence.debitShare>=0&&evidence.debitShare<=100){
+  return {value:evidence.debitShare,source:"estimate",explanation:"Orientierungswert aus deinem bestätigten EC-/Debit-Anteil. Debit ist nicht dasselbe wie Domestic; bitte anhand der tatsächlichen Kartenherkunft und Kartentypen kontrollieren."};
+ }
+ return null;
+}
 export function selectedSumupPaymentPlan(selection:SumupSidekickSelection):SumupPlan{
  return normalizeSidekickSelection(selection).licenses.includes("payments")?"plus":"standard";
 }
