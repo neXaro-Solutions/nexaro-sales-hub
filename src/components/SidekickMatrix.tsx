@@ -1,18 +1,17 @@
-import {useMemo,useState} from "react";
-import {sumupSidekickHardware,sumupSidekickLicenses,sumupSidekickFees,emptySidekickSelection,sidekickHardwareNet,sidekickLicenseMonthly,sidekickScenario,type SumupSidekickSelection} from "../lib/sumup-sidekick";
+import {useState} from "react";
+import {sumupSidekickHardware,sumupSidekickLicenses,sumupSidekickFees,sidekickHardwareNet,sidekickLicenseMonthly,sidekickScenario,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 import "../sidekick-matrix.css";
 type Props={value:SumupSidekickSelection;onChange:(s:SumupSidekickSelection)=>void;monthlyVolume:number;oldTotal:number;};
 const icons:Record<string,string>={tap:"📲",lite:"💳",solo:"💳",terminal:"📱",drawer:"🗃️",mpop:"🧾",epson:"🖨️",scanner:"▥",lan:"🔌",soloprinter:"🧾",solodock:"⚡",pos:"🏪",posprinter:"🏪",posdual:"🏪",posbundle:"🏪",kdsdevice:"🍽️"};
 const money=(x:number)=>x.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
 export function SidekickMatrix({value,onChange,monthlyVolume,oldTotal}:Props){
  const [all,setAll]=useState(false);
- const selected=useMemo(()=>sumupSidekickHardware.filter(p=>value.hardware.some(x=>x.id===p.id)),[value.hardware]);
  const update=(patch:Partial<SumupSidekickSelection>)=>onChange({...value,...patch});
  const qty=(id:string,count:number)=>update({hardware:[...value.hardware.filter(p=>p.id!==id),...(count>0?[{id,quantity:Math.min(20,count)}]:[])]});
  const license=(id:string)=>{
    const next=value.licenses.includes(id)?value.licenses.filter(x=>x!==id):[...value.licenses,id];
-   if(id==="posplus"&&next.includes("posplus"))next.splice(next.indexOf("posannual"),next.includes("posannual")?1:0);
-   if(id==="posannual"&&next.includes("posannual"))next.splice(next.indexOf("posplus"),next.includes("posplus")?1:0);
+   if(id==="posplus"&&next.includes("posplus")&&next.includes("posannual"))next.splice(next.indexOf("posannual"),1);
+   if(id==="posannual"&&next.includes("posannual")&&next.includes("posplus"))next.splice(next.indexOf("posplus"),1);
    update({licenses:next});
  };
  const total=sidekickHardwareNet(value),monthly=sidekickLicenseMonthly(value),scenario=sidekickScenario(monthlyVolume,value);
