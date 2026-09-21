@@ -99,6 +99,24 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
    }
   }
  }
+ // Only correct a single duplicated OCR character in the logo when an independently
+ // recognized email or website domain corroborates the brand spelling.
+ if(fields.company){
+  const rawName=fields.company;
+  const first=rawName.split(/\s+/)[0];
+  const domain=(fields.website||fields.email?.split("@")[1]||"")
+   .replace(/^https?:\/\//i,"").replace(/^www\./i,"").split(".")[0].split("-")[0];
+  const token=folded(first),reference=folded(domain);
+  if(reference.length>=5&&token.length===reference.length+1){
+   const fixes=[...first].map((_,i)=>first.slice(0,i)+first.slice(i+1))
+    .filter(part=>folded(part)===reference)
+    .sort((a,b)=>Number(/[a-z]$/.test(b))-Number(/[a-z]$/.test(a)));
+   if(fixes.length){
+    fields.company=fixes[0]+rawName.slice(first.length);
+    warnings.push("Firmenlogo anhand der unabhängig erkannten Web-/E-Mail-Domain auf einen möglichen OCR-Buchstabenfehler korrigiert. Schreibweise bitte überprüfen.");
+   }
+  }
+ }
  // Last-resort business letterhead: never promote a position or a person's name.
  if(!fields.company&&street){
   const i=lines.indexOf(street);
