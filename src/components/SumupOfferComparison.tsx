@@ -1,4 +1,5 @@
 import { money } from "../lib/calculations";
+import { SumupAdvantage } from "./SumupAdvantage";
 import {selectedPackageName} from "../lib/sumup-needs";
 import {sumupSidekickFees,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 import type { ExistingProviderInput, SumupPlan } from "../lib/fieldSalesComparison";
@@ -55,7 +56,6 @@ export function SumupOfferComparison({snapshot,compact=false}:{
   const previous=studio.provider?.trim()||"Bisheriger Anbieter";
   const device=studio.sumupHardware||"Gerät noch festlegen";
   const hardware=studio.hardwarePricing;
-  const saving=a.monthlyDifference;
   const rows=[
     ["Monatskosten",money(a.oldTotal),money(a.sumupTotal)],
     ["EC / Debit",percent(c.debitRate),campaign?"Domestic: "+percent(campaign.domestic):percent(a.sumupDebit)],
@@ -75,12 +75,7 @@ export function SumupOfferComparison({snapshot,compact=false}:{
       <div><span>{previous} / Monat</span><strong>{money(a.oldTotal)}</strong></div>
       <div><span>SumUp {plan} / Monat (inkl. Software)</span><strong>{money(a.sumupTotal)}</strong></div>
     </div>
-    <div className={"sumup-benefit "+(saving>0?"sumup-benefit-positive":saving<0?"sumup-benefit-negative":"")}>
-      <span>{saving>0?"Rechnerisch geringere Monatsgebühren mit SumUp":saving<0?
-        "Rechnerisch höhere Monatsgebühren mit SumUp":"Gleiche modellierte Monatsgebühren"}</span>
-      <strong>{money(Math.abs(saving))} / Monat</strong>
-      <small>{money(Math.abs(a.annualDifference))} / Jahr · ohne einmalige Hardware, bestehende Kündigungskosten und Sonderkonditionen</small>
-    </div>
+    <SumupAdvantage monthlyDifference={a.monthlyDifference} annualDifference={a.annualDifference} selection={studio.sidekick} noFixedTerm={studio.noFixedTerm}/>
     <h4 className="sumup-benefits-title">Leistungen & Vorteile gegenübergestellt</h4>
     <div className="sumup-benefits-grid" role="table" aria-label="Vorteile und Leistungen im Vergleich">
       <div className="sumup-benefits-row sumup-benefits-header" role="row">
