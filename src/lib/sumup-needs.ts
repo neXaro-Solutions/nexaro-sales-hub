@@ -42,8 +42,14 @@ export function deriveDomesticShare(evidence:DomesticShareEvidence):{value:numbe
 }
 export function deriveCampaignPrefill(debitRate:number,feeRatesConfirmed:boolean):{index:number;rate:number;explanation:string}|null{
  if(!feeRatesConfirmed||!Number.isFinite(debitRate)||debitRate<0||debitRate>100)return null;
- const index=sumupSidekickFees.reduce((best,entry,i)=>Math.abs(entry.domestic-debitRate)<Math.abs(sumupSidekickFees[best].domestic-debitRate)?i:best,0);
- return {index,rate:sumupSidekickFees[index].domestic,explanation:"Der nächstliegende Sidekick-Satz zur bestätigten bisherigen EC-/Debit-Gebühr. Keine automatische Freigabe und keine Gleichsetzung von Debit und Domestic."};
+ // Choose exactly the same rate, otherwise the nearest available LOWER rate.
+ // If the recorded rate is lower than every offered rate, use the lowest
+ // available reference rate (not a fictional new discount).
+ const index=sumupSidekickFees.findIndex(f=>f.domestic<=debitRate+1e-8);
+ const chosen=index<0?sumupSidekickFees.length-1:index;
+ return {index:chosen,rate:sumupSidekickFees[chosen].domestic,explanation:index<0
+  ?"Bisheriger Satz liegt unter sämtlichen dargestellten Sidekick-Sätzen: niedrigsten vorhandenen Satz als unverbindlichen Vergleichswert gewählt."
+  :"Identischen oder nächst niedrigeren Sidekick-Satz zur geprüften bisherigen EC-/Debit-Gebühr ausgewählt. Keine verbindliche SumUp-Freigabe; Debit und Domestic sind unterschiedliche Kartenkategorien."};
 }
 export function selectedSumupPaymentPlan(selection:SumupSidekickSelection):SumupPlan{
  return normalizeSidekickSelection(selection).licenses.includes("payments")?"plus":"standard";
@@ -53,14 +59,14 @@ export function compareSelectedSumup(input:ExistingProviderInput,selection:Sumup
  const plan=selectedSumupPaymentPlan(normalized);
  const standard=compareFieldSales(input,plan);
  const recurring=sidekickLicenseMonthly(normalized)-(plan==="plus"?19:0);
- const approved=normalized.campaignAuthorized&&normalized.campaignIndex!==null&&normalized.domesticShare!==null;
- const campaign=approved?sidekickScenario(input.volume,normalized):null;
+ const campaignSelected=normalized.campaignIndex!==null&&normalized.domesticShare!==null;
+ const campaign=campaignSelected?sidekickScenario(input.volume,normalized):null;
  const sumupTotal=round(campaign??(standard.sumupTotal+recurring));
  const sumupBase=round(standard.sumupBase+recurring);
  const sumupVariable=round(sumupTotal-sumupBase);
  return {...standard,sumupTotal,sumupBase,sumupVariable,monthlyDifference:round(standard.oldTotal-sumupTotal),
  annualDifference:round(12*(standard.oldTotal-sumupTotal)),
- note:(approved?"Freigegebene individuelle Sidekick-Kondition;":"Öffentliche Zahlungskondition;")+
+ note:(campaignSelected?"Sidekick-Kondition als unverbindliche Modellrechnung, für diesen Händler vor Vertragsabschluss separat freigeben lassen;":"Öffentliche Zahlungskondition;")+
  " gewählte Lizenzen sind enthalten. Domestic-Anteil und Kredit-/Premium-/Firmenkarten sind nicht gleichbedeutend mit dem bisherigen Debit-/Kredit-Mix. Hardware, Wechselkosten und Vertragsbindung sind separat."};
 }
 export function selectedPackageName(selection:SumupSidekickSelection){
