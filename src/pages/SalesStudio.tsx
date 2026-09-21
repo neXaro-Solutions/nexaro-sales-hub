@@ -13,7 +13,7 @@ import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
 import { RangeNumber } from "../components/RangeNumber";
 import { CardMixBars } from "../components/CardMixBars";
 import { SidekickMatrix } from "../components/SidekickMatrix";
-import {customerGoals,recommendSumup,deriveDomesticShare,compareSelectedSumup,selectedPackageName,selectedSumupPaymentPlan,type CustomerGoal} from "../lib/sumup-needs";
+import {customerGoals,recommendSumup,deriveDomesticShare,deriveCampaignPrefill,compareSelectedSumup,selectedPackageName,selectedSumupPaymentPlan,type CustomerGoal} from "../lib/sumup-needs";
 import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,sumupSidekickHardware,normalizeSidekickSelection,chooseSidekickLicense,type SumupSidekickSelection} from "../lib/sumup-sidekick";
 
 const defaultCurrent: ExistingProviderInput = {
@@ -59,7 +59,7 @@ type SavedStudio = {
   current?:ExistingProviderInput; provider?:string; competitorHardware?:string;
   otherHardware?:string; contract?:string; payout?:string; future?:string;
   wishes?:Wish[]; plan?:SumupPlan; hardwareId?:HardwareId; quantity?:number;
-  notes?:string; hardwareDiscount?:number; cardMixConfirmed?:boolean; sidekick?:SumupSidekickSelection;
+  notes?:string; hardwareDiscount?:number; cardMixConfirmed?:boolean; feeRatesConfirmed?:boolean; sidekick?:SumupSidekickSelection;
 };
 const numeric=(s:string)=>Number(s);
 const editable=(value:number,onChange:(v:number)=>void,props:{step?:string;min?:string;max?:string}={})=>
@@ -88,6 +88,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const [notes,setNotes]=useState(saved.notes||"");
   const [sidekick,setSidekick]=useState<SumupSidekickSelection>(()=>normalizeSidekickSelection(saved.sidekick||{...emptySidekickSelection,licenses:saved.plan==="plus"?["payments"]:[]}));
   const [cardMixConfirmed,setCardMixConfirmed]=useState(saved.cardMixConfirmed??false);
+  const [feeRatesConfirmed,setFeeRatesConfirmed]=useState(saved.feeRatesConfirmed??false);
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState("");
   const [readReview,setReadReview]=useState("");
@@ -118,9 +119,10 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   const packageName=selectedPackageName(sidekick);
   const advisor=useMemo(()=>{try{return recommendSumup(current,needs,future,hardware+" "+otherHardware)}catch{return null;}},[current,needs,future,hardware,otherHardware]);
   const domesticEvidence=deriveDomesticShare({debitShare:current.debitShare,cardMixConfirmed,eligibleVolume:photoReview?.eligibleVolume,otherVolume:photoReview?.otherVolume});
+  const campaignEvidence=deriveCampaignPrefill(current.debitRate,feeRatesConfirmed);
   function applyRecommendation(){
     if(!advisor){setNotice("Bitte zuerst gültige Gebühren und Umsätze erfassen.");return;}
-    setSidekick(old=>normalizeSidekickSelection({...old,licenses:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout,campaignIndex:null,campaignAuthorized:false,...(old.domesticShareSource==="manual"?{}:{domesticShare:domesticEvidence?.value??null,domesticShareSource:domesticEvidence?.source})}));
+    setSidekick(old=>normalizeSidekickSelection({...old,licenses:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout,campaignIndex:old.campaignSource==="manual"?old.campaignIndex:campaignEvidence?.index??null,campaignSource:old.campaignSource==="manual"?old.campaignSource:campaignEvidence?"estimate":undefined,campaignAuthorized:false,...(old.domesticShareSource==="manual"?{}:{domesticShare:domesticEvidence?.value??null,domesticShareSource:domesticEvidence?.source})}));
     if(allowedHardware.some(h=>h.id===advisor.hardwareId))setHardwareId(advisor.hardwareId as HardwareId);
     setStep(3);
   }
@@ -161,7 +163,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     setSaving(true);setNotice("");
     try{
       const savedData={current,provider,competitorHardware:hardware,otherHardware,contract,payout,
-        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,hardwareDiscount,notes,cardMixConfirmed,sidekick:normalizeSidekickSelection(sidekick)};
+        future,wishes:needs,plan:selectedPlan,hardwareId:selectedHardware.id,quantity,hardwareDiscount,notes,cardMixConfirmed,feeRatesConfirmed,sidekick:normalizeSidekickSelection(sidekick)};
       await save("opportunities",{
         ...opportunity,customer_id:customerId,division:"sumup",stage:opportunity?.stage||"Neu",
         potential:current.volume,
@@ -180,7 +182,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
         price:hardwarePrice.discountedUnit,vat:19}],
       notes:offerNotes()+"\n"+sidekickNotes(offerSelection),
       snapshot:{salesStudio:{current,provider,competitorHardware:hardware,otherHardware,
-        contract,payout,future,wishes:needs,cardMixConfirmed,plan:selectedPlan,
+        contract,payout,future,wishes:needs,cardMixConfirmed,feeRatesConfirmed,plan:selectedPlan,
         sumupHardware:offerSelection.hardware.length?offerSelection.hardware.map(x=>x.quantity+" × "+(sumupSidekickHardware.find(p=>p.id===x.id)?.name||x.id)).join(", "):selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:sidekick.hardware.length?undefined:hardwarePrice,
         comparison:estimate.data,sidekick:offerSelection,checkedAt:catalogCheckedAt,
         source:catalogSource,hardwareSource:catalogHardwareSource}}
@@ -225,10 +227,12 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
         <CardMixBars debitShare={current.debitShare}
           debitRate={current.debitRate} creditRate={current.creditRate}
           onDebitShare={v=>{update("debitShare",v);setCardMixConfirmed(true);}}
-          onDebitRate={v=>update("debitRate",v)}
-          onCreditRate={v=>update("creditRate",v)} />
+          onDebitRate={v=>{update("debitRate",v);setFeeRatesConfirmed(true);}}
+          onCreditRate={v=>{update("creditRate",v);setFeeRatesConfirmed(true);}} />
         <label className="checkbox-field"><input type="checkbox" checked={cardMixConfirmed} onChange={e=>setCardMixConfirmed(e.target.checked)}/> Kartenmix wurde anhand der Bestandsanalyse überprüft (auch bei unveränderter 80/20-Vorgabe)</label>
         <p className="hint">Nur ein bestätigter Kartenmix wird als Näherung für die Domestic-Vorauswahl verwendet. EC/Debit und Domestic sind unterschiedliche Kategorien.</p>
+        <label className="checkbox-field"><input type="checkbox" checked={feeRatesConfirmed} onChange={e=>setFeeRatesConfirmed(e.target.checked)}/> Gebührensätze des Bestandsanbieters wurden anhand der Abrechnung geprüft (auch wenn die vorgeschlagenen Werte unverändert sind)</label>
+        <p className="hint">Nur ein bestätigter EC-/Debit-Gebührensatz führt zu einer unverbindlichen Vorauswahl der nächstliegenden Sidekick-Kondition.</p>
       </Card>
       <Card title="04 · Laufende Kosten" eyebrow="FESTE UND VARIABLE ENTGELTE">
         <div className="form-grid field-fees-grid">
@@ -287,7 +291,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     </>}
     {step===3&&<>
       {advisor&&<Card title="Deine bedarfsbasierte SumUp-Konfiguration" eyebrow="ZUKUNFTSWÜNSCHE · NACHVOLLZIEHBARE EMPFEHLUNG"><p><strong>{packageName.title}</strong></p><p className="hint">{advisor.reasons.join(" ")}</p><p className="hint">Eine Plus-Variante wird durch den erfassten Bedarf bestimmt. Der Wechsel in der Matrix ersetzt die bisherige Plus-Auswahl; KDS ist eine passende Zusatzoption.</p><button className="secondary" type="button" onClick={applyRecommendation}>Vorschlag erneut übernehmen</button></Card>}
-      <SidekickMatrix value={sidekick} onChange={next=>setSidekick(normalizeSidekickSelection(next))} monthlyVolume={current.volume} oldTotal={estimate.data?.oldTotal||0} suggestedDomestic={domesticEvidence}/>
+      <SidekickMatrix value={sidekick} onChange={next=>setSidekick(normalizeSidekickSelection(next))} monthlyVolume={current.volume} oldTotal={estimate.data?.oldTotal||0} suggestedDomestic={domesticEvidence} suggestedCampaign={campaignEvidence}/>
       <Card title="03 · Vergleichsangebot" eyebrow="IST-ANBIETER GEGEN SUMUP · MONATLICHE KOSTEN">
         {!estimate.data?<p className="error" role="alert">{estimate.error}</p>:<>
           <div className="field-compare">
