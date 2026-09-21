@@ -8,6 +8,7 @@ import {
   type StatementField,
 } from "../lib/statement";
 import { recognizeStatement } from "../lib/ocr";
+import { analyzeStatementText, type StatementDetails } from "../lib/statement-details";
 import type { PaymentInput } from "../lib/calculations";
 export type StatementReview = {
   confirmedAt: string;
@@ -18,6 +19,9 @@ export type StatementReview = {
   recognizedFields?: string[];
   eligibleVolume?: number;
   otherVolume?: number;
+  details?: StatementDetails;
+  evidence?: Record<string,string>;
+  warnings?: string[];
 };
 export function StatementCapture({
   onClose,
@@ -125,14 +129,21 @@ export function StatementCapture({
               );
               if (!controller.signal.aborted) {
                 if (autoApply) {
-                  const recognized = recognizedStatementValues(result.text);
+                  const analyzed = analyzeStatementText(result.text);
+                  const recognized = analyzed.values;
+                  const d=analyzed.details;
                   onApply(recognized, {
                     confirmedAt: new Date().toISOString(),
                     months: 1,
                     source: "photo",
                     confidence: result.confidence,
                     verified: false,
-                    recognizedFields: Object.keys(recognized),
+                    recognizedFields: [...Object.keys(recognized),...Object.keys(d)],
+                    details:d,
+                    evidence:analyzed.evidence,
+                    warnings:analyzed.warnings,
+                    eligibleVolume:d.eligibleVolume,
+                    otherVolume:d.otherVolume,
                   });
                   onClose();
                 } else {
