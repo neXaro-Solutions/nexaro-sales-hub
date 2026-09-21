@@ -57,6 +57,20 @@ describe("web business-card scan mapping",()=>{
   expect(fields.contact).toBe("Sebastian Pötschke");
   expect(warnings.some(w=>w.includes("Unternehmen"))).toBe(true);
  });
+ it("handles actual Tesseract output of the uploaded neXaro card and flags logo correction",()=>{
+  const raw=["neXarOo Solutions","FDEEN BIEW'E GEN MÄRKTE",
+   "Sebastian Pötschke","Außendienst & Vertrieb","Friedrichstraße 100",
+   "10117 Berlin Mitte","Telefon: +49 30 12345678","Mobil: +49 176 12345678",
+   "E-Mail: kontakt@nexaro-solutions.de","Web: www.nexaro-solutions.de",
+   "8Ror ©","LÖSUNGEN","FÜR EINE","STARKE","ZUR URN IT",
+   "MENSCHEN","IHDJEFEAN","ERFOLG"].join("\\n");
+  const read=readBusinessCardText(raw);
+  expect(read.fields.company).toBe("neXaro Solutions");
+  expect(read.fields.contact).toBe("Sebastian Pötschke");
+  expect(read.fields.phone).toBe("+49 30 12345678");
+  expect(read.fields.mobile).toBe("+49 176 12345678");
+  expect(read.warnings.some(w=>w.includes("Schreibweise"))).toBe(true);
+ });
  it("reads a split logo with company name in two rows",()=>{
   const {fields}=readBusinessCardText("neXaro\nSolutions\nSebastian Pötschke\nAußendienst & Vertrieb\nFriedrichstraße 100\n10117 Berlin Mitte\nkontakt@nexaro-solutions.de");
   expect(fields.company).toBe("neXaro Solutions");
