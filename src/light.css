@@ -248,3 +248,32 @@ dialog[open]>.modal-head{background:#fff!important;color:var(--ink);border-color
 @media(max-width:800px){.nx-page-visual{padding:20px;min-height:122px}.nx-page-visual__art{flex-basis:110px;height:106px}.nx-page-visual__halo{width:95px;height:95px;box-shadow:0 0 0 12px #efffdf67}.nx-page-visual__main{width:68px;height:68px;border-radius:20px}.nx-page-visual__main svg{width:34px;height:34px}.nx-page-visual__detail{right:0;bottom:4px;width:39px;height:39px}.nx-page-visual__spark{left:0;width:29px;height:29px}.nx-dashboard-illustration{flex-basis:180px;transform:scale(.82);transform-origin:right center}}
 @media(max-width:520px){.nx-page-visual{padding:17px 15px;border-radius:15px;gap:5px}.nx-page-visual h2{font-size:23px}.nx-page-visual p{font-size:12px}.nx-page-visual__art{flex-basis:66px;height:80px;transform:scale(.68);transform-origin:center}.nx-page-visual__copy{min-width:0}.nx-page-visual__eyebrow{font-size:9px}.nx-dashboard-illustration{display:none}}
 @media print{.nx-page-visual,.nx-dashboard-illustration{display:none!important}}
+
+
+/* Vape B2B cart: compact two-column shop cards and mobile-ready VE controls. */
+.nx-vape-cart{margin:0 0 22px;border:1px solid #b9df83;background:linear-gradient(120deg,#fff,#f5ffe8)}
+.nx-vape-cart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.nx-vape-cart-head h3{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0 0 8px;color:#263d14}
+.nx-vape-cart-head h3 svg{color:#ae4208}
+.nx-vape-cart-head p{font-size:12px;margin:0;color:#57684a}
+.nx-vape-cart-head>strong{white-space:nowrap;color:#a84308;font-size:22px}
+.nx-vape-cart-empty{padding:15px;margin:16px 0;background:#fff;border:1px dashed #c5d9b6;border-radius:10px;font-size:13px;color:#58634f}
+.nx-vape-cart-rows{display:flex;flex-direction:column;gap:7px;margin:19px 0}
+.nx-vape-cart-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:11px;border:1px solid #e0ead8;background:#fff;border-radius:11px;padding:10px}
+.nx-vape-cart-name{min-width:0;display:flex;flex-direction:column;gap:4px}
+.nx-vape-cart-name strong{font-size:12px;line-height:1.45}
+.nx-vape-cart-name small{font-size:11px;color:#55684b}
+.nx-vape-cart-row>b{font-size:13px;white-space:nowrap;color:#a84308}
+.nx-vape-cart-qty{display:flex;align-items:center;gap:3px;background:#f7fbea;border:1px solid #d7e7c7;border-radius:9px;padding:3px}
+.nx-vape-cart-qty input{width:48px;min-width:0;max-width:48px;text-align:center;padding:6px 2px;border:0;background:#fff;font-size:13px}
+.nx-vape-cart-qty .icon-button{min-width:30px;min-height:30px}
+.nx-vape-cart-total{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;padding:12px 0;border-top:1px solid #d6e4c9;font-size:12px;color:#4f6543}
+.nx-vape-cart-total b{font-size:15px;color:#a64306}
+.nx-vape-cart-actions{display:flex;flex-wrap:wrap;gap:10px}
+.nx-vape-cart-actions button{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.nx-vape-card-main{width:100%;flex:1;min-height:0;display:flex;flex-direction:column;background:transparent;border:0;color:inherit;text-align:left;padding:0;cursor:pointer}
+.nx-vape-card-main .vape-product-info{width:100%}
+.nx-vape-add{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 11px 12px;padding:10px 5px;border:1px solid #a8d67a;background:#efffdb;color:#315d14;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer}
+.nx-vape-add:hover:not(:disabled){background:#a3ff12;color:#1a3505}
+.nx-vape-add:disabled{opacity:.42;cursor:not-allowed}
+@media(max-width:700px){.nx-vape-cart-head>strong{font-size:18px}.nx-vape-cart-row{grid-template-columns:minmax(0,1fr) auto;gap:7px}.nx-vape-cart-name{grid-column:1/-1}.nx-vape-cart-qty{justify-self:start}.nx-vape-cart-row>b{justify-self:end}.nx-vape-cart-row>.icon-button:last-child{grid-column:2;grid-row:2;justify-self:end;transform:translateX(0)}.nx-vape-cart-row{grid-template-columns:minmax(0,1fr) auto auto}.nx-vape-cart-row>b{grid-column:2;grid-row:2}.nx-vape-cart-row>.icon-button:last-child{grid-column:3;grid-row:2}.nx-vape-cart-actions button{width:100%}.nx-vape-add{font-size:11px;margin:0 7px 8px;gap:4px}}
