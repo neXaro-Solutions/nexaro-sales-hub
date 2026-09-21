@@ -1,6 +1,6 @@
 import {round} from "./calculations";
 import {compareFieldSales,type ExistingProviderInput,type SumupPlan} from "./fieldSalesComparison";
-import {sidekickLicenseMonthly,sidekickScenario,normalizeSidekickSelection,type SumupSidekickSelection} from "./sumup-sidekick";
+import {sidekickLicenseMonthly,sidekickScenario,normalizeSidekickSelection,sumupSidekickFees,type SumupSidekickSelection} from "./sumup-sidekick";
 
 export type CustomerGoal="receipt"|"standalone"|"pos"|"mobile"|"savings"|"payout"|"scanner"|"cashdrawer"|"kitchen"|"beauty"|"hospitality"|"multiple";
 export const customerGoals:{id:CustomerGoal;label:string}[]=[
@@ -39,6 +39,11 @@ export function deriveDomesticShare(evidence:DomesticShareEvidence):{value:numbe
   return {value:evidence.debitShare,source:"estimate",explanation:"Orientierungswert aus deinem bestätigten EC-/Debit-Anteil. Debit ist nicht dasselbe wie Domestic; bitte anhand der tatsächlichen Kartenherkunft und Kartentypen kontrollieren."};
  }
  return null;
+}
+export function deriveCampaignPrefill(debitRate:number,feeRatesConfirmed:boolean):{index:number;rate:number;explanation:string}|null{
+ if(!feeRatesConfirmed||!Number.isFinite(debitRate)||debitRate<0||debitRate>100)return null;
+ const index=sumupSidekickFees.reduce((best,entry,i)=>Math.abs(entry.domestic-debitRate)<Math.abs(sumupSidekickFees[best].domestic-debitRate)?i:best,0);
+ return {index,rate:sumupSidekickFees[index].domestic,explanation:"Der nächstliegende Sidekick-Satz zur bestätigten bisherigen EC-/Debit-Gebühr. Keine automatische Freigabe und keine Gleichsetzung von Debit und Domestic."};
 }
 export function selectedSumupPaymentPlan(selection:SumupSidekickSelection):SumupPlan{
  return normalizeSidekickSelection(selection).licenses.includes("payments")?"plus":"standard";
