@@ -128,6 +128,7 @@ export function StatementCapture({
                   )
                     setProgress(value);
                 },
+                "statement",
               );
               if (!controller.signal.aborted) {
                 if (autoApply) {
