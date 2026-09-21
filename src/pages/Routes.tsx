@@ -32,6 +32,7 @@ import {
   dayKey,
 } from "../lib/calculations";
 import { geocode, findProspects, type Prospect } from "../lib/maps";
+import { businessCategories } from "../lib/business-search";
 import { osmEmbed, osmLocation } from "../lib/osmEmbed";
 import type { Stop, Route } from "../lib/types";
 export function Routes() {
@@ -40,7 +41,7 @@ export function Routes() {
     [origin, setOrigin] = useState(""),
     [query, setQuery] = useState(""),
     [radius, setRadius] = useState(2),
-    [category, setCategory] = useState("shops"),
+    [category, setCategory] = useState("all"),
     [results, setResults] = useState<Prospect[]>([]),
     [selectedProspect, setSelectedProspect] = useState<string | null>(null),
     [showAllResults, setShowAllResults] = useState(false),
@@ -245,9 +246,7 @@ export function Routes() {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
-                  <option value="shops">Einzelhandel</option>
-                  <option value="food">Gastronomie</option>
-                  <option value="vape">Kioske, Tabak & Vapes</option>
+                  {businessCategories.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}
                 </select>
               </Field>
 
@@ -266,17 +265,14 @@ export function Routes() {
                   href={mapSearch(
                     query +
                       " " +
-                      (category === "food"
-                        ? "Gastronomie"
-                        : category === "vape"
-                          ? "Kiosk"
-                          : "Einzelhandel"),
+                      (businessCategories.find(item=>item.id===category)?.label||"Geschäfte"),
                   )}
                 >
                   Google Maps Recherche
                 </External>
               )}
             </div>
+            <p className="hint">Alle Geschäftsarten sind vorausgewählt. Bekannte Konzerne und Filialketten werden aus den Suchergebnissen entfernt; nicht eindeutig gekennzeichnete Filialen können vereinzelt noch erscheinen.</p>
             <p className="hint">Recherchetreffer werden zentral unter „Kunden & Leads“ gespeichert. Jeder Kunde kann anschließend sowohl SumUp- als auch Vape-Angebote erhalten.</p>
             <details className="route-search-help"><summary>Hinweise zur öffentlichen Suche & Datenquelle</summary>
             <p className="hint">
