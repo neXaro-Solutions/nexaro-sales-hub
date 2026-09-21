@@ -13,6 +13,7 @@ import { hardwareOfferPrice } from "../lib/hardwareOfferPrice";
 import { RangeNumber } from "../components/RangeNumber";
 import { CardMixBars } from "../components/CardMixBars";
 import { SidekickMatrix } from "../components/SidekickMatrix";
+import { SumupAdvantage } from "../components/SumupAdvantage";
 import { SidekickCampaignPicker } from "../components/SidekickCampaignPicker";
 import {customerGoals,recommendSumup,deriveDomesticShare,deriveCampaignPrefill,compareSelectedSumup,selectedPackageName,selectedSumupPaymentPlan,type CustomerGoal} from "../lib/sumup-needs";
 import {emptySidekickSelection,sidekickNotes,sidekickOfferLines,sumupSidekickHardware,sumupSidekickFees,normalizeSidekickSelection,withoutFixedTerm,chooseSidekickLicense,type SumupSidekickSelection} from "../lib/sumup-sidekick";
@@ -172,7 +173,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
       "Bisheriger Auszahlungsturnus: "+(payLabel[payout]||payout),
       "Zukunftswunsch: "+(future||needs.join(", ")||"noch offen"),
       "Gewünschte SumUp-Hardware: "+selectedHardware.name+" · "+quantity+" × "+money(selectedHardware.price||0)+" netto regulär · "+hardwareDiscount+" % gewährter Rabatt · Angebot "+money(hardwarePrice.offerNet)+" netto.",
-      "Differenz: "+money(a.monthlyDifference)+" / Monat bzw. "+money(a.annualDifference)+" / Jahr. Das ist eine unverbindliche Modellrechnung ohne eventuelle Wechselkosten.",
+      "SumUp Vorteil: "+money(a.monthlyDifference)+" / Monat bzw. "+money(a.annualDifference)+" / Jahr. "+(a.monthlyDifference<0?"Rechnerisch höhere SumUp-Kosten; die ausgewählten Funktionen separat nach Kundenbedarf bewerten.":"Unverbindliche Modellrechnung ohne eventuelle Wechselkosten."),
       "Preisstand "+catalogCheckedAt+" · Offizielle Konditionen: "+catalogSource,
       notes
     ].filter(Boolean).join("\n");
@@ -330,10 +331,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
               <p>Regulärer Hardwarepreis separat</p>
             </section>
           </div>
-          <div className="field-difference"><span>Rechnerische Differenz bisher – SumUp / Monat</span>
-            <strong>{money(estimate.data.monthlyDifference)}</strong>
-            <small>Hochgerechnet auf 12 Monate: {money(estimate.data.annualDifference)} · negative Werte = höhere SumUp-Kosten</small>
-          </div>
+          <SumupAdvantage monthlyDifference={estimate.data.monthlyDifference} annualDifference={estimate.data.annualDifference} selection={effectiveSidekick} noFixedTerm={noFixedTerm}/>
           <p className="hint">{estimate.data.note} Bestehende Vertragsbindung und etwaige Wechselkosten sind nicht eingerechnet.</p>
         </>}
       </Card>
