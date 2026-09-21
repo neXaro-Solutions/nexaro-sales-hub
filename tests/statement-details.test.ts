@@ -36,6 +36,16 @@ describe("statement photo field extraction",()=>{
   expect(result.details.debitRate).toBeUndefined();
   expect(result.warnings).toContain("Mehrdeutige Angaben zu debitRate – bitte manuell prüfen.");
  });
+ it("reads an unlabelled legal-entity letterhead without treating it as the payment provider",()=>{
+  const result=analyzeStatementText("Muster Café Berlin GmbH\nPayone\nKartenumsatz 8.800,00 €");
+  expect(result.details.merchant).toBe("Muster Café Berlin GmbH");
+  expect(result.details.provider).toBe("Payone");
+ });
+ it("reads a verified-looking labelled 80/20 mix but never assumes it is confirmed",()=>{
+  const result=analyzeStatementText("Kartenmix: EC/Debit 80 % / Kredit 20 %\nEC-Gebühr 0,99 %");
+  expect(result.details.debitShare).toBe(80);
+  expect(result.details.debitRate).toBe(.99);
+ });
  it("does not silently copy a merchant into the payment provider field",()=>{
   const result=analyzeStatementText("Händler: Muster GmbH\nKartenumsatz: 5.000,00 €");
   expect(result.details.provider).toBeUndefined();
