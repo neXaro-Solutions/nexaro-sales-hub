@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Camera, ImagePlus, Search, ShoppingBag, ArrowRight, X, ScanBarcode } from "lucide-react";
+import { Camera, ImagePlus, Search, ShoppingBag, ArrowRight, X, ScanBarcode, PackageCheck, Tags } from "lucide-react";
 import { client } from "../lib/client";
 import { recognizeStatement } from "../lib/ocr";
 import { vapeSaleNet, vapeSaleGross } from "../lib/vapePricing";
@@ -27,6 +27,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
   const [pictures,setPictures] = useState<Record<string,string>>({});
   const [query,setQuery] = useState("");
   const [category,setCategory] = useState("");
+  const [brand,setBrand] = useState("");
   const [margin,setMargin] = useState(25);
   const [page,setPage] = useState(0);
   const [active,setActive] = useState<Product | null>(null);
@@ -67,9 +68,11 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
   useEffect(()=>()=>{if(photoPreview) URL.revokeObjectURL(photoPreview);},[photoPreview]);
   const approved=useMemo(()=>products.filter(p=>p.ve_approved||p.single_approved),[products]);
   const categories=useMemo(()=>[...new Set(approved.map(p=>p.category||"Andere"))].sort(),[approved]);
+  const brands=useMemo(()=>[...new Set(approved.map(p=>p.name.toLowerCase().includes("lost mary")?"Lost Mary":p.name.toLowerCase().includes("elfbar")?"Elfbar":"Sonstige"))].sort(),[approved]);
   const shown=useMemo(()=>approved.filter(p=>(!category||(p.category||"Andere")===category)&&
+    (!brand||p.name.toLowerCase().includes(brand.toLowerCase()))&&
     normalize(p.name+" "+(p.supplier_article_no||"")+" "+(p.ean||"")).includes(normalize(query))
-  ),[approved,category,query]);
+  ),[approved,category,brand,query]);
   const pages=Math.max(1,Math.ceil(shown.length/24));
   const visible=shown.slice(Math.min(page,pages-1)*24,Math.min(page,pages-1)*24+24);
   const imageFor=(p:Product)=>p.image_url?.startsWith("nx-vape-images/")?pictures[p.id]:
@@ -176,9 +179,10 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
         <select aria-label="Kategorie" value={category} onChange={e=>{setCategory(e.target.value);setPage(0);}}>
           <option value="">Alle Kategorien</option>{categories.map(x=><option key={x}>{x}</option>)}
         </select>
+        <select aria-label="Marke" value={brand} onChange={e=>{setBrand(e.target.value);setPage(0);}}><option value="">Alle Marken</option>{brands.map(x=><option key={x}>{x}</option>)}</select>
         <label className="vape-margin">Marge <strong>{margin}%</strong><input aria-label="Marge" type="range" min="15" max="25" step="1" value={margin} onChange={e=>setMargin(Number(e.target.value))}/></label>
       </div>
-      <p className="hint">{shown.length} Artikel · 25 % Standardmarge, bis 15 % anpassbar · ausschließlich bestätigte EK netto und Verkaufseinheiten.</p>
+      <p className="hint"><PackageCheck size={15} style={{verticalAlign:"middle"}} /> {shown.length} Artikel · Mindestabnahme 1 VE = 10 Verkaufspackungen · 25 % Standardmarge, bis 15 % anpassbar · VK netto.</p>
     </div>
     {error&&<p className="error" role="alert">{error}</p>}
     {loading?<p role="status">Produkte werden geladen …</p>:shown.length===0?<div className="card"><p>Keine passenden freigegebenen Artikel gefunden.</p></div>:
@@ -187,7 +191,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
         <div className="vape-product-info"><small>{p.category||"Vape"} · {p.supplier_article_no||"ohne Art.-Nr."}</small>
           <strong>{p.name}</strong><span className="badge vape">{p.ve_approved?"VE freigegeben":"Stück freigegeben"}</span>
           {p.ve_approved&&p.ve_ek_net?<><b>{money(vapeSaleNet(p.ve_ek_net,margin))} netto</b>
-            <small>pro VE mit {p.pieces_per_ve||"?"} Stück · {money(vapeSaleGross(vapeSaleNet(p.ve_ek_net,margin)))} brutto</small></>:
+            <small>pro VE = {p.pieces_per_ve||10} Packungen · {money(vapeSaleGross(vapeSaleNet(p.ve_ek_net,margin)))} brutto</small><small><Tags size={13} style={{verticalAlign:"middle"}} /> {money(vapeSaleNet(p.ve_ek_net,margin)/(p.pieces_per_ve||10))} netto / Packung (nur Rechenwert)</small></>:
             p.single_approved&&p.single_ek_net?<b>{money(vapeSaleNet(p.single_ek_net,margin))} netto / Stück</b>:null}
           <span className="vape-card-link">Artikel öffnen <ArrowRight size={15}/></span></div>
         </button>)}</div>}
@@ -202,7 +206,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
         <ImageView product={active} url={imageFor(active)} className="vape-detail-image"/>
         <span className="eyebrow">{active.category||"Vape"} · {active.supplier_article_no||"ohne Art.-Nr."}</span>
         <h2>{active.name}</h2>
-        <p className="hint">EAN: {active.ean||"nicht hinterlegt"} · {active.pieces_per_ve?"VE: "+active.pieces_per_ve+" Stück":"VE-Größe unbekannt"}</p>
+        <p className="hint">EAN: {active.ean||"nicht hinterlegt"} · VE: {active.pieces_per_ve||10} Verkaufspackungen · Mindestabnahme 1 VE</p>
         {!demo&&<label className="secondary vape-file-action"><ImagePlus size={16}/>
           {imageBusy?"Produktfoto wird gespeichert …":"Produktfoto zu diesem Artikel hinzufügen"}
           <input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageBusy}
@@ -211,7 +215,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
         <div className="form-grid">
           <label className="field">Verkaufseinheit<select value={unit} onChange={e=>setUnit(e.target.value as "VE"|"Stück")}>
             <option value="VE" disabled={!active.ve_approved||!active.ve_ek_net}>Vollständige VE</option>
-            <option value="Stück" disabled={!active.single_approved||!active.supplier_single_available||!active.single_ek_net}>Einzelstück (nur freigegeben)</option>
+            <option value="Stück" disabled={true}>Einzelpackung (nur Rechenwert, nicht verkäuflich)</option>
           </select></label>
           <label className="field">Menge<input type="number" min="1" max="1000" step="1" value={quantity}
             onChange={e=>setQuantity(Number(e.target.value))}/></label>
@@ -221,6 +225,7 @@ export function VapeShop({ demo, onOffer }: { demo: boolean; onOffer: (draft: Of
           <small>VK je {unit} · netto / brutto inkl. 19 % MwSt.</small>
           <strong>{money(vapeSaleNet((unit==="VE"?active.ve_ek_net:active.single_ek_net)||0.01,margin))}</strong>
           <span>{money(vapeSaleGross(vapeSaleNet((unit==="VE"?active.ve_ek_net:active.single_ek_net)||0.01,margin)))}</span>
+          <small>Rechnerisch je Verkaufspackung: {money(vapeSaleNet(active.ve_ek_net||0.01,margin)/(active.pieces_per_ve||10))} netto · Verkauf nur je vollständiger VE.</small>
         </div>}
         <button className="primary wide" disabled={demo||!Number.isSafeInteger(quantity)||quantity<1||
           (unit==="VE"?!(active.ve_approved&&active.ve_ek_net&&active.pieces_per_ve):
