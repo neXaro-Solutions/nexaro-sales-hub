@@ -3,6 +3,7 @@ export async function recognizeStatement(
   file: File,
   signal: AbortSignal,
   progress: (value: number) => void,
+  mode: "statement" | "general" = "general",
 ) {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
     throw Error(
@@ -75,7 +76,31 @@ export async function recognizeStatement(
         preserve_interword_spaces: "1",
       });
       const { data } = await worker.recognize(canvas);
-      return { text: data.text, confidence: data.confidence };
+      let text=data.text;
+      if(mode==="statement"&&!stopped){
+        // The general page layout OCR commonly reads the debit card share but
+        // drops the adjacent small fee percentage in multi-column statements.
+        // A second, enlarged pass of the central fee-table region improves
+        // character separation without introducing any guessed numbers.
+        const detail=document.createElement("canvas");
+        try{
+          const top=Math.round(canvas.height*.46);
+          const height=Math.round(canvas.height*.43);
+          detail.width=Math.min(5200,canvas.width*2);
+          detail.height=Math.min(3600,height*2);
+          const ctx=detail.getContext("2d");
+          if(ctx){
+            ctx.fillStyle="white";ctx.fillRect(0,0,detail.width,detail.height);
+            ctx.imageSmoothingEnabled=true;
+            ctx.drawImage(canvas,0,top,canvas.width,height,0,0,detail.width,detail.height);
+            await worker.setParameters({tessedit_pageseg_mode:PSM.SINGLE_BLOCK,preserve_interword_spaces:"1"});
+            const region=await worker.recognize(detail);
+            if(!stopped&&region.data.text.trim()&&region.data.text.trim()!==data.text.trim())
+              text+="\\n"+region.data.text;
+          }
+        }finally{detail.width=0;detail.height=0;}
+      }
+      return { text, confidence: data.confidence };
     })();
     return await Promise.race([job, abortPromise]);
   } finally {
