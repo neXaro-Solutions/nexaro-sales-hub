@@ -46,7 +46,11 @@ export function normalizeSidekickSelection(selection:SumupSidekickSelection,chos
  const ids=[...new Set(selection.licenses)];
  const primary=chosen&&sumupPlusIds.some(id=>id===chosen)?chosen:ids.find(id=>sumupPlusIds.some(p=>p===id));
  const licenses=ids.filter(id=>!sumupPlusIds.some(p=>p===id)||id===primary);
- return {...selection,licenses};
+ // Official Zahlungen Plus is a complete payment tariff: an individual
+ // Sidekick campaign must never override its 0.79% / 19 EUR conditions.
+ return licenses.includes("payments")
+   ? {...selection,licenses,campaignIndex:null,campaignSource:undefined,campaignAuthorized:false}
+   : {...selection,licenses};
 }
 export function chooseSidekickLicense(selection:SumupSidekickSelection,id:string):SumupSidekickSelection{
  const exists=selection.licenses.includes(id);
@@ -80,12 +84,14 @@ export function sidekickScenario(monthlyVolume:number,selection:SumupSidekickSel
   return Math.round((domestic*fee.domestic/100+(present-domestic)*fee.other/100+online*fee.online/100+sidekickLicenseMonthly(selection))*100)/100;
 }
 export function sidekickNotes(selection:SumupSidekickSelection):string{
+  selection=normalizeSidekickSelection(selection);
+  const paymentsPlus=selection.licenses.includes("payments");
   const fee=selection.campaignIndex===null?null:sumupSidekickFees[selection.campaignIndex];
   return [
     "Sidekick-Konfiguration als neXaro-Beratungsentwurf – kein automatisch übermitteltes SumUp-Angebot.",
     "Angebotsart: "+(selection.offerType==="carry"?"Carry & Sell":"Order & Sell"),
     "Auszahlung: "+({three:"SumUp Konto · 3 Stunden",daily:"SumUp Konto · täglich",external:"Externes Konto · 3–5 Tage (Sidekick)"}[selection.payout]),
-    "Kondition: "+(fee?fee.domestic.toFixed(2)+" % Domestic, "+fee.other.toFixed(2)+" % Sonderkarten, "+fee.online.toFixed(2)+" % Karte nicht anwesend":"öffentliche SumUp-Konditionen gesondert prüfen"),
+    "Kondition: "+(paymentsPlus?"Zahlungen Plus: 19 EUR / Monat, 0,79 % berechtigte EWR-Verbraucherkarten vor Ort, 1,39 % sonstige Karten inkl. Premium/Firmenkarten/Amex, 2,50 % online":fee?fee.domestic.toFixed(2)+" % Domestic, "+fee.other.toFixed(2)+" % Sonderkarten, "+fee.online.toFixed(2)+" % Karte nicht anwesend":"Umsatzbasiertes Zahlen: öffentlich 1,39 % vor Ort, 0 EUR monatliche Tarifgrundgebühr"),
     "Individuelle Kondition für diesen Händler freigegeben: "+(selection.campaignAuthorized?"manuell bestätigt":"NEIN – NICHT ALS VERBINDLICH ZUSAGEN"),
     "Kartenmix Domestic: "+(selection.domesticShare===null?"unbekannt":selection.domesticShare+" % des Vor-Ort-Umsatzes"),
     "Eigener Hardware-Rabatt: "+selection.discount+" % nur auf rabattfähige Geräte"
