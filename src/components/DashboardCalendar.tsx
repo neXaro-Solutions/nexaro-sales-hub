@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus, ArrowRight, MapPin, Clock3 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus, ArrowRight, MapPin, Clock3, Pencil } from "lucide-react";
 import { Card, DivisionBadge } from "./UI";
+import { TaskForm } from "./Forms";
 import { useStore } from "../lib/store";
 import { address, today } from "../lib/calculations";
 import { calendarDay, monthDays, monthKey, nextMonth, entriesOn } from "../lib/dashboard-calendar";
@@ -13,6 +14,8 @@ export function DashboardCalendar({ newTask, navigate }: {
   const currentDay = today();
   const [month, setMonth] = useState(() => monthKey(currentDay));
   const [selected, setSelected] = useState(() => currentDay);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingTask = data.tasks.find(t => t.id === editingId);
   const weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
   const days = monthDays(month);
   const upcoming = entriesOn(data.tasks, selected);
@@ -73,7 +76,8 @@ export function DashboardCalendar({ newTask, navigate }: {
           {upcoming.length ? upcoming.map(t => {
             const customer = data.customers.find(c => c.id===t.customer_id);
             const location = customer ? address(customer) : "";
-            return <div className={"nx-calendar-entry"+(t.kind==="Termin"?" is-meeting":"")} key={t.id}>
+            return <button type="button" className={"nx-calendar-entry"+(t.kind==="Termin"?" is-meeting":"")} key={t.id}
+              onClick={() => setEditingId(t.id)} aria-label={t.title + " bearbeiten"}>
               <div className="nx-calendar-entry-time"><Clock3 size={14}/>
                 {new Intl.DateTimeFormat("de-DE",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Berlin"}).format(new Date(t.due_at))}
                 <span className="nx-calendar-kind">{t.kind||"Aufgabe"}</span>
@@ -82,8 +86,9 @@ export function DashboardCalendar({ newTask, navigate }: {
               {customer&&<span className="nx-calendar-company">{customer.company}</span>}
               {location&&<small className="nx-calendar-address"><MapPin size={13}/>{location}</small>}
               {t.division&&<DivisionBadge division={t.division}/>}
-              {t.notes&&<p className="nx-calendar-entry-notes">{t.notes}</p>}
-            </div>;
+              {t.notes&&<span className="nx-calendar-entry-notes">{t.notes}</span>}
+              <span className="nx-calendar-edit"><Pencil size={14}/> Bearbeiten</span>
+            </button>;
           }) : <div className="nx-calendar-no-entries"><CalendarDays size={26}/>
             <p>Für diesen Tag sind keine offenen Termine oder Wiedervorlagen geplant.</p>
             <button className="text-button" onClick={newTask}><Plus size={16}/> Termin erstellen</button>
@@ -93,5 +98,6 @@ export function DashboardCalendar({ newTask, navigate }: {
       </div>
     </div>
     <p className="hint nx-calendar-foot">Monatsübersicht aus deinen gespeicherten CRM-Einträgen · {count} offene Einträge im angezeigten Monat. Die noch nicht verbundene iCloud-Synchronisierung ist hierfür nicht erforderlich.</p>
+    {editingTask && <TaskForm key={editingTask.id} task={editingTask} onClose={() => setEditingId(null)} />}
   </Card>;
 }
