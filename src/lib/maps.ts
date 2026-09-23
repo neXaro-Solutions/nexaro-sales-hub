@@ -180,14 +180,15 @@ export async function findProspects(
   }
   const found=(json.elements || [])
     .map(
-      (e: {
+      (entry: unknown) => {
+        const e = entry as {
         id: number;
         type: string;
         lat?: number;
         lon?: number;
         center?: { lat: number; lon: number };
         tags?: Record<string, string>;
-      }) => {
+        };
         const t = e.tags || {};
         if(isExcludedChain(t))return null;
         return {
@@ -201,8 +202,8 @@ export async function findProspects(
           phone: t.phone || t["contact:phone"] || "",
           website: t.website || t["contact:website"] || "",
           email: t.email || t["contact:email"] || "",
-          lat: e.lat ?? e.center?.lat,
-          lng: e.lon ?? e.center?.lon,
+          lat: e.lat ?? e.center?.lat ?? NaN,
+          lng: e.lon ?? e.center?.lon ?? NaN,
           category: t.shop || t.amenity || "",
         };
       },
