@@ -1,4 +1,5 @@
 import { isExcludedChain } from "./business-search";
+import { isExcludedPublicFacility } from "./public-facilities";
 export type Prospect = {
   id: string;
   name: string;
@@ -19,7 +20,7 @@ let searchCooldownUntil = 0;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v3",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v4-public-exclusions",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -194,7 +195,7 @@ export async function findProspects(
         tags?: Record<string, string>;
         };
         const t = e.tags || {};
-        if(isExcludedChain(t))return null;
+        if(isExcludedChain(t)||isExcludedPublicFacility(t))return null;
         return {
           id: `${e.type}/${e.id}`,
           name: t.name || "",
