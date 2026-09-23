@@ -85,6 +85,7 @@ describe("web business-card scan mapping",()=>{
   ].join("\n");
   const read=readBusinessCardText(raw);
   expect(read.fields.contact).toBe("Sebastian Pötschke");
+  expect(read.fields.jobTitle).toBe("INHABER | VERTRIEB & BERATUNG");
   expect(read.fields.company).toBe("neXaro SOLUTIONS");
   expect(read.fields.street).toBe("Kirchstraße 1A");
   expect(read.fields.zip).toBe("15757");
