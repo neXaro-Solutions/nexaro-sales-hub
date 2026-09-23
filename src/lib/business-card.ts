@@ -82,8 +82,8 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
  const roleRows=lines.filter(l=>role.test(l)&&!/^.+@/.test(l)&&l.length<=90);
  // A pipe between two professional titles belongs to the role, not the address.
  // OCR may separate "INHABER | VERTRIEB & BERATUNG" into two lines.
- const rawRole=raw.split(/\\r?\\n/).map(tidy).find(l=>
-   /(?:inhaber|geschäftsführung|geschäftsführer)\\s*[|¦]\\s*(?:vertrieb|beratung|sales)/i.test(l));
+ const rawRole=raw.split(/\r?\n/).map(tidy).find(l=>
+   /(?:inhaber|geschäftsführung|geschäftsführer)\s*[|¦]\s*(?:vertrieb|beratung|sales)/i.test(l));
  if(rawRole)put("jobTitle",rawRole,rawRole);
  else if(roleRows.length===1)put("jobTitle",roleRows[0],roleRows[0]);
  if(!fields.contact){
