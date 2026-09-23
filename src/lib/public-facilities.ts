@@ -9,7 +9,7 @@ const institutionalAmenities = new Set([
  "grave_yard","place_of_worship","ranger_station","arts_centre",
 ]);
 const institutionalOffices = new Set([
- "government","administrative","diplomatic","political_party","association",
+ "government","administrative","diplomatic","political_party",
  "public_authority","public_service","tax","municipality",
 ]);
 const institutionalHealthcare = new Set(["hospital"]);
@@ -32,6 +32,12 @@ export function isExcludedPublicFacility(tags:Record<string,string>):boolean {
  // OSM access=public does not mean publicly operated; exclude explicit
  // government ownership instead of all customer-facing public access.
  if(["government","municipal","state","federal","public"].includes(t("ownership")))return true;
+ // A café, pharmacy or other explicitly tagged business can be named after
+ // a nearby public building. Exclude by the facility tags above, not by a
+ // coincidental word in its business name.
+ if(tags.shop || ["cafe","restaurant","fast_food","bar","pub","pharmacy",
+  "doctors","dentist","veterinary","bank","fuel","car_wash","car_rental"]
+  .includes(t("amenity")))return false;
  const fullName=[tags.name,tags["name:de"],tags.official_name].filter(Boolean).join(" ");
  return institutionalNames.test(fullName);
 }
