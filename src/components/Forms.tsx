@@ -18,7 +18,7 @@ export function CustomerForm({
   const {data,save,refresh}=useStore();
   const [fields,setFields]=useState({
     company:customer?.company||"",contact:customer?.contact||"",
-    email:customer?.email||"",phone:customer?.phone||"",
+    email:customer?.email||"",phone:customer?.phone||"",website:customer?.website||"",
     street:customer?.street||"",zip:customer?.zip||"",
     city:customer?.city||"",industry:customer?.industry||"",
     mobile:customer?.notes?.match(/^Mobil \(Visitenkarte\):\s*(.+)$/m)?.[1]||"",
@@ -51,7 +51,7 @@ export function CustomerForm({
       ...old,company:candidate.company,street:candidate.street||old.street,
       zip:candidate.zip||old.zip,city:candidate.city||old.city,
       phone:candidate.phone||old.phone,email:candidate.email||old.email,
-      industry:candidate.industry||old.industry,
+      industry:candidate.industry||old.industry,website:candidate.website||old.website,
       notes:[old.notes,candidate.website&&!old.notes.includes(candidate.website)?"Webseite laut öffentlichem Standortdatensatz: "+candidate.website:"",
         "Herkunft der Standortdaten: "+candidate.provenance].filter(Boolean).join("\n")
     }));
@@ -67,13 +67,13 @@ export function CustomerForm({
     setCardError("");setCardWarning([]);setCardFields([]);setCardProgress(0);setCardBusy(true);
     setCardRawText("");setCardEvidence({});setCardConfidence(null);
     try{
-      const result=await recognizeStatement(file,ctrl.signal,setCardProgress);
+      const result=await recognizeStatement(file,ctrl.signal,setCardProgress,"business-card");
       if(ctrl.signal.aborted)return;
       const parsed=readBusinessCardText(result.text);
       setCardRawText(result.text);
       setCardEvidence(parsed.evidence);
       setCardConfidence(result.confidence);
-      const items=Object.entries(parsed.fields).filter(([key,val])=>key!=="website"&&!!val);
+      const items=Object.entries(parsed.fields).filter(([,val])=>!!val);
       setFields(old=>{
         const next={...old};
         for(const [key,val] of items){
@@ -84,12 +84,11 @@ export function CustomerForm({
             photoFilled.current[k]=val!;
           }
         }
-        if(parsed.fields.website&&!next.notes.includes(parsed.fields.website))
-          next.notes=[next.notes,"Webseite laut Visitenkarte: "+parsed.fields.website].filter(Boolean).join("\n");
+
         return next;
       });
       setCardWarning(parsed.warnings);
-      setCardFields(items.map(([key])=>({company:"Unternehmen",contact:"Ansprechpartner",jobTitle:"Position",email:"E-Mail",phone:"Telefon",mobile:"Mobil",street:"Straße",zip:"PLZ",city:"Ort"} as Record<string,string>)[key]||key));
+      setCardFields(items.map(([key])=>({company:"Unternehmen",contact:"Ansprechpartner",jobTitle:"Position",email:"E-Mail",website:"Website",phone:"Telefon",mobile:"Mobil",street:"Straße",zip:"PLZ",city:"Ort"} as Record<string,string>)[key]||key));
       setCardImported(items.length>0);
       if(!items.length)setCardError("Keine eindeutigen Visitenkartenangaben erkannt. Bitte ein scharfes, gerade aufgenommenes Foto verwenden oder Daten manuell ergänzen.");
     }catch(e){if(!ctrl.signal.aborted)setCardError((e as Error).message);}
@@ -128,7 +127,7 @@ export function CustomerForm({
         await save("customers",{
           ...customer,
           company:value(f,"company"),contact:value(f,"contact"),
-          email:value(f,"email"),phone:value(f,"phone"),
+          email:value(f,"email"),phone:value(f,"phone"),website:value(f,"website"),
           street:value(f,"street"),zip:value(f,"zip"),
           city:value(f,"city"),industry:value(f,"industry"),
           source:customer?.source||geo?.source||(cardImported?"Visitenkarte (OCR)":"Manuell"),
@@ -146,6 +145,7 @@ export function CustomerForm({
             ["contact","Ansprechpartner","text",160,false],
             ["jobTitle","Position / Tätigkeit","text",160,false],
             ["email","E-Mail","email",254,false],
+            ["website","Website","text",300,false],
             ["phone","Telefon","tel",40,false],
             ["mobile","Mobilnummer","tel",40,false],
             ["street","Straße / Hausnummer","text",200,false],
