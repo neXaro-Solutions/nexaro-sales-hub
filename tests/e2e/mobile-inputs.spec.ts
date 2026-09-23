@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 async function openOffers(page: import("@playwright/test").Page) {
   const menu = page.getByRole("button", { name: "Menü öffnen", exact: true });
   if (await menu.isVisible()) await menu.click();
-  await page.locator("nav").getByRole("button", { name: "Angebote", exact: true }).click();
+  await page.locator("nav").getByRole("button", { name: "Angebote & Rechnungen", exact: true }).click();
 }
 
 test("numeric offer inputs can be cleared and replaced without restored zeros", async ({ page }) => {
