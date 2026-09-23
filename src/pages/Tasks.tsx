@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Plus, Check, Pencil } from "lucide-react";
+import { Plus, Check, Pencil, CalendarPlus } from "lucide-react";
 import { useStore } from "../lib/store";
 import { Card, DivisionBadge, Empty } from "../components/UI";
 import { TaskForm } from "../components/Forms";
 import { dateLabel, today, dayKey } from "../lib/calculations";
 import type { Task, Division } from "../lib/types";
 import { appointmentLabel } from "../lib/appointments";
+import { exportCalendarEvent } from "../lib/iphone-calendar";
 export function Tasks({ division }: { division?: Division }) {
   const { data, save } = useStore();
   const [filter, setFilter] = useState("open"),
@@ -95,6 +96,19 @@ export function Tasks({ division }: { division?: Division }) {
                 {t.notes && <p className="prewrap">{t.notes}</p>}
               </div>
               {t.division && <DivisionBadge division={t.division} />}
+              {t.kind === "Termin" && <button className="secondary" type="button"
+                aria-label={t.title + " zum iPhone-Kalender"}
+                disabled={busy === t.id}
+                onClick={async () => {
+                  setBusy(t.id); setError("");
+                  try {
+                    await exportCalendarEvent(t, data.customers.find(c => c.id === t.customer_id));
+                  } catch(e) {
+                    setError(e instanceof Error ? e.message : "Kalenderdatei konnte nicht erstellt werden.");
+                  } finally { setBusy(""); }
+                }}>
+                <CalendarPlus size={16}/> Kalender
+              </button>}
               <button
                 className="icon-button"
                 aria-label={t.title + " bearbeiten"}
