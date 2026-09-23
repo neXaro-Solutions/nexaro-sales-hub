@@ -349,7 +349,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
             </section>
             <section className="field-compare-new"><span className="eyebrow">ANGEBOT SUMUP</span><h3>{packageName.title}</h3>
               <strong>{money(estimate.data.sumupTotal)}</strong><small>Zahlungen und gewählte Software / Monat</small>
-              <p>{effectiveSidekick.campaignIndex!==null&&effectiveSidekick.domesticShare!==null?"Sidekick-Simulation: "+sumupSidekickFees[effectiveSidekick.campaignIndex].domestic+" % Domestic · "+sumupSidekickFees[effectiveSidekick.campaignIndex].other+" % andere Karten (Freigabe prüfen)":"Öffentlich modelliert: Debit "+estimate.data.sumupDebit+"% · Kredit/Premium "+estimate.data.sumupCredit+"%"}</p>
+              <p>{selectedPlan==="plus"?"Zahlungen Plus: 0,79 % berechtigte EWR-Verbraucherkarten (Domestic) · 1,39 % andere Karten · 19 € pro Monat":effectiveSidekick.campaignIndex!==null&&effectiveSidekick.domesticShare!==null?"Sidekick-Simulation: "+sumupSidekickFees[effectiveSidekick.campaignIndex].domestic+" % Domestic · "+sumupSidekickFees[effectiveSidekick.campaignIndex].other+" % andere Karten (Freigabe prüfen)":"Öffentlich modelliert: Debit "+estimate.data.sumupDebit+"% · Kredit/Premium "+estimate.data.sumupCredit+"%"}</p>
               <p>Zahlungstarif: {packageName.payment} · Software: {packageName.software.join(", ")||"keine"}</p><p>Tarif und Software zusammen: {money(estimate.data.sumupBase)} / Monat</p>
               <p>Regulärer Hardwarepreis separat</p>
             </section>
