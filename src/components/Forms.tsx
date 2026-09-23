@@ -198,7 +198,7 @@ export function TaskForm({
   }
   return (
     <Modal
-      title={task ? "Aufgabe bearbeiten" : "Nächsten Schritt planen"}
+      title={task ? (task.kind === "Termin" ? "Termin bearbeiten" : "Aufgabe bearbeiten") : "Nächsten Schritt planen"}
       onClose={onClose}
     >
       {saved ? (
@@ -226,6 +226,7 @@ export function TaskForm({
         </div>
       ) : (
       <AsyncForm
+        label={task ? "Änderungen speichern" : "Speichern"}
         onSubmit={async (f) => {
           const row = await save("tasks", {
             ...task,
@@ -237,7 +238,8 @@ export function TaskForm({
             notes: value(f, "notes"),
             done: task?.done ?? false,
           });
-          if (row.kind === "Termin") setSaved(row);
+          // Editing returns directly to the calendar without an unnecessary import prompt.
+          if (row.kind === "Termin" && !task) setSaved(row);
           else onClose();
         }}
       >
