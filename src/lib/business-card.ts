@@ -80,7 +80,12 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
  // Job titles are NOT company names. The line before the address is typically
  // the person's role. Prefer a company-specific headline above the person's name.
  const roleRows=lines.filter(l=>role.test(l)&&!/^.+@/.test(l)&&l.length<=90);
- if(roleRows.length===1)put("jobTitle",roleRows[0],roleRows[0]);
+ // A pipe between two professional titles belongs to the role, not the address.
+ // OCR may separate "INHABER | VERTRIEB & BERATUNG" into two lines.
+ const rawRole=raw.split(/\\r?\\n/).map(tidy).find(l=>
+   /(?:inhaber|geschäftsführung|geschäftsführer)\\s*[|¦]\\s*(?:vertrieb|beratung|sales)/i.test(l));
+ if(rawRole)put("jobTitle",rawRole,rawRole);
+ else if(roleRows.length===1)put("jobTitle",roleRows[0],roleRows[0]);
  if(!fields.contact){
   const streetIndex=street?lines.indexOf(street):lines.length;
   const nameCandidates=lines.slice(0,Math.min(streetIndex,24)).filter(l=>isPerson(l)&&!fieldLine.test(l));
