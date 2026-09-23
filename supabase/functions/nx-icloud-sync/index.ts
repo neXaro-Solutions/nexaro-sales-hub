@@ -111,7 +111,7 @@ async function processSync() {
   const href=validate(old?.event_href||new URL("nexaro-"+task.id+".ics",base.endsWith("/")?base:base+"/").href);
   try {
    const result=await dav(href,"PUT",ics(task,customerMap.get(task.customer_id)),{
-    ...(old?.etag?{"If-Match":old.etag}:{"If-None-Match":"*"})
+    ...(old?.etag?{"If-Match":old.etag}:old?.synced_version?{"If-Match":"*"}:{"If-None-Match":"*"})
    });
    if(![200,201,204].includes(result.status))throw Error("Kalendereintrag nicht gespeichert (HTTP "+result.status+").");
    const {error}=await admin.from("nx_icloud_sync").upsert({
