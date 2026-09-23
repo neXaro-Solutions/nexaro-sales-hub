@@ -99,7 +99,7 @@ export async function recognizeStatement(
             ctx.drawImage(canvas,sx,sy,sw,sh,0,0,detail.width,detail.height);
             await worker.setParameters({tessedit_pageseg_mode:region.psm,preserve_interword_spaces:"1"});
             const recognized=await worker.recognize(detail);
-            if(!stopped&&recognized.data.text.trim())text+="\\n"+recognized.data.text;
+            if(!stopped&&recognized.data.text.trim())text+="\n"+recognized.data.text;
           }finally{detail.width=0;detail.height=0;}
         }
       }
