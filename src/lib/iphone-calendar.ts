@@ -57,7 +57,7 @@ export function calendarEvent(task: Task, customer?: Customer, minutes = 60) {
     "STATUS:CONFIRMED",
     "CLASS:PRIVATE",
     "BEGIN:VALARM",
-    "TRIGGER:-PT15M",
+    "TRIGGER:-PT30M",
     "ACTION:DISPLAY",
     "DESCRIPTION:neXaro Termin",
     "END:VALARM",
