@@ -174,8 +174,12 @@ export async function findProspects(
     }
   }catch(e){
     if(cached){lastSearchCached=true;return cached.items;}
-    throw e instanceof Error&&e.message.includes("fetch")
-      ? Error("Beide öffentlichen Suchserver sind nicht erreichbar. Bitte Branche oder Radius eingrenzen; gespeicherte Kunden bleiben verfügbar.")
+    // Network/CSP/timeouts must be distinguished from a legitimate empty result.
+    // Deliberate quota/rate-limit responses remain blocked, not bypassed.
+    const networkFailure=e instanceof TypeError ||
+      (e instanceof Error && (/fetch|network|timeout|abort/i.test(e.message)||e.name==="AbortError"||e.name==="TimeoutError"));
+    throw networkFailure
+      ? Error("Die öffentliche Geschäftssuche antwortet derzeit nicht. Dein GPS kann trotzdem funktionieren: bitte Ort/PLZ erneut suchen, Branche wählen oder Radius verkleinern. Bei erneuter Störung später versuchen.")
       :e;
   }
   const found=(json.elements || [])
