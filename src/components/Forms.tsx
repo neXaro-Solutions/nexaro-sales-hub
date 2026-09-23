@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImageUp, CalendarPlus } from "lucide-react";
+import { Camera, ImageUp, CalendarPlus, Trash2 } from "lucide-react";
 import { recognizeStatement } from "../lib/ocr";
 import { readBusinessCardText } from "../lib/business-card";
 import { GeoCustomerCapture,type GeoCustomerDraft } from "./GeoCustomerCapture";
@@ -176,7 +176,10 @@ export function TaskForm({
   division?: Division;
   onClose: () => void;
 }) {
-  const { data, save } = useStore();
+  const { data, save, remove } = useStore();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [saved, setSaved] = useState<Task | null>(null);
   const [calendarMessage, setCalendarMessage] = useState("");
   const [calendarBusy, setCalendarBusy] = useState(false);
@@ -303,6 +306,41 @@ export function TaskForm({
         </Field>
       </AsyncForm>
       )}
+      {task && !saved && <div className="nx-appointment-delete">
+        {!confirmDelete ? (
+          <button type="button" className="nx-delete-trigger" disabled={deleting}
+            onClick={() => { setConfirmDelete(true); setDeleteError(""); }}>
+            <Trash2 size={17}/> {task.kind === "Termin" ? "Termin löschen" : "Eintrag löschen"}
+          </button>
+        ) : (
+          <div className="nx-delete-confirm" role="group" aria-label="Löschen bestätigen">
+            <strong>{task.kind === "Termin" ? "Diesen Termin endgültig löschen?" : "Diesen Eintrag endgültig löschen?"}</strong>
+            <p>„{task.title}“ wird aus dem CRM und dem Dashboard entfernt.
+              Falls dieser Termin bereits durch die automatische CRM-iCloud-Verbindung übertragen wurde,
+              wird auch dieser iCloud-Eintrag beim Kalenderabgleich entfernt.</p>
+            <div className="button-row">
+              <button type="button" className="nx-delete-confirm-button" disabled={deleting}
+                onClick={async () => {
+                  if (deleting) return;
+                  setDeleting(true); setDeleteError("");
+                  try {
+                    await remove("tasks", task.id);
+                    onClose();
+                  } catch(e) {
+                    setDeleteError(e instanceof Error ? e.message : "Der Termin konnte nicht gelöscht werden.");
+                  } finally { setDeleting(false); }
+                }}>
+                <Trash2 size={16}/> {deleting ? "Wird gelöscht …" : "Ja, endgültig löschen"}
+              </button>
+              <button type="button" className="secondary" disabled={deleting}
+                onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        )}
+        {deleteError && <p role="alert" className="error">{deleteError}</p>}
+      </div>}
     </Modal>
   );
 }
