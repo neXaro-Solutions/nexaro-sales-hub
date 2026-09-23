@@ -214,6 +214,12 @@ export function DataProvider({
     }
     ++generation.current;
     setData((d) => ({ ...d, [entity]: d[entity].filter((x) => x.id !== id) }));
+    // If iCloud is connected, only the server-side sync knows the owned
+    // CalDAV event identifier and can remove the corresponding event.
+    // A failed calendar request never undoes a successful CRM deletion.
+    if (entity === "tasks" && !demo) {
+      void client.functions.invoke("nx-icloud-sync", { body: { action: "sync" } }).catch(() => undefined);
+    }
   }
   async function importProducts(products: Partial<Row<"products">>[]) {
     if (demo) {
