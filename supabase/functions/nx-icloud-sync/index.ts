@@ -36,12 +36,22 @@ const toAuth=()=>{
  return "Basic "+btoa(String.fromCharCode(...value));
 };
 async function dav(target:string,method:string,body?:string,additional:Record<string,string>={}) {
- const response=await fetch(validate(target),{method,headers:{
-  Authorization:toAuth(),...additional,...(body?{"Content-Type":method==="PUT"?"text/calendar; charset=utf-8":"application/xml; charset=utf-8"}:{})
- },body,signal:AbortSignal.timeout(18000),redirect:"follow"});
- validate(response.url);
- if(response.status===401||response.status===403)throw Error("iCloud-Zugriff nicht autorisiert. Anwendungsspezifisches Passwort prüfen.");
- return response;
+ let current=validate(target);
+ for(let step=0;step<5;step++){
+  const response=await fetch(current,{method,headers:{
+   Authorization:toAuth(),...additional,...(body?{"Content-Type":method==="PUT"?"text/calendar; charset=utf-8":"application/xml; charset=utf-8"}:{})
+  },body,signal:AbortSignal.timeout(18000),redirect:"manual"});
+  if([301,302,307,308].includes(response.status)){
+   const destination=response.headers.get("location");
+   if(!destination)throw Error("Ungültige CalDAV-Weiterleitung.");
+   // Never forward the Apple credential to a non-iCloud host.
+   current=validate(new URL(destination,current).href);
+   continue;
+  }
+  if(response.status===401||response.status===403)throw Error("iCloud-Zugriff nicht autorisiert. Anwendungsspezifisches Passwort prüfen.");
+  return response;
+ }
+ throw Error("Zu viele iCloud CalDAV-Weiterleitungen.");
 }
 async function propfind(target:string,property:string,depth="0") {
  const response=await dav(target,"PROPFIND",reqXml(property),{Depth:depth});
