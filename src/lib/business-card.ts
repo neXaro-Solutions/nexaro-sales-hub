@@ -134,8 +134,11 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
   if(!candidate&&!fields.company&&candidates.length===1)candidate=candidates[0];
   // "SOLUTIONS" alone is not the firm's identity when the domain carries a
   // distinct brand. A missing graphic logo must remain uncertain.
-  if(candidate&&/^(?:solutions?|services?|consulting|beratung)$/i.test(candidate.trim())&&
-     stems.some(stem=>!folded(candidate).includes(stem)&&stem!==folded(candidate)))candidate=undefined;
+  if(candidate){
+   const candidateToken=folded(candidate);
+   if(/^(?:solutions?|services?|consulting|beratung)$/i.test(candidate.trim())&&
+      stems.some(stem=>stem!==candidateToken&&stem.includes(candidateToken)))candidate=undefined;
+  }
   if(candidate)put("company",candidate,candidate);
   // A logo may be returned as two adjacent OCR lines, e.g. "neXaro" / "Solutions".
   if(!candidate&&!fields.company)for(let i=0;i<upper.length-1;i++){
