@@ -20,6 +20,7 @@ export type Customer = Base & {
   contact: string;
   email: string;
   phone: string;
+  website: string;
   street: string;
   zip: string;
   city: string;
