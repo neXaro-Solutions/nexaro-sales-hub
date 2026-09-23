@@ -29,7 +29,7 @@ describe("iPhone calendar .ics export", () => {
   expect(s).toContain("SEQUENCE:2");
   expect(s).toContain("DTSTART:20261201T090000Z");
   expect(s).toContain("DTEND:20261201T103000Z");
-  expect(s).toContain("TRIGGER:-PT15M");
+  expect(s).toContain("TRIGGER:-PT30M");
   expect(s).toContain("LOCATION:Kirchstraße 1A\\, 15757 Halbe");
   expect(s).toContain("SUMMARY:SumUp Besuch\\; Beratung · Café Müller");
   expect(s).toContain("Kunde: Café Müller\\nKontakt: Max Mustermann");
