@@ -3,7 +3,7 @@ export async function recognizeStatement(
   file: File,
   signal: AbortSignal,
   progress: (value: number) => void,
-  mode: "statement" | "general" = "general",
+  mode: "statement" | "general" | "business-card" = "general",
 ) {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
     throw Error(
@@ -77,6 +77,32 @@ export async function recognizeStatement(
       });
       const { data } = await worker.recognize(canvas);
       let text=data.text;
+      if(mode==="business-card"&&!stopped){
+        // Highly graphic cards: read the text-heavy left side separately,
+        // then enlarge the wordmark. Results are deduplicated by the parser.
+        const regions=[
+          {x:0,y:0,w:.66,h:1,psm:PSM.AUTO},
+          {x:0,y:0,w:.62,h:.32,psm:PSM.SINGLE_BLOCK},
+        ];
+        for(const region of regions){
+          if(signal.aborted||stopped)break;
+          const detail=document.createElement("canvas");
+          try{
+            const sx=Math.round(canvas.width*region.x),sy=Math.round(canvas.height*region.y);
+            const sw=Math.round(canvas.width*region.w),sh=Math.round(canvas.height*region.h);
+            const scale=Math.min(2.4,4200/Math.max(sw,sh));
+            detail.width=Math.max(1,Math.round(sw*scale));
+            detail.height=Math.max(1,Math.round(sh*scale));
+            const ctx=detail.getContext("2d");
+            if(!ctx)continue;
+            ctx.fillStyle="#fff";ctx.fillRect(0,0,detail.width,detail.height);
+            ctx.drawImage(canvas,sx,sy,sw,sh,0,0,detail.width,detail.height);
+            await worker.setParameters({tessedit_pageseg_mode:region.psm,preserve_interword_spaces:"1"});
+            const recognized=await worker.recognize(detail);
+            if(!stopped&&recognized.data.text.trim())text+="\\n"+recognized.data.text;
+          }finally{detail.width=0;detail.height=0;}
+        }
+      }
       if(mode==="statement"&&!stopped){
         // The general page layout OCR commonly reads the debit card share but
         // drops the adjacent small fee percentage in multi-column statements.
