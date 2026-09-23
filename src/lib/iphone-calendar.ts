@@ -3,7 +3,7 @@ import { address } from "./calculations";
 
 /** Private, on-device iCalendar transfer. Nothing is sent to an external calendar service. */
 const escapeIcs = (value: string) =>
-  value.replace(/\r\n?|\n/g, "\\n").replace(/\\/g, "\\\\")
+  value.replace(/\\/g, "\\\\").replace(/\r\n?|\n/g, "\\n")
     .replace(/;/g, "\\;").replace(/,/g, "\\,");
 const utc = (date: Date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 const folded = (line: string) => {
