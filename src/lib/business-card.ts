@@ -105,7 +105,7 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
   if(brandParts.length>=2){
    const tokens=raw.split(/\r?\n/).flatMap(row=>
     row.split(/\s+/).map(token=>token.replace(/^[^\p{L}]+|[^\p{L}]+$/gu,"")
-     .replace(/[\\|/]/g,"")).filter(Boolean));
+     .replace(/[^\p{L}\p{M}-]/gu,"")).filter(Boolean));
    const matched=brandParts.map(part=>tokens.find(token=>folded(token)===folded(part)));
    if(matched.every(Boolean)){
     put("company",matched.join(" "),matched.join(" + ")+" · Domain: "+domain);
