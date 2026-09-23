@@ -66,6 +66,30 @@ describe("SumUp needs-based package and honest cost comparison",()=>{
   expect(selectedPackageName(changed).title).toBe("Zahlungen Plus");
   expect(compareSelectedSumup(input,changed).sumupTotal).toBeCloseTo(6000*.8*.0079+6000*.2*.0139+19,2);
  });
+ it("selecting Zahlungen Plus resets a manually selected Sidekick rate and applies 0.79 percent Domestic",()=>{
+   const previous={...emptySidekickSelection,licenses:["posplus"],campaignIndex:3,
+     campaignSource:"manual" as const,campaignAuthorized:true,domesticShare:80};
+   const plus=chooseSidekickLicense(previous,"payments");
+   expect(plus.licenses).toEqual(["payments"]);
+   expect(plus.campaignIndex).toBeNull();
+   expect(plus.campaignAuthorized).toBe(false);
+   expect(plus.campaignSource).toBeUndefined();
+   const cost=compareSelectedSumup(input,plus);
+   expect(cost.sumupDebit).toBe(0.79);
+   expect(cost.sumupCredit).toBe(1.39);
+   expect(cost.sumupBase).toBe(19);
+   expect(cost.sumupTotal).toBeCloseTo(6000*.8*.0079+6000*.2*.0139+19,2);
+ });
+ it("ignores stale custom Domestic rate in a saved Zahlungen Plus configuration",()=>{
+   const stale={...emptySidekickSelection,licenses:["payments"],campaignIndex:3,
+     campaignSource:"manual" as const,domesticShare:80,campaignAuthorized:true};
+   const cost=compareSelectedSumup(input,stale);
+   expect(cost.sumupDebit).toBe(0.79);
+   expect(cost.sumupBase).toBe(19);
+   expect(cost.sumupTotal).toBeCloseTo(6000*.8*.0079+6000*.2*.0139+19,2);
+   expect(cost.note).toContain("Öffentliche Zahlungskondition");
+   expect(cost.note).not.toContain("Sidekick-Kondition als");
+ });
  it("monthly and annual Kassensystem Plus replace one another",()=>{
   const initial={...emptySidekickSelection,licenses:["posplus","kds"]};
   const chosen=chooseSidekickLicense(initial,"posannual");
