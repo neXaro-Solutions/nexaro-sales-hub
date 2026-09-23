@@ -184,3 +184,17 @@ test("weather handles failure and retry with mocked responses", async ({
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
+
+
+test("dashboard calendar navigates months, selects days and opens CRM tasks", async ({ page }) => {
+  await page.goto("/?demo=1");
+  const calendar = page.locator(".nx-calendar-card");
+  await expect(calendar.getByRole("heading", { name: "Dein Außendienst-Kalender" })).toBeVisible();
+  expect([28, 35, 42]).toContain(await calendar.getByRole("group", { name: /Kalender/ }).getByRole("button").count());
+  await calendar.getByRole("button", { name: "Nächster Monat" }).click();
+  await expect(calendar.getByRole("button", { name: / · 0 Einträge/ }).first()).toBeVisible();
+  await calendar.getByRole("button", { name: "Heute", exact: true }).click();
+  await expect(calendar.getByText("Kartenzahlungsanalyse besprechen")).toBeVisible();
+  await calendar.getByRole("button", { name: /Alle Termine & Wiedervorlagen/ }).click();
+  await expect(page.getByRole("heading", { name: "Termine & Wiedervorlagen" })).toBeVisible();
+});
