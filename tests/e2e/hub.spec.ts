@@ -219,3 +219,31 @@ test("dashboard appointment opens and saves the existing CRM record directly", a
   await calendar.getByRole("button", { name: "SumUp Termin aktualisiert bearbeiten" }).click();
   await expect(page.locator("dialog").getByLabel("Termin- / Aufgabenhinweise")).toHaveValue("Konditionen vergleichen");
 });
+
+
+test("delete existing appointment from dashboard with cancel and confirmation", async ({ page }) => {
+  await page.goto("/?demo=1");
+  const calendar = page.locator(".nx-calendar-card");
+  await calendar.getByRole("button", { name: "Termin", exact: true }).click();
+  const dialog = page.locator("dialog");
+  await dialog.getByLabel("Art des Eintrags").selectOption("Termin");
+  await dialog.getByLabel("Was steht an? *").fill("Termin zum Löschen");
+  await dialog.getByLabel("Kunde").selectOption("demo-c1");
+  await dialog.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Zum iPhone-Kalender" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Fertig", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await calendar.getByRole("button", { name: "Termin zum Löschen bearbeiten" }).click();
+  await expect(dialog.getByRole("heading", { name: "Termin bearbeiten" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Termin löschen" }).click();
+  await expect(dialog.getByRole("group", { name: "Löschen bestätigen" })).toContainText("Termin zum Löschen");
+  await dialog.getByRole("button", { name: "Abbrechen" }).click();
+  await expect(dialog.getByRole("button", { name: "Ja, endgültig löschen" })).toHaveCount(0);
+  await expect(dialog.getByLabel("Was steht an? *")).toHaveValue("Termin zum Löschen");
+  await dialog.getByRole("button", { name: "Termin löschen" }).click();
+  await dialog.getByRole("button", { name: "Ja, endgültig löschen" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(calendar.getByRole("button", { name: "Termin zum Löschen bearbeiten" })).toHaveCount(0);
+  await calendar.getByRole("button", { name: /Alle Termine & Wiedervorlagen/ }).click();
+  await expect(page.getByText("Termin zum Löschen")).toHaveCount(0);
+});
