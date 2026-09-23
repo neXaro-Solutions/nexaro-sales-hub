@@ -190,6 +190,12 @@ export function DataProvider({
       ...d,
       [entity]: [row, ...d[entity].filter((x) => x.id !== row.id)],
     }));
+    // Server is disabled until the owner connects iCloud. Once enabled, every
+    // saved task initiates a best-effort one-way calendar update. A failed
+    // calendar request never rolls back the correctly saved CRM record.
+    if(entity === "tasks") {
+      void client.functions.invoke("nx-icloud-sync", { body: { action: "sync" } }).catch(() => undefined);
+    }
     return row;
   }
   async function remove(entity: Entity, id: string) {
