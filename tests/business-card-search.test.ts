@@ -75,6 +75,24 @@ describe("web business-card scan mapping",()=>{
   const {fields}=readBusinessCardText("neXaro\nSolutions\nSebastian Pötschke\nAußendienst & Vertrieb\nFriedrichstraße 100\n10117 Berlin Mitte\nkontakt@nexaro-solutions.de");
   expect(fields.company).toBe("neXaro Solutions");
  });
+ it("extracts the supplied graphic business card with a combined address and unlabelled phone",()=>{
+  const raw=[
+   "neXaro", "SOLUTIONS", "Einfach. Mehr. Möglichkeiten.",
+   "Sebastian Pötschke", "INHABER | VERTRIEB & BERATUNG",
+   "0171 90 98 831", "Kontakt@nexaro-solutions.de",
+   "Kirchstraße 1A | 15757 Halbe", "www.nexaro-solutions.de",
+   "Payment Lösungen", "Scan mich!"
+  ].join("\n");
+  const read=readBusinessCardText(raw);
+  expect(read.fields.contact).toBe("Sebastian Pötschke");
+  expect(read.fields.company).toBe("neXaro SOLUTIONS");
+  expect(read.fields.street).toBe("Kirchstraße 1A");
+  expect(read.fields.zip).toBe("15757");
+  expect(read.fields.city).toBe("Halbe");
+  expect(read.fields.phone).toBe("0171 90 98 831");
+  expect(read.fields.email).toBe("kontakt@nexaro-solutions.de");
+  expect(read.fields.website).toBe("www.nexaro-solutions.de");
+ });
  it("does not invent a named contact from a business letterhead",()=>{
   const read=readBusinessCardText("Stadtcafé Musterblick\nAlexanderplatz 1\n10178 Berlin");
   expect(read.fields.company).toBe("Stadtcafé Musterblick");
