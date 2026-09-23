@@ -333,3 +333,16 @@ button.nx-calendar-entry:focus-visible{outline:3px solid #ff671f;outline-offset:
 .nx-calendar-edit{display:inline-flex;align-items:center;gap:6px;margin-top:7px;color:#a64108;font-size:12px;font-weight:800}
 .nx-calendar-entry-notes{display:block}
 @media(max-width:700px){button.nx-calendar-entry{min-height:86px;touch-action:manipulation}.nx-calendar-edit{font-size:13px}}
+
+
+/* Appointment deletion is deliberately separate from saving and requires confirmation. */
+.nx-appointment-delete{margin-top:18px;padding-top:15px;border-top:1px solid #e3e9da}
+.nx-delete-trigger{display:inline-flex;align-items:center;gap:8px;padding:10px 13px;min-height:44px;border:1px solid #f3beb5;border-radius:10px;background:#fff7f5;color:#a62f20;font-size:13px;font-weight:800;cursor:pointer}
+.nx-delete-trigger:hover{background:#ffebe7;border-color:#e99585}
+.nx-delete-confirm{border:1px solid #f1c3bb;border-radius:12px;padding:15px;background:#fff8f6;color:#51261c}
+.nx-delete-confirm>strong{font-size:14px;color:#8a2c20}
+.nx-delete-confirm p{margin:8px 0 13px;font-size:12px;line-height:1.6;color:#69443a}
+.nx-delete-confirm-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border:1px solid #a93027;background:#b93529;color:#fff;border-radius:9px;font-size:13px;font-weight:800;min-height:44px;cursor:pointer}
+.nx-delete-confirm-button:hover:not(:disabled){background:#96261d}
+.nx-delete-confirm-button:disabled,.nx-delete-trigger:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:520px){.nx-delete-confirm .button-row{display:flex;flex-direction:column}.nx-delete-confirm .button-row button{width:100%}}
