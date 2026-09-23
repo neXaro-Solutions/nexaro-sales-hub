@@ -100,12 +100,12 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
  // from the domain alone, e.g. a shop using a generic provider address.
  if(!fields.company){
   const domain=(fields.website||fields.email?.split("@")[1]||"")
-   .replace(/^https?:\\/\\//i,"").replace(/^www\\./i,"").split(".")[0];
+   .replace(/^https?:\/\//i,"").replace(/^www\./i,"").split(".")[0];
   const brandParts=domain.split("-").filter(part=>part.length>=4);
   if(brandParts.length>=2){
-   const tokens=raw.split(/\\r?\\n/).flatMap(row=>
-    row.split(/\\s+/).map(token=>token.replace(/^[^\\p{L}]+|[^\\p{L}]+$/gu,"")
-     .replace(/[\\\\|/]/g,"")).filter(Boolean));
+   const tokens=raw.split(/\r?\n/).flatMap(row=>
+    row.split(/\s+/).map(token=>token.replace(/^[^\p{L}]+|[^\p{L}]+$/gu,"")
+     .replace(/[\\|/]/g,"")).filter(Boolean));
    const matched=brandParts.map(part=>tokens.find(token=>folded(token)===folded(part)));
    if(matched.every(Boolean)){
     put("company",matched.join(" "),matched.join(" + ")+" · Domain: "+domain);
