@@ -198,3 +198,24 @@ test("dashboard calendar navigates months, selects days and opens CRM tasks", as
   await calendar.getByRole("button", { name: /Alle Termine & Wiedervorlagen/ }).click();
   await expect(page.getByRole("heading", { name: "Termine & Wiedervorlagen" })).toBeVisible();
 });
+
+
+test("dashboard appointment opens and saves the existing CRM record directly", async ({ page }) => {
+  await page.goto("/?demo=1");
+  const calendar = page.locator(".nx-calendar-card");
+  const first = calendar.getByRole("button", { name: "Kartenzahlungsanalyse besprechen bearbeiten" });
+  await expect(first).toBeVisible();
+  await first.click();
+  const dialog = page.locator("dialog");
+  await expect(dialog.getByRole("heading", { name: "Aufgabe bearbeiten" })).toBeVisible();
+  await expect(dialog.getByLabel("Was steht an? *")).toHaveValue("Kartenzahlungsanalyse besprechen");
+  await expect(dialog.getByLabel("Kunde")).toHaveValue("demo-c1");
+  await dialog.getByLabel("Was steht an? *").fill("SumUp Termin aktualisiert");
+  await dialog.getByLabel("Termin- / Aufgabenhinweise").fill("Konditionen vergleichen");
+  await dialog.getByRole("button", { name: "Änderungen speichern" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(calendar.getByRole("button", { name: "SumUp Termin aktualisiert bearbeiten" })).toBeVisible();
+  await expect(calendar.getByRole("button", { name: "Kartenzahlungsanalyse besprechen bearbeiten" })).toHaveCount(0);
+  await calendar.getByRole("button", { name: "SumUp Termin aktualisiert bearbeiten" }).click();
+  await expect(page.locator("dialog").getByLabel("Termin- / Aufgabenhinweise")).toHaveValue("Konditionen vergleichen");
+});
