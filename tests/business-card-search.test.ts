@@ -94,6 +94,31 @@ describe("web business-card scan mapping",()=>{
   expect(read.fields.email).toBe("kontakt@nexaro-solutions.de");
   expect(read.fields.website).toBe("www.nexaro-solutions.de");
  });
+ it("recovers details from actual OCR passes of the uploaded graphic card",()=>{
+  const raw=[
+   "meN","SOLUTIONS","{aro",
+   "VERTRIEB + PAYMENT - TRENDPRODUKTE - RETAIL-SERVICE",
+   "Sebastian Pötschke","INHABER | VERTRIEB & BERATUNG",
+   "0171 90 98 831","DI Kontakt@ nexaro-solutions.de",
+   "© Kirchstraße 1A | 15757 Halbe","www.nexaro-solutions.de",
+   "SOLUTIONS","ne\\\\Xaro !}"
+  ].join("\\n");
+  const result=readBusinessCardText(raw);
+  expect(result.fields.company).toBe("neXaro SOLUTIONS");
+  expect(result.fields.contact).toBe("Sebastian Pötschke");
+  expect(result.fields.jobTitle).toBe("INHABER | VERTRIEB & BERATUNG");
+  expect(result.fields.phone).toBe("0171 90 98 831");
+  expect(result.fields.email).toBe("kontakt@nexaro-solutions.de");
+  expect(result.fields.street).toBe("Kirchstraße 1A");
+  expect(result.fields.zip).toBe("15757");
+  expect(result.fields.city).toBe("Halbe");
+  expect(result.fields.website).toBe("www.nexaro-solutions.de");
+ });
+ it("does not promote a generic logo fragment to a complete company",()=>{
+  const result=readBusinessCardText("SOLUTIONS\\nSebastian Pötschke\\nINHABER | VERTRIEB & BERATUNG\\nKirchstraße 1A | 15757 Halbe\\nwww.nexaro-solutions.de");
+  expect(result.fields.company).toBeUndefined();
+  expect(result.warnings.some(w=>w.includes("Unternehmen"))).toBe(true);
+ });
  it("does not invent a named contact from a business letterhead",()=>{
   const read=readBusinessCardText("Stadtcafé Musterblick\nAlexanderplatz 1\n10178 Berlin");
   expect(read.fields.company).toBe("Stadtcafé Musterblick");
