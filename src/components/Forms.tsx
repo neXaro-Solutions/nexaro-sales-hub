@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, ImageUp } from "lucide-react";
+import { Camera, ImageUp, CalendarPlus } from "lucide-react";
 import { recognizeStatement } from "../lib/ocr";
 import { readBusinessCardText } from "../lib/business-card";
 import { GeoCustomerCapture,type GeoCustomerDraft } from "./GeoCustomerCapture";
@@ -7,7 +7,8 @@ import { useStore } from "../lib/store";
 import { Modal, AsyncForm, Field, value } from "./UI";
 import { today } from "../lib/calculations";
 import type { Customer, Task, Division } from "../lib/types";
-import { appointmentTime, berlinDateTime } from "../lib/appointments";
+import { appointmentTime, berlinDateTime, appointmentLabel } from "../lib/appointments";
+import { exportCalendarEvent } from "../lib/iphone-calendar";
 export function CustomerForm({
   customer,onClose,
 }: {
@@ -176,14 +177,57 @@ export function TaskForm({
   onClose: () => void;
 }) {
   const { data, save } = useStore();
+  const [saved, setSaved] = useState<Task | null>(null);
+  const [calendarMessage, setCalendarMessage] = useState("");
+  const [calendarBusy, setCalendarBusy] = useState(false);
+  const [minutes, setMinutes] = useState(60);
+  const relatedCustomer = data.customers.find(c => c.id === saved?.customer_id);
+  async function addToCalendar() {
+    if (!saved || calendarBusy) return;
+    setCalendarBusy(true);
+    try {
+      const result = await exportCalendarEvent(saved, relatedCustomer, minutes);
+      setCalendarMessage(result === "shared"
+        ? "Kalenderdatei geteilt. Bitte auf dem iPhone den Termin im gewünschten Kalender bestätigen."
+        : result === "downloaded"
+        ? "Kalenderdatei bereitgestellt. Auf dem iPhone bei Bedarf über Dateien oder Mail öffnen und den Termin hinzufügen."
+        : "Kalenderübernahme abgebrochen – der CRM-Termin bleibt gespeichert.");
+    } catch(e) {
+      setCalendarMessage(e instanceof Error ? e.message : "Kalenderdatei konnte nicht bereitgestellt werden.");
+    } finally { setCalendarBusy(false); }
+  }
   return (
     <Modal
       title={task ? "Aufgabe bearbeiten" : "Nächsten Schritt planen"}
       onClose={onClose}
     >
+      {saved ? (
+        <div className="calendar-transfer">
+          <p className="notice" role="status">Termin im neXaro CRM gespeichert: <strong>{saved.title}</strong> · {appointmentLabel(saved.due_at)}</p>
+          <p>Jetzt kannst du den Eintrag inklusive Kunde, Adresse, Telefonnummer und Notizen in deinen iPhone-Kalender übernehmen. Die Übernahme erfolgt erst nach deiner Bestätigung am iPhone.</p>
+          <Field label="Kalenderdauer">
+            <select value={minutes} onChange={e => setMinutes(Number(e.target.value))}>
+              <option value={15}>15 Minuten</option>
+              <option value={30}>30 Minuten</option>
+              <option value={60}>60 Minuten</option>
+              <option value={90}>90 Minuten</option>
+              <option value={120}>2 Stunden</option>
+            </select>
+          </Field>
+          <div className="button-row">
+            <button className="primary" type="button" disabled={calendarBusy}
+              onClick={() => void addToCalendar()}>
+              <CalendarPlus size={17}/> {calendarBusy ? "Kalender wird vorbereitet …" : "Zum iPhone-Kalender"}
+            </button>
+            <button className="secondary" type="button" onClick={onClose}>Fertig</button>
+          </div>
+          {calendarMessage && <p role="status" className="hint">{calendarMessage}</p>}
+          <p className="hint">Dies ist eine manuelle Kalenderübernahme, keine laufende Zwei-Wege-Synchronisierung. Änderungen im CRM werden nicht automatisch im iPhone-Kalender aktualisiert.</p>
+        </div>
+      ) : (
       <AsyncForm
         onSubmit={async (f) => {
-          await save("tasks", {
+          const row = await save("tasks", {
             ...task,
             title: value(f, "title"),
             customer_id: value(f, "customer_id") || null,
@@ -193,7 +237,8 @@ export function TaskForm({
             notes: value(f, "notes"),
             done: task?.done ?? false,
           });
-          onClose();
+          if (row.kind === "Termin") setSaved(row);
+          else onClose();
         }}
       >
         <Field label="Art des Eintrags">
@@ -255,6 +300,7 @@ export function TaskForm({
           />
         </Field>
       </AsyncForm>
+      )}
     </Modal>
   );
 }
