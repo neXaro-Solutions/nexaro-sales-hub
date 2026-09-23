@@ -95,6 +95,24 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
    if(beforeRole.length===1)put("contact",beforeRole[0],beforeRole[0]);
   }
  }
+ // Reassemble stylized, split wordmarks only when BOTH visible logo parts agree
+ // with an independently read website or email domain. Never infer a company
+ // from the domain alone, e.g. a shop using a generic provider address.
+ if(!fields.company){
+  const domain=(fields.website||fields.email?.split("@")[1]||"")
+   .replace(/^https?:\\/\\//i,"").replace(/^www\\./i,"").split(".")[0];
+  const brandParts=domain.split("-").filter(part=>part.length>=4);
+  if(brandParts.length>=2){
+   const tokens=raw.split(/\\r?\\n/).flatMap(row=>
+    row.split(/\\s+/).map(token=>token.replace(/^[^\\p{L}]+|[^\\p{L}]+$/gu,"")
+     .replace(/[\\\\|/]/g,"")).filter(Boolean));
+   const matched=brandParts.map(part=>tokens.find(token=>folded(token)===folded(part)));
+   if(matched.every(Boolean)){
+    put("company",matched.join(" "),matched.join(" + ")+" · Domain: "+domain);
+    warnings.push("Grafisches Firmenlogo aus Textfragmenten und unabhängig erkannter Domain zusammengesetzt. Bitte Schreibweise kontrollieren.");
+   }
+  }
+ }
  if(!fields.company){
   const contactIndex=fields.contact?lines.findIndex(l=>l===fields.contact):lines.length;
   const upper=lines.slice(0,Math.min(Math.max(contactIndex,0),20));
