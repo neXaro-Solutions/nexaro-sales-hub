@@ -12,6 +12,52 @@ export type Prospect = {
   lng: number;
   category: string;
 };
+
+const searchCache = new Map<string,{at:number;items:Prospect[]}>();
+const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
+let searchCooldownUntil = 0;
+let lastSearchCached = false;
+export function wasProspectSearchCached() { return lastSearchCached; }
+function searchKey(center:{lat:number;lng:number},radius:number,category:string){
+ return ["nx-search-v3",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+}
+function readSearchCache(key:string){
+ const hit=searchCache.get(key);
+ if(hit&&hit.at>Date.now()-searchCacheMax)return hit;
+ try {
+  const value=sessionStorage.getItem(key);
+  if(!value)return null;
+  const data=JSON.parse(value) as {at:number;items:Prospect[]};
+  if(!Number.isFinite(data.at)||data.at<Date.now()-searchCacheMax||!Array.isArray(data.items))return null;
+  searchCache.set(key,data);
+  return data;
+ }catch{return null;}
+}
+function writeSearchCache(key:string,items:Prospect[]){
+ const data={at:Date.now(),items};searchCache.set(key,data);
+ try{sessionStorage.setItem(key,JSON.stringify(data));}catch{/* private browsing */}
+}
+async function overpassRequest(url:string,query:string){
+ const response=await fetch(url,{
+  method:"POST",body:new URLSearchParams({data:query}),headers:{Accept:"application/json"},
+  referrerPolicy:"strict-origin-when-cross-origin",signal:AbortSignal.timeout(45000)
+ });
+ if(response.status===429||response.status===406){
+  searchCooldownUntil=Date.now()+30000;
+  throw Object.assign(Error("Der öffentliche Suchdienst begrenzt gerade Anfragen. Bitte etwa 30 Sekunden warten, Branche auswählen oder Radius verkleinern."),{code:"LIMIT"});
+ }
+ if([500,502,503,504].includes(response.status))
+  throw Object.assign(Error("Der Suchserver ist vorübergehend nicht erreichbar."),{code:"SERVER"});
+ if(!response.ok)
+  throw Object.assign(Error("Unternehmenssuche: HTTP "+response.status+". Bitte erneut versuchen."),{code:"HTTP"});
+ const json=await response.json();
+ if(json.remark)
+  throw Object.assign(Error("Die Abfrage war zu groß. Bitte Branche auswählen oder Radius verkleinern."),{code:"TOO_BROAD"});
+ if(!Array.isArray(json.elements))
+  throw Object.assign(Error("Der Suchserver lieferte keine gültigen Geschäftsdaten."),{code:"INVALID"});
+ return json as {elements:unknown[]};
+}
+
 let lastGeocode = 0;
 const cache = new Map<
   string,
@@ -92,6 +138,17 @@ export async function findProspects(
     radius > 30
   )
     throw Error("Ungültiger Suchbereich.");
+  const key=searchKey(center,radius,category);
+  const cached=readSearchCache(key);
+  lastSearchCached=false;
+  if(cached&&Date.now()-cached.at<searchCacheFresh){
+   lastSearchCached=true;
+   return cached.items;
+  }
+  if(Date.now()<searchCooldownUntil){
+   if(cached){lastSearchCached=true;return cached.items;}
+   throw Error("Bitte etwa 30 Sekunden warten: Der öffentliche Suchserver hat eine Anfragesperre gemeldet.");
+  }
   const radiusMeters=Math.round(radius*1000);
   const selectors:Record<string,string[]>={
     all:['["shop"]','["amenity"~"^(restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|dentist|doctors|veterinary|fuel|car_wash|car_rental|marketplace|biergarten|nightclub)$"]','["craft"]','["office"]','["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]','["healthcare"]','["leisure"~"^(fitness_centre|sports_centre|bowling_alley)$"]'],
@@ -105,21 +162,23 @@ export async function findProspects(
   const chosen=selectors[category]||selectors.all;
   const union=chosen.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
   const q=`[out:json][timeout:40];(${union});out center tags 1200;`;
-  const response = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    body: new URLSearchParams({ data: q }),
-    signal: AbortSignal.timeout(50000),
-  });
-  if (!response.ok)
-    throw Error(
-      "Die öffentliche Unternehmenssuche ist ausgelastet. Bitte später erneut versuchen.",
-    );
-  const json = await response.json();
-  if (json.remark)
-    throw Error(
-      "Die Suche wurde nicht vollständig ausgeführt. Bitte Radius verkleinern.",
-    );
-  return (json.elements || [])
+  let json:{elements:unknown[]};
+  try {
+    try {
+      json=await overpassRequest("https://overpass-api.de/api/interpreter",q);
+    } catch(e) {
+      const code=(e as {code?:string})?.code;
+      // Do not evade public API 429/406 quotas or re-run queries rejected as too broad.
+      if(code&&code!=="SERVER")throw e;
+      json=await overpassRequest("https://overpass.private.coffee/api/interpreter",q);
+    }
+  }catch(e){
+    if(cached){lastSearchCached=true;return cached.items;}
+    throw e instanceof Error&&e.message.includes("fetch")
+      ? Error("Beide öffentlichen Suchserver sind nicht erreichbar. Bitte Branche oder Radius eingrenzen; gespeicherte Kunden bleiben verfügbar.")
+      :e;
+  }
+  const found=(json.elements || [])
     .map(
       (e: {
         id: number;
@@ -156,4 +215,6 @@ export async function findProspects(
       return dx*dx+dy*dy-ex*ex-ey*ey;
     })
     .slice(0,150);
+  writeSearchCache(key,found);
+  return found;
 }
