@@ -324,3 +324,12 @@ dialog[open]>.modal-head{background:#fff!important;color:var(--ink);border-color
 @media(max-width:980px){.nx-calendar-layout{grid-template-columns:1fr}.nx-calendar-agenda-rows{max-height:290px}}
 @media(max-width:520px){.nx-calendar-main{padding:10px}.nx-calendar-grid{gap:3px}.nx-calendar-day,.nx-calendar-empty{min-height:43px}.nx-calendar-nav{gap:3px}.nx-calendar-nav h3{font-size:15px}.nx-calendar-today{padding:6px!important}.nx-calendar-legend{gap:9px}.nx-calendar-agenda-head{padding:14px}}
 @media print{.nx-calendar-card{display:none!important}}
+
+
+/* The complete appointment card is a large, keyboard-accessible edit target. */
+button.nx-calendar-entry{appearance:none;width:100%;text-align:left;font:inherit;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s}
+button.nx-calendar-entry:hover{border-color:#ff914b;background:#fff9f3;box-shadow:0 3px 12px #ff671f18}
+button.nx-calendar-entry:focus-visible{outline:3px solid #ff671f;outline-offset:3px}
+.nx-calendar-edit{display:inline-flex;align-items:center;gap:6px;margin-top:7px;color:#a64108;font-size:12px;font-weight:800}
+.nx-calendar-entry-notes{display:block}
+@media(max-width:700px){button.nx-calendar-entry{min-height:86px;touch-action:manipulation}.nx-calendar-edit{font-size:13px}}
