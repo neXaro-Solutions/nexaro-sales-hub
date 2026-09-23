@@ -277,3 +277,50 @@ dialog[open]>.modal-head{background:#fff!important;color:var(--ink);border-color
 .nx-vape-add:hover:not(:disabled){background:#a3ff12;color:#1a3505}
 .nx-vape-add:disabled{opacity:.42;cursor:not-allowed}
 @media(max-width:700px){.nx-vape-cart-head>strong{font-size:18px}.nx-vape-cart-row{grid-template-columns:minmax(0,1fr) auto;gap:7px}.nx-vape-cart-name{grid-column:1/-1}.nx-vape-cart-qty{justify-self:start}.nx-vape-cart-row>b{justify-self:end}.nx-vape-cart-row>.icon-button:last-child{grid-column:2;grid-row:2;justify-self:end;transform:translateX(0)}.nx-vape-cart-row{grid-template-columns:minmax(0,1fr) auto auto}.nx-vape-cart-row>b{grid-column:2;grid-row:2}.nx-vape-cart-row>.icon-button:last-child{grid-column:3;grid-row:2}.nx-vape-cart-actions button{width:100%}.nx-vape-add{font-size:11px;margin:0 7px 8px;gap:4px}}
+
+
+/* Dashboard month overview: calm white surface with neXaro orange and lime accents. */
+.nx-calendar-card{margin:0 0 20px}
+.nx-calendar-card .card-head{flex-wrap:wrap;gap:12px}
+.nx-calendar-layout{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(280px,0.82fr);gap:20px;align-items:stretch}
+.nx-calendar-main,.nx-calendar-agenda{min-width:0}
+.nx-calendar-main{border:1px solid #e0e8d8;border-radius:14px;padding:16px;background:#fff}
+.nx-calendar-nav{display:flex;align-items:center;gap:9px;margin-bottom:17px}
+.nx-calendar-nav h3{font-size:18px;color:#293b22;letter-spacing:-.02em;text-transform:capitalize;margin:0;flex:1;text-align:center}
+.nx-calendar-nav>.icon-button{flex:0 0 35px}
+.nx-calendar-today{padding:7px 12px!important;min-height:34px;font-size:12px}
+.nx-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.nx-calendar-weekday{text-align:center;color:#738067;font-size:11px;font-weight:800;padding-bottom:9px}
+.nx-calendar-day,.nx-calendar-empty{min-width:0;min-height:48px;border-radius:9px}
+.nx-calendar-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid transparent;background:#f9fbf6;color:#293b22;cursor:pointer;font-size:13px;font-weight:700;transition:background .15s,border-color .15s}
+.nx-calendar-day:hover{border-color:#ff9b5b;background:#fff6ed}
+.nx-calendar-day.is-today{border-color:#ff7a26;color:#a64009;background:#fff4e9}
+.nx-calendar-day.is-selected{background:#ff671f;color:#fff;border-color:#ed5b11;box-shadow:0 4px 10px #ff671f33}
+.nx-calendar-day:focus-visible{outline:2px solid #27520c;outline-offset:2px}
+.nx-calendar-markers{display:flex;align-items:center;gap:3px;height:7px}
+.nx-calendar-dot{display:inline-block;flex:0 0 6px;width:6px;height:6px;border-radius:50%;background:#ff671f}
+.nx-calendar-dot.followup{background:#80b825}
+.nx-calendar-day.is-selected .nx-calendar-dot{box-shadow:0 0 0 1px #ffffffb0}
+.nx-calendar-markers small{font-size:9px;font-weight:800}
+.nx-calendar-legend{display:flex;gap:15px;flex-wrap:wrap;margin-top:15px;font-size:11px;color:#53624d}
+.nx-calendar-legend span{display:flex;align-items:center;gap:6px}
+.nx-calendar-agenda{border:1px solid #dce9cc;border-radius:14px;background:linear-gradient(160deg,#f7ffe9,#fff 38%);display:flex;flex-direction:column;overflow:hidden}
+.nx-calendar-agenda-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px;border-bottom:1px solid #dce9cc}
+.nx-calendar-agenda-head h3{margin:4px 0 0;color:#2c3c21;text-transform:capitalize;font-size:17px}
+.nx-calendar-count{display:grid;place-items:center;flex:0 0 32px;height:32px;border-radius:50%;color:#9a3e08;background:#ffebdb;font-weight:800}
+.nx-calendar-agenda-rows{padding:14px;display:flex;flex-direction:column;gap:11px;max-height:370px;overflow-y:auto;flex:1}
+.nx-calendar-entry{display:flex;align-items:flex-start;flex-direction:column;gap:5px;background:#fff;border:1px solid #e2ead9;border-left:3px solid #8abd2f;padding:12px;border-radius:9px}
+.nx-calendar-entry.is-meeting{border-left-color:#ff671f}
+.nx-calendar-entry-time{display:flex;gap:6px;align-items:center;color:#a5450b;font-weight:800;font-size:12px}
+.nx-calendar-kind{font-size:10px;color:#637854;margin-left:7px}
+.nx-calendar-entry>strong{color:#2d3b26;font-size:13px}
+.nx-calendar-company,.nx-calendar-address{font-size:11px;color:#586b4b}
+.nx-calendar-address{display:flex;align-items:center;gap:5px}
+.nx-calendar-entry-notes{margin:3px 0 0;color:#5e6b59;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
+.nx-calendar-no-entries{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;gap:8px;min-height:170px;color:#637854}
+.nx-calendar-no-entries p{margin:0;font-size:12px;max-width:250px}
+.nx-calendar-agenda>.card-footer{margin-top:auto}
+.nx-calendar-foot{margin:15px 0 0!important;font-size:11px}
+@media(max-width:980px){.nx-calendar-layout{grid-template-columns:1fr}.nx-calendar-agenda-rows{max-height:290px}}
+@media(max-width:520px){.nx-calendar-main{padding:10px}.nx-calendar-grid{gap:3px}.nx-calendar-day,.nx-calendar-empty{min-height:43px}.nx-calendar-nav{gap:3px}.nx-calendar-nav h3{font-size:15px}.nx-calendar-today{padding:6px!important}.nx-calendar-legend{gap:9px}.nx-calendar-agenda-head{padding:14px}}
+@media print{.nx-calendar-card{display:none!important}}
