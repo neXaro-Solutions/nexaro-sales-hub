@@ -52,7 +52,7 @@ export function SumupOfferComparison({snapshot,compact=false}:{
   const {current:c,comparison:a}=studio;
   const plan=studio.sidekick?selectedPackageName(studio.sidekick).title:(studio.plan==="plus"?"Zahlungen Plus":"Umsatzbasiertes Zahlen");
   const licenses=studio.sidekick?selectedPackageName(studio.sidekick).software:[];
-  const campaign=studio.sidekick?.campaignIndex!==null&&studio.sidekick?.campaignIndex!==undefined&&studio.sidekick.domesticShare!==null?sumupSidekickFees[studio.sidekick.campaignIndex]:null;
+  const campaign=studio.plan!=="plus"&&studio.sidekick?.campaignIndex!==null&&studio.sidekick?.campaignIndex!==undefined&&studio.sidekick.domesticShare!==null?sumupSidekickFees[studio.sidekick.campaignIndex]:null;
   const previous=studio.provider?.trim()||"Bisheriger Anbieter";
   const device=studio.sumupHardware||"Gerät noch festlegen";
   const hardware=studio.hardwarePricing;
