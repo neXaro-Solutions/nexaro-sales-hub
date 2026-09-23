@@ -27,7 +27,16 @@ function extractNumber(s:string):string|undefined{
 }
 export function readBusinessCardText(raw:string):BusinessCardRead{
  // Dedupe repeated lines: the card OCR may scan the full image and its header separately.
- const lines=[...new Set(raw.split(/\r?\n/).map(tidy).filter(Boolean))].slice(0,90);
+ // Split combined street / postcode lines, as on cards with a vertical separator.
+ // Preserve both fragments so the existing address validators stay conservative.
+ const lines=[...new Set(raw.split(/\\r?\\n/).flatMap(line=>{
+  const clean=tidy(line).replace(/^[^\\p{L}\\p{N}+@]+/u,"").trim();
+  const separated=clean.split(/\\s*[|¦]\\s*/).map(tidy).filter(Boolean);
+  return separated.flatMap(part=>{
+   const combined=part.match(/^(.+?\\b\\d{1,4}\\s*[a-z]?)\\s+(\\d{5}\\s+[\\p{L}\\p{M}][\\p{L}\\p{M}\\s.'-]{1,65})$/iu);
+   return combined?[tidy(combined[1]),tidy(combined[2])]:[part];
+  });
+ }).filter(Boolean))].slice(0,120);
  const fields:BusinessCardFields={},warnings:string[]=[],evidence:BusinessCardRead["evidence"]={};
  const put=(key:keyof BusinessCardFields,val:string|undefined,source:string)=>{
   const value=val&&tidy(val);
@@ -38,7 +47,9 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
  if(companies.length===1)put("company",companies[0].value,companies[0].line);
  const persons=labelled(/^(?:ansprechpartner(?:in)?|kontaktperson|contact|inhaber(?:in)?|geschäftsführer(?:in)?)\s*[:：]\s*(.+)$/i);
  if(persons.length===1)put("contact",persons[0].value,persons[0].line);
- const emails=[...new Set([...raw.matchAll(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi)].map(m=>m[0].toLowerCase()))];
+ // OCR sometimes inserts spaces around @ and dots in otherwise valid addresses.
+ const normalizedEmailText=raw.replace(/([a-z0-9._%+-]+)\\s*@\\s*([a-z0-9.-]+)\\s*\\.\\s*([a-z]{2,})/gi,"$1@$2.$3");
+ const emails=[...new Set([...normalizedEmailText.matchAll(/[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}/gi)].map(m=>m[0].toLowerCase()))];
  if(emails.length===1)put("email",emails[0],lines.find(line=>line.toLowerCase().includes(emails[0]))||emails[0]);
  if(emails.length>1)warnings.push("Mehrere E-Mail-Adressen erkannt – geschäftliche Adresse bitte auswählen.");
  const street=lines.find(isAddress);
@@ -62,7 +73,8 @@ export function readBusinessCardText(raw:string):BusinessCardRead{
   if(lone.length===1)put("phone",lone[0].val,lone[0].line);
  }
  const siteRows=lines.filter(line=>/^(?:web(?:seite|site)?|homepage)\s*[:：]/i.test(line));
- const urls=[...new Set([...raw.matchAll(/(?:https?:\/\/|www\.)[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s]*)?/gi)].map(m=>m[0]))]
+ const normalizedWebText=raw.replace(/(www)\\s*\\.\\s*/gi,"$1.");
+ const urls=[...new Set([...normalizedWebText.matchAll(/(?:https?:\\/\\/|www\\.)[a-z0-9.-]+\\.[a-z]{2,}(?:\\/[^\\s]*)?/gi)].map(m=>m[0]))]
   .filter(s=>!emails.some(e=>e.endsWith(s)));
  if(urls.length===1)put("website",urls[0],siteRows[0]||urls[0]);
  // Job titles are NOT company names. The line before the address is typically
