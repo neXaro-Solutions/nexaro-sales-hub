@@ -77,9 +77,6 @@ test("demo isolates data, creates linked customers, routes and offers", async ({
     .click();
   await page.getByLabel("Unternehmen *").fill("Teststandort");
   await page.getByLabel("Ort *").fill("Halbe");
-  await page
-    .getByRole("combobox", { name: "Vertriebsbereich", exact: true })
-    .selectOption("both");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.locator("dialog")).toHaveCount(0);
   await navigate(page, "Kunden & Leads");
@@ -91,7 +88,7 @@ test("demo isolates data, creates linked customers, routes and offers", async ({
     page.locator("dialog").getByText("Vapes", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Schließen", exact: true }).click();
-  await navigate(page, "SumUp Vertrieb");
+  await navigate(page, "SumUp");
   await page
     .getByRole("button", { name: "Analyse & Foto", exact: true })
     .click();
@@ -109,7 +106,7 @@ test("demo isolates data, creates linked customers, routes and offers", async ({
     .getByRole("button", { name: "Angebot speichern", exact: true })
     .click();
   await expect(page.locator("dialog")).toHaveCount(0);
-  await navigate(page, "Angebote");
+  await navigate(page, "Angebote & Rechnungen");
   await expect(
     page.getByRole("button", { name: /^ANG-\d{4}-00001$/ }),
   ).toBeVisible();
@@ -117,7 +114,7 @@ test("demo isolates data, creates linked customers, routes and offers", async ({
   await expect(page.locator(".print-sheet")).toContainText("Teststandort");
   await expect(page.locator(".print-sheet")).not.toContainText("EK netto");
   await page.getByRole("button", { name: "Schließen", exact: true }).click();
-  await navigate(page, "Gebiet & Tagesroute");
+  await navigate(page, "Tagesroute");
   await page.getByRole("button", { name: "Café Morgenrot einplanen" }).click();
   await page.getByRole("button", { name: "Späti am Park einplanen" }).click();
   await page
@@ -154,7 +151,7 @@ test("neutral dealer contacts keep notes, appointments and private documents tog
   page,
 }) => {
   await page.goto("/?demo=1");
-  await navigate(page, "Händlerverwaltung");
+  await navigate(page, "Vape");
   await expect(
     page.getByRole("button", { name: "Preisliste importieren" }),
   ).toHaveCount(0);
@@ -257,7 +254,7 @@ test("neutral dealer contacts keep notes, appointments and private documents tog
     }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Schließen", exact: true }).click();
-  await navigate(page, "Händlerverwaltung");
+  await navigate(page, "Vape");
   await page
     .getByRole("button", { name: "Termine & Wiedervorlagen", exact: true })
     .click();
@@ -270,7 +267,7 @@ test("sales studio keeps customer state separate and saves zero-cost totals", as
   page,
 }) => {
   await page.goto("/?demo=1");
-  await navigate(page, "SumUp Vertrieb");
+  await navigate(page, "SumUp");
   await page
     .getByLabel("Analyse einer Kundenakte zuordnen")
     .selectOption({ label: "Café Morgenrot" });
@@ -374,7 +371,7 @@ test("real local photo OCR feeds reviewed totals and hardware advice", async ({
       external.push(r.url());
   });
   await page.goto("/?demo=1");
-  await navigate(page, "SumUp Vertrieb");
+  await navigate(page, "SumUp");
   await page
     .getByRole("button", { name: "Analyse & Foto", exact: true })
     .click();
@@ -453,7 +450,7 @@ test("real local photo OCR feeds reviewed totals and hardware advice", async ({
 
 test("manual offer and invoice use independent numbers and branded PDF preview", async ({page}) => {
   await page.goto("/?demo=1");
-  await navigate(page, "Angebote");
+  await navigate(page, "Angebote & Rechnungen");
   await page.getByRole("button", { name: "Angebot erstellen" }).click();
   await page.getByRole("combobox", { name: "Kunde *" }).selectOption({ label: "Café Morgenrot" });
   await page.getByRole("textbox", { name: "Bezeichnung *" }).fill("Zahlungsterminal");
