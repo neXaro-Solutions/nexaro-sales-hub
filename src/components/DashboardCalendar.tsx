@@ -3,7 +3,6 @@ import { CalendarDays, ChevronLeft, ChevronRight, Plus, ArrowRight, MapPin, Cloc
 import { Card, DivisionBadge } from "./UI";
 import { useStore } from "../lib/store";
 import { address, today } from "../lib/calculations";
-import { appointmentLabel } from "../lib/appointments";
 import { calendarDay, monthDays, monthKey, nextMonth, entriesOn } from "../lib/dashboard-calendar";
 
 export function DashboardCalendar({ newTask, navigate }: {
