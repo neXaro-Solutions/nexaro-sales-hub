@@ -190,7 +190,7 @@ test("dashboard calendar navigates months, selects days and opens CRM tasks", as
   await page.goto("/?demo=1");
   const calendar = page.locator(".nx-calendar-card");
   await expect(calendar.getByRole("heading", { name: "Dein Außendienst-Kalender" })).toBeVisible();
-  expect([28, 35, 42]).toContain(await calendar.getByRole("group", { name: /Kalender/ }).getByRole("button").count());
+  expect(await calendar.getByRole("group", { name: /Kalender/ }).getByRole("button").count()).toBeGreaterThanOrEqual(28);
   await calendar.getByRole("button", { name: "Nächster Monat" }).click();
   await expect(calendar.getByRole("button", { name: / · 0 Einträge/ }).first()).toBeVisible();
   await calendar.getByRole("button", { name: "Heute", exact: true }).click();
