@@ -102,7 +102,7 @@ describe("web business-card scan mapping",()=>{
    "0171 90 98 831","DI Kontakt@ nexaro-solutions.de",
    "© Kirchstraße 1A | 15757 Halbe","www.nexaro-solutions.de",
    "SOLUTIONS","ne\\\\Xaro !}"
-  ].join("\\n");
+  ].join("\n");
   const result=readBusinessCardText(raw);
   expect(result.fields.company).toBe("neXaro SOLUTIONS");
   expect(result.fields.contact).toBe("Sebastian Pötschke");
@@ -115,7 +115,7 @@ describe("web business-card scan mapping",()=>{
   expect(result.fields.website).toBe("www.nexaro-solutions.de");
  });
  it("does not promote a generic logo fragment to a complete company",()=>{
-  const result=readBusinessCardText("SOLUTIONS\\nSebastian Pötschke\\nINHABER | VERTRIEB & BERATUNG\\nKirchstraße 1A | 15757 Halbe\\nwww.nexaro-solutions.de");
+  const result=readBusinessCardText("SOLUTIONS\nSebastian Pötschke\nINHABER | VERTRIEB & BERATUNG\nKirchstraße 1A | 15757 Halbe\nwww.nexaro-solutions.de");
   expect(result.fields.company).toBeUndefined();
   expect(result.warnings.some(w=>w.includes("Unternehmen"))).toBe(true);
  });
