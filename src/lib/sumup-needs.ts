@@ -59,7 +59,9 @@ export function compareSelectedSumup(input:ExistingProviderInput,selection:Sumup
  const plan=selectedSumupPaymentPlan(normalized);
  const standard=compareFieldSales(input,plan);
  const recurring=sidekickLicenseMonthly(normalized)-(plan==="plus"?19:0);
- const campaignSelected=normalized.campaignIndex!==null&&normalized.domesticShare!==null;
+ // Zahlungen Plus always uses official 0.79 % on eligible EEA consumer cards.
+ // Sidekick individual rates are mutually exclusive with this paid payment plan.
+ const campaignSelected=plan!=="plus"&&normalized.campaignIndex!==null&&normalized.domesticShare!==null;
  const campaign=campaignSelected?sidekickScenario(input.volume,normalized):null;
  const sumupTotal=round(campaign??(standard.sumupTotal+recurring));
  const sumupBase=round(standard.sumupBase+recurring);
