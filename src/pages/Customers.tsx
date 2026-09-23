@@ -174,6 +174,7 @@ export function Customers({ division }: { division?: Division }) {
                 <a href={"tel:" + customer.phone}>{customer.phone}</a>
               </p>
             )}
+            {customer.website && <p><a href={/^https?:\/\//i.test(customer.website)?customer.website:"https://"+customer.website} target="_blank" rel="noopener noreferrer">{customer.website} ↗</a></p>}
             {customer.email && (
               <p>
                 <Mail size={16} />{" "}
