@@ -353,10 +353,14 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
      <h2>Meine vorgemerkten Geschäfte</h2>
      <p className="hint">Vormerken legt noch keinen zusätzlichen Kunden an. Erst „Ins CRM übernehmen“ erstellt die zentrale Kundenakte.</p>
      <label>Filter<select value={stageFilter} onChange={e=>setStageFilter(e.target.value)}>{["Offen","Alle",...stages].map(st=><option key={st}>{st}</option>)}</select></label>
-     <div className="button-row"><button className="secondary" disabled={busy||demo} onClick={()=>void loadLeads().catch(e=>setError((e as Error).message))}><RefreshCw size={15}/> Aktualisieren</button></div>
+     <div className="button-row">
+        <button className="secondary" disabled={busy||demo} onClick={()=>void loadLeads().catch(e=>setError((e as Error).message))}><RefreshCw size={15}/> Aktualisieren</button>
+        <button className="primary" disabled={!selectedIds.length} onClick={()=>{setWorkspaceTab("tour");setTourTitle("");window.scrollTo({top:0,behavior:"smooth"})}}><RouteIcon size={16}/> {selectedIds.length} ausgewählte Geschäfte zur Tour</button>
+      </div>
      {shown.length===0&&<p className="hint">Noch keine passenden Geschäfte vorgemerkt.</p>}
      {shown.map(l=><div key={l.id} style={{padding:"16px 0",borderBottom:"1px solid #e5eae0"}}>
       <label className="nx-hunter-select"><input type="checkbox" checked={selectedIds.includes(l.id)} disabled={busy||["Kein Interesse","Übernommen"].includes(l.status)} onChange={e=>selectLead(l,e.target.checked)}/> <strong>{l.company}</strong><span>{selectedIds.includes(l.id)?"Für Tour ausgewählt":"Für Tour auswählen"}</span></label><small style={{display:"block"}}>{addressOf(l)}</small>
+      <details className="nx-hunter-lead-details"><summary>Kontakt bearbeiten · Status & Entscheidung</summary>
       <small style={{display:"block"}}>Quelle: OpenStreetMap {l.source_id.replace(/^osm:/,"")}</small>
       <label>Status<select disabled={busy} value={l.status} onChange={e=>void updateLead(l,e.target.value as HunterStage,noteOf(l))}>{stages.map(st=><option key={st}>{st}</option>)}</select></label>
       <label>Besuchsnotiz<textarea rows={3} maxLength={3000} value={noteOf(l)} onChange={e=>setDrafts(d=>({...d,[l.id]:e.target.value}))} placeholder="Ansprechpartner, Bedarf, nächster Schritt – nur gesicherte Gesprächsinformationen."/></label>
@@ -366,9 +370,11 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
        <button className="primary" disabled={busy||!!l.customer_id} onClick={()=>void promote(l)}>Ins CRM übernehmen</button>
        {l.status!=="Kein Interesse"&&l.status!=="Übernommen"&&<button type="button" className="secondary" disabled={busy} onClick={()=>setRejectLead(l)}><X size={15}/> Ablehnen</button>}
        {l.customer_id&&data.customers.find(c=>c.id===l.customer_id)&&<button className="secondary" onClick={()=>setEditCustomer(data.customers.find(c=>c.id===l.customer_id)!)}>Kundenakte bearbeiten</button>}
-       <button type="button" className="nx-delete-trigger" disabled={busy} onClick={()=>setConfirmDelete(l)}><Trash2 size={15}/> Löschen</button>
+
       </div>
       {l.customer_id&&<p className="hint">✓ Zentraler Kunde verknüpft – weitere Bearbeitung direkt hier im Außendienst.</p>}
+      </details>
+      <button type="button" className="nx-delete-trigger nx-hunter-lead-delete" disabled={busy} onClick={()=>setConfirmDelete(l)}><Trash2 size={15}/> Eintrag löschen</button>
      </div>)}
     </section>
    </div>}
