@@ -37,8 +37,8 @@ const leadFrom=(p:Prospect):Omit<HunterLead,"id"|"updated_at">=>({
  status:"Neu",note:"",customer_id:null
 });
 const addressOf=(p:{street:string;zip:string;city:string})=>[p.street,[p.zip,p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-export function Hunter(){
- const {data,save,refresh,demo}=useStore();
+export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"}){
+ const {data,save,remove,refresh,demo}=useStore();
  const [place,setPlace]=useState("15757 Halbe"),[radius,setRadius]=useState(2),[category,setCategory]=useState("food");
  const [center,setCenter]=useState<{lat:number;lng:number}|null>(null);
  const [results,setResults]=useState<Prospect[]>([]);
@@ -58,9 +58,10 @@ export function Hunter(){
  const [tourTitle,setTourTitle]=useState("");
  const [tourBusy,setTourBusy]=useState(false);
  const [editCustomer,setEditCustomer]=useState<Customer|null>(null);
- const [workspaceTab,setWorkspaceTab]=useState<"search"|"leads"|"tour">("leads");
+ const [workspaceTab,setWorkspaceTab]=useState<"search"|"leads"|"tour">(initialTab);
  const [openedRoute,setOpenedRoute]=useState<string|null>(null);
  const [editingRoute,setEditingRoute]=useState<string|null>(null);
+ const [routeToDelete,setRouteToDelete]=useState<Route|null>(null);
 
  async function loadLeads(){
   if(demo)return;
@@ -219,10 +220,10 @@ export function Hunter(){
    <p>Das kurze Formular erfasst Beratungsanfragen. Auf Wunsch kann der Interessent eine geschwärzte Händlerabrechnung für eine konkretere Angebotsvorbereitung privat hochladen. Im CRM entsteht eine Bearbeitungsaufgabe – keine Werbeeinwilligung.</p>
    <a className="primary" href="https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/sumup-gebuehrencheck.html" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> SumUp-Beratungsformular öffnen</a>
    <p className="hint">Teile diesen Link nur über zulässige Kanäle, z. B. deine Website, bestehende Unterlagen oder nach einem persönlichen Gespräch. Nicht als unaufgeforderte Werbe-E-Mail versenden.</p>
-  </section>
+  </section>}
   {workspaceTab==="tour"&&  <section className="card nx-hunter-tour" aria-label="Hunter Tour und Routenplanung">
     <span className="badge positive">HUNTER ROUTE · IM CRM</span>
-    <h2>Vorgemerkte Standorte zur Besuchstour zusammenstellen</h2>
+    <h2>Deine Touren & Besuche</h2>
     <p className="hint">Wähle im Reiter „Merkliste“ deine Standorte aus. Die Besuchsreihenfolge wird über die geografische Nähe einschließlich einer Verbesserungsschleife geplant. Die Karte und alle Folgeaktionen bleiben im CRM.</p>
     <div className="nx-hunter-tour-stats"><strong>{selectedIds.length} ausgewählt</strong><span>{eligibleTour.length} offen verfügbar</span><span>{tourStops.length} in der Tour</span></div>
     <div className="button-row">
@@ -270,10 +271,10 @@ export function Hunter(){
         </div>}
       </article>)}</div>
       <div className="nx-hunter-tour-save">
-        <label>Besuchstag<input type="date" value={tourDay} onChange={e=>{setTourDay(e.target.value);setTourTitle("")}}/></label>
+        <label>Besuchstag<input type="date" value={tourDay} onChange={e=>{setTourDay(e.target.value);setTourTitle("");setEditingRoute(null)}}/></label>
         <button className="primary" type="button" disabled={tourBusy||!tourDay||!!tourTitle&&tourTitle===tourDay} onClick={()=>void saveTour()}><Check size={16}/> {tourBusy?"Speichern …":tourTitle===tourDay?"Im CRM gespeichert":"Tour im CRM speichern"}</button>
       </div>
-      <p className="hint">Tour speichern, später hier wieder öffnen und Kontakte bei jedem Halt bearbeiten. Für die Straßen-Navigation öffnest du bei Bedarf Maps.</p>
+      <p className="hint">Tour speichern, später hier öffnen und Kontakte bei jedem Halt bearbeiten. Für die Straßen-Navigation öffnest du bei Bedarf Maps.</p>
     </div>}
   </section>}
   {workspaceTab==="leads"&&<div className="analysis-grid">{overview.map(([name,n])=><div className="card" key={name} style={{padding:18}}><small>{name}</small><h2 style={{fontSize:30,margin:"8px 0"}}>{n}</h2></div>)}</div>
