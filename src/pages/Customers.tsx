@@ -50,7 +50,7 @@ function segmentOf(c:Customer,tasks:Task[],events:{customer_id:string|null;kind:
 }
 const segmentLabels:Record<CustomerSegment,string>={inbound:"Neue Anfrage",lead:"Aktiver Lead",customer:"Bestandskunde"};
 export function Customers({ division, onOpenSumup }: { division?: Division; onOpenSumup?:(customerId:string)=>void }) {
-  const { data, save, remove, refresh, demo } = useStore();
+  const { data, save, remove, refresh, listDocuments, demo } = useStore();
   const [search, setSearch] = useState(""),
     [selected, setSelected] = useState<string | null>(null),
     [edit, setEdit] = useState<Customer | true | null>(null),
@@ -62,14 +62,16 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
   const [deleteError,setDeleteError]=useState("");
   const [deleteNotice,setDeleteNotice]=useState("");
   const [linkedIntake,setLinkedIntake]=useState(false);
+  const [linkedDocuments,setLinkedDocuments]=useState(false);
   const [checkingLinks,setCheckingLinks]=useState(false);
   async function requestCustomerDeletion(c:Customer){
-    setDeleteError("");setLinkedIntake(false);setCheckingLinks(true);setDeleteCustomer(c);
-    if(demo){setCheckingLinks(false);return;}
+    setDeleteError("");setLinkedIntake(false);setLinkedDocuments(false);setCheckingLinks(true);setDeleteCustomer(c);
+    if(demo){try{setLinkedDocuments((await listDocuments(c.id)).length>0);}catch{setDeleteError("Dokumente konnten nicht geprüft werden.");}finally{setCheckingLinks(false);}return;}
     try{
-      const {data:receipts,error}=await client.from("nx_intake_receipts").select("id").eq("customer_id",c.id).limit(1);
-      if(error)throw Error("Verknüpfte Formularanfragen konnten nicht geprüft werden. Bitte erneut versuchen.");
-      setLinkedIntake(!!receipts?.length);
+      const [receipts,documents]=await Promise.all([client.rpc("nx_customer_has_intake",{p_customer:c.id}),listDocuments(c.id)]);
+      if(receipts.error)throw Error("Verknüpfte Formularanfragen konnten nicht geprüft werden. Bitte erneut versuchen.");
+      setLinkedIntake(!!receipts.data);
+      setLinkedDocuments(documents.length>0);
     }catch(e){setDeleteError(e instanceof Error?e.message:"Verknüpfungen konnten nicht geprüft werden.");}
     finally{setCheckingLinks(false);}
   }
@@ -81,7 +83,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
     invoices:data.invoices.filter(i=>i.customer_id===deleteCustomer.id).length,
     statements:withStatements.has(deleteCustomer.id)
   }:null;
-  const customerHasLinks=!!deleteLinks&&(Object.values(deleteLinks).some(Boolean)||linkedIntake);
+  const customerHasLinks=!!deleteLinks&&(Object.values(deleteLinks).some(Boolean)||linkedIntake||linkedDocuments);
 
   useEffect(()=>{
     let active=true;
@@ -499,12 +501,13 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
               {deleteLinks?.invoices?<li>{deleteLinks.invoices} Rechnung(en)</li>:null}
               {deleteLinks?.statements?<li>Hochgeladene Händlerabrechnung vorhanden</li>:null}
               {linkedIntake?<li>Öffentliche Formularanfrage vorhanden</li>:null}
+              {linkedDocuments?<li>Private Dokumente in der Kundenakte vorhanden</li>:null}
             </ul>
             <p className="hint">Lösche oder archiviere zuerst die verknüpften Einträge entsprechend ihrer Aufbewahrungspflicht. Die Kundenakte bleibt bis dahin unverändert erhalten.</p>
           </>:<>
-            <p className="notice">Keine verknüpften CRM-Einträge oder Formularanfragen gefunden. Prüfe vor dem endgültigen Löschen gegebenenfalls separat gespeicherte Dokumente in der Kundenakte.</p>
+            <p className="notice">Keine verknüpften CRM-Einträge, Formularanfragen oder privaten Dokumente gefunden.</p>
             <div className="button-row">
-              <button className="nx-delete-confirm-button" type="button" disabled={deleteBusy||!!deleteError} onClick={async()=>{
+              <button className="nx-delete-confirm-button" type="button" disabled={deleteBusy||!!deleteError||checkingLinks} onClick={async()=>{
                 if(!deleteCustomer||deleteBusy)return;
                 const target=deleteCustomer;
                 setDeleteBusy(true);setDeleteError("");
