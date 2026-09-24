@@ -25,7 +25,14 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
   const [loadingStatement,setLoadingStatement]=useState(false);
   const [statementProgress,setStatementProgress]=useState(0);
   const statementJob=useRef<AbortController|null>(null);
+  const jumpToReview=useRef(false);
   useEffect(()=>()=>statementJob.current?.abort(),[]);
+  useEffect(()=>{
+    if(step!==2||!jumpToReview.current)return;
+    jumpToReview.current=false;
+    const frame=requestAnimationFrame(()=>document.getElementById("nx-sumup-studio")?.scrollIntoView({block:"start",behavior:"smooth"}));
+    return()=>cancelAnimationFrame(frame);
+  },[step]);
   const [statementNotice,setStatementNotice]=useState("");
   const [photoInput,setPhotoInput] = useState<PaymentInput>(emptyStatement);
   const [photoReview,setPhotoReview] = useState<StatementReview|null>(null);
@@ -45,6 +52,7 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
       // immediately; OCR is an enhancement, not a second compulsory upload.
       setPhotoReview(null);
       setPhotoInput(emptyStatement);
+      jumpToReview.current=true;
       setStep(2);
       if(mime==="application/pdf"){
         setStatementNotice("PDF-Abrechnung liegt geschützt in der Kundenakte. Bitte dort öffnen und die Ist-Werte hier manuell ergänzen. Die automatische Fotoerkennung unterstützt JPG, PNG und WebP.");
