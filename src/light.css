@@ -384,3 +384,12 @@ dialog .notice,.card .notice{background:#f0ffda;color:#28522c;border-color:#a6e8
 .nx-fee-readiness input[type=checkbox]{accent-color:#86bf20}
 .nx-fee-ready{color:#2d692c!important;font-weight:700}
 @media(max-width:700px){.nx-fee-readiness,.nx-fee-readiness-intro{padding:12px}}
+
+/* Hunter AUTO: concise mobile lead and offer follow-up overview. */
+.nx-followup-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0 18px}
+.nx-followup-metrics>div{min-width:0;border:1px solid #d7e4c8;background:#fafff4;border-radius:12px;padding:13px;display:flex;flex-direction:column;gap:6px}
+.nx-followup-metrics>div:nth-child(2){border-top:3px solid #ff7829}
+.nx-followup-metrics>div:nth-child(3){border-top:3px solid #caff47}
+.nx-followup-metrics strong{font-size:27px;color:#203a1c}
+.nx-followup-metrics small{font-size:11px;line-height:1.45;color:#566a51}
+@media(max-width:600px){.nx-followup-metrics{grid-template-columns:1fr 1fr}.nx-followup-metrics>div:last-child{grid-column:1/-1}.nx-followup-metrics strong{font-size:23px}}
