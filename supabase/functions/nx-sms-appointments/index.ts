@@ -61,7 +61,8 @@ async function sendDue(){
  const t=r.nx_tasks as unknown as {id:string;kind:string;title:string;division:string|null;due_at:string;done:boolean;customer_id:string|null;nx_customers:{company:string;contact:string;phone:string}};
  const c=t?.nx_customers;
  if(!t||t.kind!=="Termin"||t.done||!c?.phone||berlinDay(new Date(t.due_at))!==day||new Date(t.due_at).getTime()<=Date.now()){skipped++;continue}
- const phone=c.phone.replace(/[\s()\/-]/g,"");
+ const rawPhone=c.phone.replace(/[\\s()\\/-]/g,"");
+ const phone=rawPhone.startsWith("00")?"+"+rawPhone.slice(2):rawPhone.startsWith("0")?"+49"+rawPhone.slice(1):rawPhone;
  if(!/^\+[1-9]\d{7,14}$/.test(phone)){failed++;await db.from("nx_sms_appointments").update({status:"failed",failure_reason:"Mobilnummer im internationalen Format +49… erforderlich"}).eq("task_id",t.id);continue}
  const bytes=crypto.getRandomValues(new Uint8Array(32)),token=Array.from(bytes).map(x=>x.toString(16).padStart(2,"0")).join("");
  const hash=await digest(token);
