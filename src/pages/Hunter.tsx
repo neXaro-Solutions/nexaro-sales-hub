@@ -312,7 +312,7 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
       <p className="hint">Tour speichern, später hier öffnen und Kontakte bei jedem Halt bearbeiten. Für die Straßen-Navigation öffnest du bei Bedarf Maps.</p>
     </div>}
   </section>}
-  {workspaceTab==="leads"&&<div className="analysis-grid">{overview.map(([name,n])=><div className="card" key={name} style={{padding:18}}><small>{name}</small><h2 style={{fontSize:30,margin:"8px 0"}}>{n}</h2></div>)}</div>
+  {workspaceTab==="leads"&&<div className="analysis-grid">{overview.map(([name,n])=><div className="card" key={name} style={{padding:18}}><small>{name}</small><h2 style={{fontSize:30,margin:"8px 0"}}>{n}</h2></div>)}</div>}
   <div className="route-grid">
    {workspaceTab==="search"&&<div>
     <section className="card" style={{padding:20,marginBottom:16}}>
