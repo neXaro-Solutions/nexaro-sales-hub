@@ -20,6 +20,7 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [loggingWarning, setLoggingWarning] = useState("");
   async function send() {
     if (sending || success || demo || !offer.customer_id || !validEmail(to)) return;
     setSending(true); setError("");
@@ -35,7 +36,8 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
         throw Error(reason || "Versand konnte nicht bestätigt werden. Bitte vor erneutem Senden die Kundenhistorie prüfen.");
       }
       setSuccess(true);
-      await onSent();
+      if (!result.logged || !result.statusUpdated) setLoggingWarning("E-Mail wurde angenommen, aber die CRM-Dokumentation konnte nicht vollständig abgeschlossen werden. Bitte Kundenhistorie prüfen.");
+      try { await onSent(); } catch { setLoggingWarning("E-Mail versendet; aktuelle CRM-Daten konnten noch nicht neu geladen werden."); }
     } catch (err) { setError(err instanceof Error ? err.message : "Versand nicht möglich."); }
     finally { setSending(false); }
   }
@@ -50,7 +52,8 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
     {!offer.customer_id && <p className="error">Bitte zuerst einen Kunden zum Angebot speichern.</p>}
     {demo && <p className="notice">Demo-Modus: E-Mails werden nicht versendet.</p>}
     {error && <p className="error" role="alert">{error}</p>}
-    {success && <p className="notice" role="status">E-Mail vom Versandserver angenommen. Angebot wurde als gesendet markiert.</p>}
+    {success && <p className="notice" role="status">E-Mail vom Versandserver angenommen.</p>}
+    {loggingWarning && <p className="error" role="alert">{loggingWarning}</p>}
     <div className="button-row">
       <button type="button" className="secondary" onClick={onClose}>{success ? "Schließen" : "Abbrechen"}</button>
       <button type="button" className="primary" disabled={sending || success || demo || !offer.customer_id || !validEmail(to) || !message.trim()} onClick={()=>void send()}>
