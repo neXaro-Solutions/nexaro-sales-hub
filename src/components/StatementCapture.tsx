@@ -29,10 +29,12 @@ export function StatementCapture({
   onClose,
   onApply,
   autoApply = false,
+  initialFile = null,
 }: {
   onClose: () => void;
   onApply: (p: Partial<PaymentInput>, review: StatementReview) => void;
   autoApply?: boolean;
+  initialFile?: File | null;
 }) {
   const [text, setText] = useState(""),
     [busy, setBusy] = useState(false),
@@ -162,6 +164,7 @@ export function StatementCapture({
               if (abortRef.current === controller) setBusy(false);
             }
   }
+  useEffect(()=>{if(initialFile)void handleFile(initialFile);},[initialFile]);
   return (
     <Modal title="Händlerabrechnung erfassen" onClose={onClose}>
       <p>{autoApply ? "Foto oder Datei auswählen. Sobald Werte erkannt sind, öffnet sich Ist-Bestand automatisch zur Korrektur." : "Foto oder Kameraaufnahme wählen. Die Texterkennung läuft auf deinem Gerät. Das Foto und der vollständige Belegtext werden nicht im CRM gespeichert."}</p>
