@@ -50,7 +50,7 @@ function segmentOf(c:Customer,tasks:Task[],events:{customer_id:string|null;kind:
 }
 const segmentLabels:Record<CustomerSegment,string>={inbound:"Neue Anfrage",lead:"Aktiver Lead",customer:"Bestandskunde"};
 export function Customers({ division, onOpenSumup }: { division?: Division; onOpenSumup?:(customerId:string)=>void }) {
-  const { data, save, remove, refresh, listDocuments, demo } = useStore();
+  const { data, save, refresh, listDocuments, demo } = useStore();
   const [search, setSearch] = useState(""),
     [selected, setSelected] = useState<string | null>(null),
     [edit, setEdit] = useState<Customer | true | null>(null),
@@ -83,7 +83,6 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
     invoices:data.invoices.filter(i=>i.customer_id===deleteCustomer.id).length,
     statements:withStatements.has(deleteCustomer.id)
   }:null;
-  const customerHasLinks=!!deleteLinks&&(Object.values(deleteLinks).some(Boolean)||linkedIntake||linkedDocuments);
 
   useEffect(()=>{
     let active=true;
@@ -487,39 +486,54 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
         </Modal>
       )}
       {deleteNotice&&<p className="notice" role="status">{deleteNotice}</p>}
-      {deleteCustomer&&<Modal title="Kundenakte löschen" onClose={()=>{if(!deleteBusy)setDeleteCustomer(null);}}>
+      {deleteCustomer&&<Modal title="Kundenakte und zugehörige Testeinträge löschen" onClose={()=>{if(!deleteBusy)setDeleteCustomer(null);}}>
         <div className="nx-customer-delete-confirm">
-          <strong>„{deleteCustomer.company}“ wirklich endgültig löschen?</strong>
-          <p>Der Löschvorgang betrifft die zentrale Kundenakte in SumUp und Vape. Er kann nicht rückgängig gemacht werden.</p>
-          {checkingLinks?<p role="status">Verknüpfte Formularanfragen werden geprüft …</p>:customerHasLinks?<>
-            <p className="error" role="alert">Die Kundenakte hat verknüpfte Einträge. Sie wird deshalb nicht unbemerkt zusammen mit Terminen, Angeboten, Rechnungen, Formularanfragen oder Belegen gelöscht.</p>
-            <ul>
-              {deleteLinks?.tasks?<li>{deleteLinks.tasks} Termin(e) / Aufgabe(n)</li>:null}
-              {deleteLinks?.events?<li>{deleteLinks.events} Historieneintrag/-einträge</li>:null}
-              {deleteLinks?.opportunities?<li>{deleteLinks.opportunities} Verkaufschance(n)</li>:null}
-              {deleteLinks?.offers?<li>{deleteLinks.offers} Angebot(e)</li>:null}
-              {deleteLinks?.invoices?<li>{deleteLinks.invoices} Rechnung(en)</li>:null}
-              {deleteLinks?.statements?<li>Hochgeladene Händlerabrechnung vorhanden</li>:null}
-              {linkedIntake?<li>Öffentliche Formularanfrage vorhanden</li>:null}
-              {linkedDocuments?<li>Private Dokumente in der Kundenakte vorhanden</li>:null}
-            </ul>
-            <p className="hint">Lösche oder archiviere zuerst die verknüpften Einträge entsprechend ihrer Aufbewahrungspflicht. Die Kundenakte bleibt bis dahin unverändert erhalten.</p>
-          </>:<>
-            <p className="notice">Keine verknüpften CRM-Einträge, Formularanfragen oder privaten Dokumente gefunden.</p>
-            <div className="button-row">
-              <button className="nx-delete-confirm-button" type="button" disabled={deleteBusy||!!deleteError||checkingLinks} onClick={async()=>{
-                if(!deleteCustomer||deleteBusy)return;
-                const target=deleteCustomer;
-                setDeleteBusy(true);setDeleteError("");
-                try{
-                  await remove("customers",target.id);
-                  if(selected===target.id)setSelected(null);
-                  setDeleteCustomer(null);
-                  setDeleteNotice("Kundenakte „"+target.company+"“ wurde gelöscht.");
-                }catch(e){setDeleteError(e instanceof Error?e.message:"Kundenakte konnte nicht gelöscht werden.")}
-                finally{setDeleteBusy(false)}
-              }}><Trash2 size={16}/>{deleteBusy?"Wird gelöscht …":"Kundenakte endgültig löschen"}</button>
-            </div>
+          <strong>„{deleteCustomer.company}“ einschließlich der zugehörigen CRM-Einträge endgültig löschen?</strong>
+          <p>Die Kundenakte ist für SumUp und Vape gemeinsam. Die Löschung kann nicht rückgängig gemacht werden.</p>
+          {checkingLinks?<p role="status">Verknüpfungen und private Dokumente werden geprüft …</p>:<>
+            {deleteLinks&&<div className="nx-customer-delete-preview">
+              <strong>Diese verbundenen Daten werden mitgelöscht:</strong>
+              <ul>
+                <li>Kundenakte und zugehörige Kontaktfreigaben</li>
+                {!!deleteLinks.tasks&&<li>{deleteLinks.tasks} Termin(e) / Aufgabe(n) inklusive vorgemerkter Terminbestätigungen</li>}
+                {!!deleteLinks.events&&<li>{deleteLinks.events} Historieneintrag/-einträge</li>}
+                {!!deleteLinks.opportunities&&<li>{deleteLinks.opportunities} Verkaufschance(n)</li>}
+                {!!deleteLinks.offers&&<li>{deleteLinks.offers} Angebotsentwurf/-entwürfe, sofern noch nicht versendet</li>}
+                {linkedIntake&&<li>Öffentliche Formularanfrage(n) und deren Eingangsbestätigungsnachweise</li>}
+                {(deleteLinks.statements||linkedDocuments)&&<li>Private Händlerabrechnungen und Dokumente aus dieser Kundenakte</li>}
+              </ul>
+            </div>}
+            {deleteLinks&&deleteLinks.invoices>0||deleteLinks&&data.offers.some(o=>o.customer_id===deleteCustomer.id&&o.status!=="Entwurf")?<>
+              <p className="error" role="alert">Diese Kundenakte enthält Rechnungen oder ein nicht mehr als Entwurf geführtes Angebot. Eine Gesamtlöschung ist gesperrt, damit geschäftliche Belege und ihre Dokumentation nicht unbeabsichtigt verloren gehen.</p>
+            </>:<>
+              <p className="notice">Mit der endgültigen Bestätigung werden alle oben genannten verbundenen CRM-Daten gelöscht. Die Datenbank prüft vor dem Löschen erneut, ob geschützte Belege vorhanden sind.</p>
+              <div className="button-row">
+                <button className="nx-delete-confirm-button" type="button" disabled={deleteBusy||!!deleteError||checkingLinks} onClick={async()=>{
+                  if(!deleteCustomer||deleteBusy)return;
+                  const target=deleteCustomer;
+                  setDeleteBusy(true);setDeleteError("");
+                  try{
+                    const result=await client.rpc("nx_delete_customer_bundle",{p_customer:target.id});
+                    if(result.error||!result.data?.deleted)throw Error(result.error?.message||"Gesamtlöschung konnte nicht bestätigt werden.");
+                    const paths=Array.isArray(result.data.storage_paths)
+                      ?result.data.storage_paths.filter((x:unknown):x is string=>typeof x==="string"&&x.startsWith(target.id+"/")):[];
+                    let storageProblem=false;
+                    for(let start=0;start<paths.length;start+=100){
+                      const outcome=await client.storage.from("nx-client-documents").remove(paths.slice(start,start+100));
+                      if(outcome.error||outcome.data?.length!==paths.slice(start,start+100).length)storageProblem=true;
+                    }
+                    await refresh();
+                    if(selected===target.id)setSelected(null);
+                    setDeleteCustomer(null);
+                    setDeleteNotice(storageProblem
+                      ?"CRM-Kundenakte gelöscht. Mindestens eine private Datei konnte nicht endgültig entfernt werden; bitte Dokumentenablage administrativ prüfen."
+                      :"Kundenakte „"+target.company+"“ und zugehörige Einträge wurden endgültig gelöscht.");
+                    if(!demo)void client.functions.invoke("nx-icloud-sync",{body:{action:"sync"}}).catch(()=>undefined);
+                  }catch(e){setDeleteError(e instanceof Error?e.message:"Kundenakte konnte nicht gelöscht werden.")}
+                  finally{setDeleteBusy(false)}
+                }}><Trash2 size={16}/>{deleteBusy?"Wird gelöscht …":"Kundenakte und verknüpfte Einträge endgültig löschen"}</button>
+              </div>
+            </>}
           </>}
           {deleteError&&<p className="error" role="alert">{deleteError}</p>}
           <button className="secondary" type="button" disabled={deleteBusy} onClick={()=>setDeleteCustomer(null)}>Abbrechen / Schließen</button>
