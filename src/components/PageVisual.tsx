@@ -8,6 +8,7 @@ import {
 type Icon = ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
 
 const visuals: Record<string, { title: string; subtitle: string; icon: Icon; detail: Icon; label: string }> = {
+  hunter: { title: "Neue Geschäfte. Klare nächste Schritte.", subtitle: "SumUp-Außendienst: recherchieren, vormerken und zentral weiterbearbeiten.", icon: MapPinned, detail: Store, label: "NEXARO HUNTER" },
   customers: { title: "Jeder Standort zählt.", subtitle: "Kontakte, Gesprächsnotizen und Chancen übersichtlich an einem Ort.", icon: Users, detail: Store, label: "KUNDEN & LEADS" },
   routes: { title: "Dein Außendienst. Dein Weg.", subtitle: "Standorte entdecken, Besuche planen und direkt navigieren.", icon: MapPinned, detail: Search, label: "STANDORTE & ROUTEN" },
   sumup: { title: "Payment sichtbar machen.", subtitle: "Bedarf verstehen, Tarife vergleichen und passende Lösungen zeigen.", icon: CreditCard, detail: WalletCards, label: "SUMUP VERTRIEB" },
