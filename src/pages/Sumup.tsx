@@ -29,6 +29,7 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
   const chosen=data.customers.find(c=>c.id===customer);
   const {items:incomingStatements,error:statementError}=useInboundStatements(customer,demo);
   async function inspectStatement(path:string,name:string,mime:string){
+    if(mime==="application/pdf"){setStatementNotice("PDF-Abrechnung bitte über die Kundenakte geschützt öffnen und prüfen. Für die automatische Texterkennung ein Foto oder eine Bilddatei der Abrechnung verwenden.");return;}
     setLoadingStatement(true);setStatementNotice("");
     try{
       const blob=await downloadDocument(customer,path);
@@ -62,7 +63,7 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
         <p className="hint">Die Datei wurde vom Interessenten freiwillig eingereicht. In die vorhandene Belegauswertung laden und erkannte Beträge vor dem Angebot prüfen.</p>
         {incomingStatements.map(file=><button key={file.receipt_id} type="button" className="primary"
           disabled={loadingStatement} onClick={()=>void inspectStatement(file.storage_path,file.original_name,file.mime)}>
-          {loadingStatement?"Abrechnung wird geladen …":"Abrechnung einlesen · "+file.original_name}
+          {loadingStatement?"Abrechnung wird geladen …":file.mime==="application/pdf"?"PDF-Abrechnung prüfen · "+file.original_name:"Abrechnung einlesen · "+file.original_name}
         </button>)}
       </>:<p className="hint">Keine Abrechnung aus dem Anfrageformular vorhanden. Für einen belastbaren Ist-Gebührenvergleich bitte eine Händlerabrechnung beim Kunden anfordern oder im Studio selbst fotografieren.</p>}
       {(statementNotice||statementError)&&<p role="status" className="hint">{statementNotice||statementError}</p>}
