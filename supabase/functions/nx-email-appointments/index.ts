@@ -3,7 +3,7 @@ import nodemailer from "npm:nodemailer@7.0.6";
 
 const env=(name:string)=>Deno.env.get(name)||"";
 const client=createClient(env("SUPABASE_URL"),env("SUPABASE_SERVICE_ROLE_KEY"),{auth:{persistSession:false,autoRefreshToken:false}});
-const response=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store"}});
+const response=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store","access-control-allow-origin":"*","access-control-allow-headers":"authorization,apikey,content-type","access-control-allow-methods":"POST,OPTIONS"}});
 const berlinDay=(date:Date)=>new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).format(date);
 const berlinTime=(date:Date)=>new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Berlin",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(date);
 const digest=async(value:string)=>Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))).map(n=>n.toString(16).padStart(2,"0")).join("");
@@ -54,10 +54,56 @@ async function dispatch(){
  }finally{transport.close();}
  return response({sent,failed,skipped});
 }
+
+async function ownerAuthorized(req:Request){
+ const authorization=req.headers.get("authorization")||"";
+ if(!authorization.startsWith("Bearer "))return false;
+ const anonKey=env("SUPABASE_ANON_KEY");
+ if(!anonKey)return false;
+ const auth=createClient(env("SUPABASE_URL"),anonKey,{auth:{persistSession:false,autoRefreshToken:false}});
+ const {data:{user},error}=await auth.auth.getUser(authorization.slice(7));
+ if(error||!user)return false;
+ const {data, error:ownerError}=await client.from("nx_owner").select("user_id").eq("user_id",user.id).maybeSingle();
+ return !ownerError&&!!data;
+}
+async function smtpTest(send:boolean){
+ const secrets=["SMTP_HOST","SMTP_PORT","SMTP_USER","SMTP_PASSWORD","SMTP_FROM"];
+ const missing=secrets.filter(name=>!env(name));
+ if(missing.length)return response({ok:false,reason:"SMTP configuration incomplete",missing},503);
+ if(env("SMTP_HOST")!=="mail.webador.com"||env("SMTP_PORT")!=="587")
+   return response({ok:false,reason:"Unexpected SMTP host or port. Confirm provider settings before testing."},503);
+ const transport=nodemailer.createTransport({
+  host:env("SMTP_HOST"),port:587,secure:false,requireTLS:true,
+  tls:{minVersion:"TLSv1.2",serverName:env("SMTP_HOST")},
+  auth:{user:env("SMTP_USER"),pass:env("SMTP_PASSWORD")},
+  connectionTimeout:12000,greetingTimeout:12000,socketTimeout:20000
+ });
+ try{
+  await transport.verify();
+  if(!send)return response({ok:true,connection:"SMTP authentication and STARTTLS succeeded",mailSent:false});
+  const ownMailbox=env("SMTP_USER").trim();
+  if(!validMail(ownMailbox)||ownMailbox.toLowerCase()!=="kontakt@nexaro-solutions.de")
+    return response({ok:false,reason:"Test recipient is not the configured neXaro mailbox"},400);
+  const sent=await transport.sendMail({
+   from:env("SMTP_FROM"),to:ownMailbox,
+   subject:"neXaro CRM – Webador SMTP-Test",
+   text:"Dies ist eine bewusst ausgelöste Test-E-Mail an Ihr eigenes Webador-Postfach. Es wurden keine Kunden benachrichtigt.\n\nneXaro Solutions"
+  });
+  return response({ok:true,mailSent:true,accepted:sent.accepted?.length||0,message:"Test message accepted by SMTP. Check your Inbox and Spam."});
+ }catch(e){
+  const error=e as {code?:string;responseCode?:number};
+  return response({ok:false,reason:"SMTP connection, authentication or test send failed",code:String(error.code||"UNKNOWN").slice(0,40),smtpStatus:Number(error.responseCode||0)},502);
+ }finally{transport.close()}
+}
 Deno.serve(async req=>{
+ if(req.method==="OPTIONS")return response({ok:true});
  if(req.method!=="POST")return response({error:"Method not allowed"},405);
  let body:{action?:string};
  try{body=await req.json()}catch{return response({error:"JSON required"},400)}
+ if(body.action==="smtp-check"||body.action==="send-self-test"){
+  if(!(await ownerAuthorized(req)))return response({error:"Unauthorized"},401);
+  return await smtpTest(body.action==="send-self-test");
+ }
  if(body.action!=="dispatch")return response({error:"Unknown action"},400);
  const presented=req.headers.get("x-nx-cron-secret")||"";
  if(!presented||!env("NX_SMS_CRON_SECRET")||presented!==env("NX_SMS_CRON_SECRET"))return response({error:"Forbidden"},403);
