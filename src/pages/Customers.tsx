@@ -129,7 +129,7 @@ export function Customers({ division }: { division?: Division }) {
                         >
                           {c.company}
                         </button>
-                        <small className="nx-customer-origin">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{c.source==="SumUp Gebührencheck"?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":""}</small>
+                        <small className="nx-customer-origin">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{feeRequestText(c,data.events)?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":""}</small>
                         <small>
                           {c.contact || c.industry || "Kontakt ergänzen"}
                         </small>
@@ -187,7 +187,7 @@ export function Customers({ division }: { division?: Division }) {
             {rows.map(c=>{
               const next=data.tasks.filter(t=>t.customer_id===c.id&&!t.done).sort((a,b)=>a.due_at.localeCompare(b.due_at))[0];
               return <article className={"nx-customer-mobile-card"+(segmentOf(c,data.tasks,data.events,data.opportunities)==="inbound"?" nx-inbound-card":"")} key={c.id}>
-                <span className="nx-customer-segment-badge">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{c.source==="SumUp Gebührencheck"?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":""}</span>
+                <span className="nx-customer-segment-badge">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{feeRequestText(c,data.events)?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":""}</span>
                 <button className="nx-customer-mobile-title" onClick={()=>setSelected(c.id)}>{c.company} <ArrowUpRight size={17}/></button>
                 <small>{c.contact||c.industry||"Kontakt ergänzen"}</small>
                 {segmentOf(c,data.tasks,data.events,data.opportunities)==="inbound"&&<small>Eingang: {new Date(c.created_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})}</small>}
