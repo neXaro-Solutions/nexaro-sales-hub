@@ -1,6 +1,6 @@
 import {distance} from "./calculations";
 export type HunterRoutePoint={id:string;lat:number|null;lng:number|null};
-const hasCoordinates=(point:HunterRoutePoint):point is HunterRoutePoint&{lat:number;lng:number}=>point.lat!==null&&point.lng!==null&&Number.isFinite(point.lat)&&Number.isFinite(point.lng);
+const hasCoordinates=<T extends HunterRoutePoint>(point:T):point is T&{lat:number;lng:number}=>point.lat!==null&&point.lng!==null&&Number.isFinite(point.lat)&&Number.isFinite(point.lng);
 export function hunterRouteLength<T extends HunterRoutePoint>(points:T[],origin?:{lat:number;lng:number}):number{
  let total=0;
  let last=origin;
