@@ -11,6 +11,140 @@ type Article = {
 };
 
 const articles: Article[] = [
+  {
+    group: "Gesprächseinstieg", title: "Erstkontakt im Geschäft · 30 Sekunden",
+    summary: "Kurz, respektvoll und ohne unbestätigte Sparversprechen das Gespräch eröffnen.",
+    points: [
+      "Einstieg: „Guten Tag, mein Name ist Sebastian Pötschke von neXaro Solutions. Ich begleite Gewerbetreibende bei Kartenakzeptanz und passenden SumUp-Lösungen. Passt es gerade für eine kurze Frage – oder ist ein anderer Zeitpunkt besser?“",
+      "Erlaubnisfrage: „Darf ich kurz fragen, wie Sie Kartenzahlungen aktuell abwickeln?“",
+      "Wenn Zeit vorhanden: „Was funktioniert daran für Sie besonders gut, und wo würden Sie sich etwas Einfacheres wünschen?“",
+      "Wenn es gerade nicht passt: „Verstanden. Wann wäre ein passender Zeitpunkt für ein kurzes Gespräch?“ Nur einen konkret vereinbarten Folgeschritt notieren.",
+      "Keine Ersparnis, Sonderkondition oder technische Kompatibilität behaupten, bevor Ist-Daten und aktuelle Konditionen geprüft sind."
+    ]
+  },
+  {
+    group: "Gesprächseinstieg", title: "Empfang, Mitarbeiter oder Entscheider",
+    summary: "Den richtigen Ansprechpartner finden, ohne Mitarbeitende zu übergehen.",
+    points: [
+      "Einstieg: „Guten Tag. Wer ist bei Ihnen für Kartenzahlung oder die Auswahl der Kassentechnik zuständig?“",
+      "Bei Rückfrage: „Es geht um eine kurze Bestandsaufnahme der heutigen Zahlungslösung – zunächst ohne Angebot und ohne Vertragsänderung.“",
+      "Ist die Person nicht da: „Wann ist sie üblicherweise erreichbar? Ich komme gern zu einem geeigneten Zeitpunkt wieder.“",
+      "Nicht um private Kontaktdaten bitten, wenn diese für die vereinbarte Kontaktaufnahme nicht benötigt werden.",
+      "Im HUNTER die verifizierte Gesprächsinformation und einen vereinbarten Termin eintragen; keine Vermutung als Entscheidung dokumentieren."
+    ]
+  },
+  {
+    group: "Gesprächseinstieg", title: "Bestehenden Kontakt erneut ansprechen",
+    summary: "An das letzte Gespräch anknüpfen und den vereinbarten nächsten Schritt klären.",
+    points: [
+      "Einstieg: „Wir hatten am [Datum] über [konkretes Thema] gesprochen. Ist jetzt ein guter Zeitpunkt, um die offene Frage gemeinsam durchzugehen?“",
+      "„Hat sich seit unserem Gespräch beim Kartenumsatz, der Kasse oder beim Gerätebedarf etwas verändert?“",
+      "„Ich habe [vereinbarten Punkt] vorbereitet. Möchten Sie zuerst die Kosten oder den praktischen Ablauf ansehen?“",
+      "Offene Einwände und Änderungen in der Kundenakte dokumentieren; keine Zustimmung zu weiteren Kontakten unterstellen."
+    ]
+  },
+  {
+    group: "Bedarfsermittlung", title: "Bedarf in fünf Fragen erfassen",
+    summary: "Ein kurzer Leitfaden vom Ist-Zustand zum konkreten nächsten Schritt.",
+    points: [
+      "1 · Ist-Zustand: „Wie nehmen Sie heute Kartenzahlungen an – mit welchem Terminal und welcher Kassenlösung?“",
+      "2 · Alltag: „Wann wird es im Betrieb aufwendig: an der Theke, unterwegs, beim Beleg oder beim Tagesabschluss?“",
+      "3 · Umfang: „Wie viele Zahlungen und ungefähr welches Kartenvolumen fallen in einem typischen Monat an?“ Schätzungen ausdrücklich als solche notieren.",
+      "4 · Priorität: „Wäre für Sie eher die Bedienung, die Kostenübersicht, Mobilität oder eine zusätzliche Funktion entscheidend?“",
+      "5 · Entscheidung: „Wer sollte in einen Vergleich eingebunden sein, und wann möchten Sie entscheiden?“",
+      "Zusammenfassen: „Ich habe verstanden: [Ist-Zustand], [Herausforderung] und [Priorität]. Trifft das so zu?“"
+    ]
+  },
+  {
+    group: "Bedarfsermittlung", title: "Gebührencheck mit einer Händlerabrechnung",
+    summary: "Zahlen sorgfältig erheben; eine Fotoerkennung ersetzt keine Belegprüfung.",
+    points: [
+      "Fragen: „Wäre es für Sie hilfreich, Ihre tatsächlichen Kartenkosten anhand einer aktuellen Abrechnung mit den aktuellen SumUp-Konditionen zu vergleichen?“",
+      "„Dürfen wir dafür eine möglichst geschwärzte Händlerabrechnung im geschützten Formular entgegennehmen?“ Die Abrechnung bleibt optional.",
+      "Prüfen: Abrechnungszeitraum, tatsächlich abgerechnetes Kartenvolumen, Transaktionszahl, Gebührensumme, eventuelle Grundgebühren und Sonderkartentypen.",
+      "„Welche Umsatzanteile entfallen auf Debit, Kredit, internationale oder geschäftliche Karten – soweit aus dem Beleg ersichtlich?“",
+      "80/20 oder andere Systemvorgaben sind keine nachgewiesenen Kundendaten. Nicht erkennbare Felder als „Bitte prüfen“ markieren.",
+      "Abschluss: „Ich prüfe zunächst Ihre Ist-Werte und zeige Ihnen anschließend einen nachvollziehbaren Vergleich. Erst nach Ihrer Prüfung erstellen wir ein Angebot.“"
+    ]
+  },
+  {
+    group: "Bedarfsermittlung", title: "Terminal, Mobilität, Beleg und Kasse",
+    summary: "Die passende Gerätekategorie aus dem tatsächlichen Arbeitsablauf ableiten.",
+    points: [
+      "„Wo findet die Zahlung statt: fester Tresen, Tisch, Marktstand, Lieferdienst oder wechselnde Standorte?“",
+      "„Soll das Gerät eigenständig arbeiten, oder steht ein Smartphone am Zahlungsplatz bereit?“",
+      "„Benötigen Sie Papierbelege, digitale Belege oder beides?“",
+      "„Wie viele Personen nehmen gleichzeitig Zahlungen an? Gibt es bereits eine Kasse, Artikelverwaltung oder Mitarbeiterrollen?“",
+      "„Welche bestehende Hard- oder Software darf auf keinen Fall wegfallen?“ Integrationsfähigkeit vor einer Zusage prüfen.",
+      "Zusammenfassen: „Wichtig sind also [Funktion 1] und [Funktion 2]; [bestehender Ablauf] soll erhalten bleiben. Habe ich etwas übersehen?“"
+    ]
+  },
+  {
+    group: "Einwandbehandlung", title: "„Wir haben schon ein Kartenterminal.“",
+    summary: "Den Bestand respektieren und nur bei einem echten Bedarf vertiefen.",
+    points: [
+      "Bestätigen: „Das ist gut – eine funktionierende Lösung sollten Sie nicht ohne Grund wechseln.“",
+      "Klärungsfrage: „Was gefällt Ihnen daran besonders, und gibt es etwas, das Sie heute einfacher oder transparenter haben möchten?“",
+      "Bei Kosteninteresse: „Wenn Sie möchten, können wir die tatsächlichen Abrechnungskosten unverbindlich gegenüberstellen.“",
+      "Bei fehlendem Bedarf: „Danke für die klare Rückmeldung. Dann lasse ich Sie im Tagesgeschäft weitermachen.“",
+      "Nicht behaupten, dass SumUp grundsätzlich günstiger oder mit jeder Kasse kompatibel sei."
+    ]
+  },
+  {
+    group: "Einwandbehandlung", title: "„Zu teuer“ / „Ich möchte keine Grundgebühr.“",
+    summary: "Die Kostenfrage in nachvollziehbare Bestandteile zerlegen.",
+    points: [
+      "Nachfragen: „Meinen Sie den einmaligen Gerätepreis, die laufende Grundgebühr oder die Gebühr je Kartenzahlung?“",
+      "„Welcher Betrag ist für Sie aktuell der wichtigste Vergleichswert: monatliche Gesamtkosten oder Kosten pro Transaktion?“",
+      "„Sollen wir beide Varianten anhand Ihres tatsächlichen Kartenmixes gegenüberstellen?“",
+      "Vor einem Vergleich Transaktionsarten, Abrechnungsmonat, Fixkosten und aktuelle Vertragsbedingungen prüfen.",
+      "Antwort nur mit überprüften Zahlen: „Für diesen geprüften Zeitraum ergibt sich [Betrag] – mit den genannten Annahmen. Ob das auch künftig zutrifft, hängt unter anderem von Umsatz und Kartenmix ab.“"
+    ]
+  },
+  {
+    group: "Einwandbehandlung", title: "„Keine Zeit“ / „Schicken Sie etwas per E-Mail.“",
+    summary: "Das Gegenüber entlasten und eine konkrete, zulässige Folgeaktion vereinbaren.",
+    points: [
+      "Keine Zeit: „Verstanden. Passt ein kurzer Termin zu einer ruhigeren Uhrzeit besser, oder möchten Sie es dabei belassen?“",
+      "E-Mail-Wunsch: „Gern. Geht es Ihnen eher um Gebühren, Terminalfunktionen oder die Kasse, damit ich nur passende Informationen zusammenstelle?“",
+      "„An welche geschäftliche Adresse möchten Sie diese ausdrücklich angeforderten Unterlagen erhalten?“",
+      "Nur den konkret gewünschten Inhalt versenden; keine allgemeinen Werbefolgen oder Newsletter daraus ableiten.",
+      "Falls vereinbart: „Darf ich mich zu [Zeitpunkt] zu [konkret besprochenem Thema] nochmals melden?“ Absprache im CRM dokumentieren."
+    ]
+  },
+  {
+    group: "Einwandbehandlung", title: "„Ich bin zufrieden“ / „Kein Interesse.“",
+    summary: "Einwand und klare Absage unterscheiden.",
+    points: [
+      "Zufriedenheit: „Das freut mich. Dann ist ein Wechsel gerade möglicherweise gar nicht nötig.“",
+      "Optional eine einzige offene Frage: „Gibt es etwas, das Sie künftig ergänzen möchten, oder passt alles?“",
+      "Bei „Kein Interesse“: „Verstanden, danke für Ihre Zeit. Ich wünsche Ihnen weiterhin einen guten Geschäftstag.“",
+      "Klare Absage im HUNTER als „Kein Interesse“ dokumentieren und nicht ungefragt erneut kontaktieren.",
+      "Die Ablehnung ist kein Signal für automatisches Nachfassen."
+    ]
+  },
+  {
+    group: "Einwandbehandlung", title: "„Ich muss darüber nachdenken / mit jemandem sprechen.“",
+    summary: "Entscheidungsspielraum lassen und offene Sachfragen klären.",
+    points: [
+      "„Natürlich. Welche Frage müsste für Ihre Entscheidung noch geklärt sein?“",
+      "„Wer sollte den Vergleich mit ansehen, und welche Angaben wären für diese Person wichtig?“",
+      "Wenn es um Vertragslaufzeit, Auszahlung oder Hardware geht: die konkrete Frage notieren und anhand der aktuell verbindlichen Unterlagen beantworten.",
+      "„Wenn es für Sie passt, können wir [Datum] die noch offenen Punkte gemeinsam durchgehen.“ Kein künstlicher Zeitdruck.",
+      "Im CRM nur den vereinbarten Folgetermin hinterlegen."
+    ]
+  },
+  {
+    group: "Gesprächseinstieg", title: "Gespräch sauber abschließen",
+    summary: "Jedes Gespräch endet mit einem verständlichen, dokumentierten Ergebnis.",
+    points: [
+      "Zusammenfassung: „Wir haben heute [Bedarf] und [offene Frage] geklärt. Ich übernehme als Nächstes [konkrete Aufgabe].“",
+      "„Ist es für Sie in Ordnung, dass ich Ihnen [ausdrücklich gewünschtes Dokument] zukommen lasse?“",
+      "„Passt [konkret vereinbarter Termin] für die Rückmeldung?“",
+      "HUNTER-Status setzen: Interesse, Wiedervorlage, Kein Interesse oder in Kundenakte übernehmen.",
+      "Keine automatische Zusage für einen Abschluss; Angebot und Terminbestätigung getrennt prüfen."
+    ]
+  },
   { group: "Außendienst", title: "Gesprächsablauf in vier Schritten", summary: "Vom vorhandenen Zahlungsbeleg zur überprüfbaren Empfehlung.", points: ["1. Händlerabrechnung fotografieren oder Werte manuell erfassen.", "2. Branche, Transaktionen, Mobilität und Belegbedarf aufnehmen.", "3. Kartenmix und Kosten mit dem Händler prüfen.", "4. Tarif und Hardware getrennt darstellen, Angebot speichern und Wiedervorlage vereinbaren."] },
   { group: "Außendienst", title: "Foto und OCR richtig nutzen", summary: "Die Erkennung ist ein Eingabehelfer, kein verifizierter Rechnungsnachweis.", points: ["Beleg vollständig, gerade und gut beleuchtet fotografieren.", "Monatszeitraum, Kartenumsatz, Gebühren und Kartentypen prüfen.", "Unlesbare Werte nie als 0 oder als bestätigte Werte interpretieren.", "Originalbeleg und sensible Kundendaten nur im geschützten CRM ablegen."] },
   { group: "Kartenmix", title: "80/20-Startannahme", summary: "80 % Debit und 20 % Kredit sind eine Voreinstellung, keine Eigenschaft eines konkreten Händlers.", points: ["Startwerte nur verwenden, solange kein echter Kartenmix bekannt ist.", "Nach Belegprüfung Kartentypen und Sonderkarten anpassen.", "Internationale, Corporate, Premium, Amex und Online separat berücksichtigen.", "Schätzung im Angebot von nachgewiesenem Ist-Wert unterscheiden."] },
