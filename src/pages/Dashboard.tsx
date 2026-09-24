@@ -92,7 +92,7 @@ export function Dashboard({
   }
   return (
     <>
-      <div className="welcome">
+      <div className="welcome nx-dashboard-welcome">
         <div>
           <span className="eyebrow">DEIN VERTRIEB. DEIN ÜBERBLICK.</span>
           <h1>
@@ -100,70 +100,37 @@ export function Dashboard({
             <br />
             <span>Klare nächste Schritte.</span>
           </h1>
-          <p>{quote}</p>
+          <p className="nx-dashboard-quote">{quote}</p>
           <button className="primary" onClick={newCustomer}>
             <Plus size={17} /> Standort erfassen
           </button>
-          <button className="secondary" onClick={() => navigate("routes")}>
-            <MapPin size={16} /> Tagesroute planen
+          <button className="secondary" onClick={() => navigate("hunter")}>
+            <MapPin size={16} /> Tour planen
           </button>
         </div>
         <DashboardIllustration />
       </div>
-      <Card title="Dein zentrales neXaro CRM" eyebrow="VERTRIEB · DOKUMENTE · WISSEN">
-        <p>SumUp-Vertriebsstudio, Händlerverwaltung, B2B-Katalog, Angebote, Rechnungen und Wissensdatenbank in einem System. Stand der Integration: 20.09.2026.</p>
-        <div className="button-row" style={{ flexWrap: "wrap" }}>
-          <button className="primary" onClick={() => navigate("sumup")}><Target size={16} /> SumUp-Beratung öffnen <ArrowRight size={15} /></button>
-          <button className="secondary" onClick={() => navigate("vape")}><Inbox size={16} /> Vape-B2B-Katalog <ArrowRight size={15} /></button>
-          <button className="secondary" onClick={() => navigate("offers")}><Target size={16} /> Angebote & Rechnungen <ArrowRight size={15} /></button>
-          <button className="secondary" onClick={() => navigate("knowledge")}>Wissensdatenbank <ArrowRight size={15} /></button>
-          <a className="secondary" href="./testabrechnung.html" target="_blank" rel="noopener noreferrer">Testabrechnung drucken</a>
-        </div>
-        <p className="hint">SumUp-Hardware nur mit regulären Nettopreisen; Kartenmix standardmäßig 80 % Debit / 20 % Kredit. Nicht freigegebene Händlerpreise werden nicht als verbindliche VK übernommen.</p>
-      </Card>
-      <DashboardCalendar newTask={newTask} navigate={navigate}/>
-      <Card title="HUNTER AUTO · Nachverfolgung" eyebrow="ANFRAGEN · ABRECHNUNGEN · ANGEBOTE">
-        <p>Das CRM legt bei einer eingehenden Anfrage oder Abrechnung eine interne Bearbeitungsaufgabe an. Ein als „Gesendet“ markiertes Angebot erhält automatisch eine persönliche Wiedervorlage nach drei Tagen – ohne automatische Werbe-E-Mail.</p>
-        <div className="nx-followup-metrics">
-          <div><strong>{newInquiries.length}</strong><small>Offene SumUp-Anfragen und Abrechnungen</small></div>
-          <div><strong>{proposalFollowups.length}</strong><small>Angebote persönlich nachfassen</small></div>
-          <div><strong>{overdueHunter.length}</strong><small>Überfällige nächste Schritte</small></div>
-        </div>
-        {hunterFollowups.length?<div className="task-list">
-          {hunterFollowups.slice(0,6).map(t=><div className="task-row" key={t.id}>
-            <Clock3 size={17}/>
-            <div className="grow">
-              <strong>{t.title}</strong>
-              <small>{data.customers.find(c=>c.id===t.customer_id)?.company||"Kundenakte prüfen"} · {dateLabel(t.due_at)}</small>
-            </div>
-            <span className={dayKey(t.due_at)<now?"overdue":"muted"}>
-              {dayKey(t.due_at)<now?"Überfällig":"Geplant"}
-            </span>
-          </div>)}
-        </div>:<p className="hint">Keine offenen SumUp-Anfragen oder automatischen Angebots-Wiedervorlagen.</p>}
-        <div className="button-row">
-          <button className="primary" onClick={()=>navigate("tasks")}>Wiedervorlagen bearbeiten <ArrowRight size={16}/></button>
-          <button className="secondary" onClick={()=>navigate("customers")}>Neue Leads öffnen <ArrowRight size={16}/></button>
-        </div>
-        <p className="hint">Werbliche Kontaktaufnahme nur auf einem zulässigen, dokumentierten Kanal. Die Terminbestätigung bleibt separat.</p>
-      </Card>
-      <SmsRequests/>
-      <DashboardWeather />
+      <div className="nx-dashboard-shortcuts" aria-label="Schnellzugriffe">
+        <button type="button" className="nx-dashboard-shortcut" onClick={newTask}><Plus size={18}/><span>Termin anlegen</span></button>
+        <button type="button" className="nx-dashboard-shortcut" onClick={()=>navigate("customers")}><Users size={18}/><span>Kunden & Leads</span></button>
+        <button type="button" className="nx-dashboard-shortcut" onClick={()=>navigate("hunter")}><MapPin size={18}/><span>Außendienst</span></button>
+        <button type="button" className="nx-dashboard-shortcut" onClick={()=>navigate("offers")}><Target size={18}/><span>Angebote</span></button>
+      </div>
       <div className="metrics">
         <Metric
-          label="Aktive Standorte"
+          label="Kunden & Leads"
           value={data.customers.length}
           detail={`${open.length} offene Verkaufschancen`}
           icon={<Users size={17} />}
         />
         <Metric
-          label="Heute & überfällig"
+          label="Heute zu erledigen"
           value={due.length}
           detail={`${data.tasks.filter((t) => !t.done).length} Aufgaben insgesamt offen`}
           icon={<Clock3 size={17} />}
         />
         <Metric
-          label="SumUp · Kartenpotenzial"
+          label="SumUp-Potenzial"
           value={money(sumup)}
           detail="Monatliches Volumen offener Chancen"
           icon={<Target size={17} />}
@@ -174,7 +141,7 @@ export function Dashboard({
           detail="Neutrale Betreuung und Dokumentation"
         />
       </div>
-      <div className="dashboard-grid">
+      <div className="dashboard-grid nx-dashboard-priorities">
         <Card
           title="Dein Fokus für heute"
           eyebrow={dateLabel(now)}
@@ -319,6 +286,54 @@ export function Dashboard({
           </div>
         </Card>
       </div>
+      <Card title="HUNTER AUTO · Nachverfolgung" eyebrow="ANFRAGEN · ABRECHNUNGEN · ANGEBOTE">
+        <div className="nx-followup-metrics">
+          <div><strong>{newInquiries.length}</strong><small>Offene SumUp-Anfragen und Abrechnungen</small></div>
+          <div><strong>{proposalFollowups.length}</strong><small>Angebote persönlich nachfassen</small></div>
+          <div><strong>{overdueHunter.length}</strong><small>Überfällige nächste Schritte</small></div>
+        </div>
+        {hunterFollowups.length?<div className="task-list">
+          {hunterFollowups.slice(0,6).map(t=><div className="task-row" key={t.id}>
+            <Clock3 size={17}/>
+            <div className="grow">
+              <strong>{t.title}</strong>
+              <small>{data.customers.find(c=>c.id===t.customer_id)?.company||"Kundenakte prüfen"} · {dateLabel(t.due_at)}</small>
+            </div>
+            <span className={dayKey(t.due_at)<now?"overdue":"muted"}>
+              {dayKey(t.due_at)<now?"Überfällig":"Geplant"}
+            </span>
+          </div>)}
+        </div>:<p className="hint">Keine offenen SumUp-Anfragen oder automatischen Angebots-Wiedervorlagen.</p>}
+        <div className="button-row">
+          <button className="primary" onClick={()=>navigate("tasks")}>Wiedervorlagen bearbeiten <ArrowRight size={16}/></button>
+          <button className="secondary" onClick={()=>navigate("customers")}>Neue Leads öffnen <ArrowRight size={16}/></button>
+        </div>
+      </Card>
+      <details className="nx-dashboard-fold">
+        <summary><span><Clock3 size={18}/> Monatskalender & Terminübersicht</span><small>Aufklappen</small></summary>
+        <div className="nx-dashboard-fold-body">
+      <DashboardCalendar newTask={newTask} navigate={navigate}/>
+        </div>
+      </details>
+      <details className="nx-dashboard-fold">
+        <summary><span><Inbox size={18}/> Terminbestätigungen & Nachrichten</span><small>Aufklappen</small></summary>
+        <div className="nx-dashboard-fold-body">
+      <SmsRequests/>
+        </div>
+      </details>
+      <details className="nx-dashboard-fold">
+        <summary><span><Target size={18}/> Auswertungen, Wetter & weitere Bereiche</span><small>Aufklappen</small></summary>
+        <div className="nx-dashboard-fold-body">
+      <DashboardWeather />
+      <Card title="Weitere CRM-Bereiche" eyebrow="SUMUP · VAPE · DOKUMENTE">
+        <div className="button-row" style={{ flexWrap: "wrap" }}>
+          <button className="primary" onClick={() => navigate("sumup")}><Target size={16} /> SumUp-Beratung öffnen <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("vape")}><Inbox size={16} /> Vape-B2B-Katalog <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("offers")}><Target size={16} /> Angebote & Rechnungen <ArrowRight size={15} /></button>
+          <button className="secondary" onClick={() => navigate("knowledge")}>Wissensdatenbank <ArrowRight size={15} /></button>
+          <a className="secondary" href="./testabrechnung.html" target="_blank" rel="noopener noreferrer">Testabrechnung drucken</a>
+        </div>
+      </Card>
       <Card
         title="Vertrieb in Bewegung"
         eyebrow="PIPELINE"
@@ -386,6 +401,5 @@ export function Dashboard({
           </p>
         )}
       </Card>
-    </>
-  );
-}
+        </div>
+      </details>
