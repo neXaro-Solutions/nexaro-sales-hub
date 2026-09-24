@@ -26,12 +26,13 @@ import { stages, type Customer, type Division, type Stage } from "../lib/types";
 import type { Task } from "../lib/types";
 import { Documents } from "../components/Documents";
 import { CustomerContactPermission } from "../components/ContactCompliance";
+import { InboundStatementPanel } from "../components/InboundStatementPanel";
 import { appointmentLabel } from "../lib/appointments";
 type CustomerSegment = "inbound"|"lead"|"customer";
 function feeRequestText(c:Customer,events:{customer_id:string|null;kind:string;description:string;created_at:string}[]){
  const entry=events.filter(e=>e.customer_id===c.id&&e.kind==="Formularanfrage"&&e.description.includes("SumUp Gebührencheck"))
   .sort((a,b)=>b.created_at.localeCompare(a.created_at))[0];
- return c.source==="SumUp Gebührencheck" ? c.notes : entry?.description||"";
+ return ["SumUp Gebührencheck","SumUp Angebotsanfrage"].includes(c.source) ? c.notes : entry?.description||"";
 }
 function feeFields(raw:string){
  const volume=raw.match(/Monatlicher Kartenumsatz laut Interessent:\s*([^\n]+)/)?.[1]?.trim()||"Nicht angegeben";
@@ -40,8 +41,8 @@ function feeFields(raw:string){
  return {volume,provider,message:message||"Keine zusätzliche Nachricht"};
 }
 function segmentOf(c:Customer,tasks:Task[],events:{customer_id:string|null;kind:string;description:string}[],opportunities:{customer_id:string;stage:string}[]):CustomerSegment{
- const inbound=events.some(e=>e.customer_id===c.id&&e.kind==="Formularanfrage")||c.source==="SumUp Gebührencheck"||c.source==="Kontaktformular";
- if(inbound&&tasks.some(t=>t.customer_id===c.id&&!t.done&&(/Gebührenvergleich|Neue Anfrage beantworten/.test(t.title))))return "inbound";
+ const inbound=events.some(e=>e.customer_id===c.id&&e.kind==="Formularanfrage")||["SumUp Gebührencheck","SumUp Beratung","SumUp Angebotsanfrage","Kontaktformular"].includes(c.source);
+ if(inbound&&tasks.some(t=>t.customer_id===c.id&&!t.done&&(/Gebührenvergleich|Neue Anfrage beantworten|Beratungsanfrage|Abrechnung prüfen/.test(t.title))))return "inbound";
  if(opportunities.some(o=>o.customer_id===c.id&&o.stage==="Gewonnen"))return "customer";
  return "lead";
 }
@@ -129,7 +130,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
                         >
                           {c.company}
                         </button>
-                        <small className="nx-customer-origin">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{feeRequestText(c,data.events)?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":""}</small>
+                        <small className="nx-customer-origin">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{feeRequestText(c,data.events)?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":c.source==="SumUp Beratung"?" · SumUp-Beratung":c.source==="SumUp Angebotsanfrage"?" · Angebot mit Abrechnung":""}</small>
                         <small>
                           {c.contact || c.industry || "Kontakt ergänzen"}
                         </small>
@@ -197,7 +198,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
                 )}</div>
                 <p className="nx-customer-mobile-next">{next?"Nächster Schritt: "+next.title+" · "+appointmentLabel(next.due_at):"Noch keine Wiedervorlage"}</p>
                 <button className="secondary" onClick={()=>setSelected(c.id)}>Kundenakte öffnen</button>
-                {onOpenSumup&&feeRequestText(c,data.events)&&<button className="primary" onClick={()=>onOpenSumup(c.id)}>Gebührenvergleich starten →</button>}
+
               </article>;
             })}
           </div>
@@ -232,8 +233,9 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
             <h4>Nachricht / Beratungswunsch</h4>
             <p className="prewrap">{fee.message}</p>
             <p className="hint">Formularangaben sind Selbstauskünfte, noch keine verifizierte Händlerabrechnung. Anfragebezogene Kontaktfreigabe ist von Werbeeinwilligung getrennt.</p>
-            {onOpenSumup&&<button className="primary" type="button" onClick={()=>onOpenSumup(customer.id)}>SumUp-Gebührenvergleich starten →</button>}
+
           </section>}
+          {(feeText||customer.source==="SumUp Beratung"||customer.source==="SumUp Angebotsanfrage")&&<InboundStatementPanel customerId={customer.id} demo={demo} onOpenSumup={onOpenSumup}/>}
           <div className="customer-summary">
             <p>
               <MapPin size={16} /> {address(customer) || "Adresse ergänzen"}
