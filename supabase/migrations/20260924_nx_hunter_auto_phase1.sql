@@ -98,7 +98,7 @@ begin
    values(cid,div,case when request_kind='SumUp Gebührencheck' then 'Angefragten SumUp-Gebührenvergleich vorbereiten' else 'Neue Anfrage beantworten · '||case div when 'sumup' then 'SumUp' else 'Vapes' end end,now()+interval '1 day','Aufgabe');
  end loop;
  insert into public.nx_events(customer_id,kind,description)
- values(cid,'Formularanfrage','Kontaktanfrage eingegangen: '||request_kind||'. Anfragebezogene Kontaktaufnahme dokumentiert; keine Werbeeinwilligung (Formularversion 2).');
+ values(cid,'Formularanfrage',left('Kontaktanfrage eingegangen: '||request_kind||'. Anfragebezogene Kontaktaufnahme dokumentiert; keine Werbeeinwilligung (Formularversion 2). '||fee_context||coalesce(p_payload->>'message',''),3000));
  insert into public.nx_contact_permissions(customer_id,request_contact,request_source,request_at,marketing_email)
  values(cid,true,request_kind||' v2',now(),false)
  on conflict(customer_id) do update set request_contact=true,request_source=excluded.request_source,request_at=excluded.request_at,updated_at=now();
