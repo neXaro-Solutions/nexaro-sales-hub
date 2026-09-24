@@ -5,6 +5,7 @@ import {
   CreditCard,
   Package,
   Map,
+  Crosshair,
   CheckSquare,
   FileText,
   BookOpen,
@@ -27,6 +28,7 @@ import { Customers } from "./pages/Customers";
 import { Sumup } from "./pages/Sumup";
 import { Dealers } from "./pages/Dealers";
 import { Routes } from "./pages/Routes";
+import { Hunter } from "./pages/Hunter";
 import { Tasks } from "./pages/Tasks";
 import { Offers } from "./pages/Offers";
 import { KnowledgeBase } from "./pages/KnowledgeBase";
@@ -35,6 +37,7 @@ const nav = [
   { id: "dashboard", label: "Übersicht", icon: LayoutDashboard },
   { id: "customers", label: "Kunden & Leads", icon: Users },
   { id: "routes", label: "Tagesroute", icon: Map },
+  { id: "hunter", label: "neXaro HUNTER", icon: Crosshair },
   { id: "sumup", label: "SumUp", icon: CreditCard },
   { id: "vape", label: "Vape", icon: Package },
   { id: "offers", label: "Angebote & Rechnungen", icon: FileText },
@@ -108,7 +111,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
         <nav>
           {nav.map((n, i) => (
             <div key={n.id}>
-              {i === 3 && (
+              {i === 4 && (
                 <span className="nav-section">VERTRIEBSBEREICHE</span>
               )}
               {i === 7 && <span className="nav-section">ORGANISATION</span>}
@@ -228,6 +231,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               {page === "vape" && <Dealers />}
               {page === "tasks" && <Tasks />}
               {page === "routes" && <Routes />}
+              {page === "hunter" && <Hunter />}
               {page === "offers" && <Offers />}
               {page === "knowledge" && <KnowledgeBase />}
               {page === "settings" && <Settings />}
