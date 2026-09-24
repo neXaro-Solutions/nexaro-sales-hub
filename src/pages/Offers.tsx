@@ -298,6 +298,7 @@ export function Offers() {
       <button className={tab === "offers" ? "primary" : "secondary"} onClick={() => setTab("offers")}>Angebote ({data.offers.length})</button>
       <button className={tab === "invoices" ? "primary" : "secondary"} onClick={() => setTab("invoices")}>Rechnungen ({data.invoices.length})</button>
     </div>
+    {deleteMessage&&<p className="notice" role="status">{deleteMessage}</p>}
     <Card>
       {tab === "offers" ? data.offers.length ? <div className="table-wrap"><table>
         <thead><tr><th>Angebot</th><th>Kunde</th><th>Bereich</th><th>Netto</th><th>Status</th><th>Aktionen</th></tr></thead>
@@ -309,6 +310,7 @@ export function Offers() {
             <button className="secondary" aria-label={o.number+" drucken oder PDF sichern"} onClick={()=>setPrint(o)}><Printer size={16}/> PDF</button>
             <button className="primary" disabled={!o.customer_id} title={!o.customer_id?"Vor Versand Kunden zuordnen":undefined} onClick={()=>setSendOffer(o)}><Mail size={16}/> E-Mail senden</button>
             <button className="secondary" disabled={!o.customer_id} title={!o.customer_id?"Vor Rechnung Kunden zuordnen":undefined} aria-label={o.number+" in Rechnung umwandeln"} onClick={()=>{setInvoiceForm({offer:o});setTab("invoices");}}><ArrowRight size={16}/> Rechnung</button>
+            <button className="nx-delete-trigger" type="button" aria-label={o.number+" löschen"} onClick={()=>{setDeleteError("");setDeleteMessage("");setDeleteOffer(o);}}><Trash2 size={16}/> Löschen</button>
           </div></td>
         </tr>)}</tbody>
       </table></div> : <Empty title="Noch keine Angebote">Erstelle dein erstes Angebot manuell oder über den SumUp-Vergleich.</Empty>
@@ -322,6 +324,34 @@ export function Offers() {
         </tr>)}</tbody>
       </table></div> : <Empty title="Noch keine Rechnungen">Erstelle eine Rechnung frei oder wandle ein bestehendes Angebot um.</Empty>}
     </Card>
+    {deleteOffer&&<Modal title="Angebot löschen" onClose={()=>{if(!deleteBusy)setDeleteOffer(null);}}>
+      <div className="nx-offer-delete-confirm">
+        <strong>Angebot {deleteOffer.number} wirklich endgültig löschen?</strong>
+        <p>Die Angebotsnummer wird nicht erneut vergeben. Ein bereits exportiertes oder versendetes PDF wird dadurch nicht zurückgerufen.</p>
+        {data.invoices.some(i=>i.offer_id===deleteOffer.id)?<>
+          <p className="error" role="alert">Dieses Angebot ist mit einer Rechnung verknüpft und kann nicht gelöscht werden. Die Rechnung und ihre Dokumentationskette bleiben erhalten.</p>
+          <button className="secondary" type="button" onClick={()=>setDeleteOffer(null)}>Schließen</button>
+        </>:<>
+          {deleteOffer.status!=="Entwurf"&&<p className="notice">Dieses Angebot hat den Status „{deleteOffer.status}“. Prüfe vor dem Löschen mögliche Aufbewahrungspflichten; für geschäftliche Belege kann das dauerhafte Löschen ungeeignet sein.</p>}
+          <p className="hint">Nur dieses Angebot wird gelöscht. Kundenakte, Abrechnung, Rechnungen und andere Angebote bleiben unverändert. Eine zu diesem Angebot gehörende automatische interne Nachfassaufgabe wird ebenfalls entfernt.</p>
+          {deleteError&&<p className="error" role="alert">{deleteError}</p>}
+          <div className="button-row">
+            <button className="nx-delete-confirm-button" type="button" disabled={deleteBusy} onClick={async()=>{
+              if(!deleteOffer||deleteBusy)return;
+              setDeleteBusy(true);setDeleteError("");
+              try{
+                const target=deleteOffer;
+                await remove("offers",target.id);
+                setDeleteOffer(null);
+                setDeleteMessage("Angebot "+target.number+" wurde gelöscht.");
+              }catch(e){setDeleteError(e instanceof Error?e.message:"Angebot konnte nicht gelöscht werden.")}
+              finally{setDeleteBusy(false)}
+            }}><Trash2 size={16}/>{deleteBusy?"Wird gelöscht …":"Angebot endgültig löschen"}</button>
+            <button className="secondary" type="button" disabled={deleteBusy} onClick={()=>setDeleteOffer(null)}>Abbrechen</button>
+          </div>
+        </>}
+      </div>
+    </Modal>}
     {edit && <OfferForm offer={edit===true?undefined:edit} onClose={()=>setEdit(null)} onSaved={saved=>{setTab("offers");setPrint(saved);}}/>}
     {invoiceForm && <InvoiceForm invoice={invoiceForm.invoice} offer={invoiceForm.offer}
       onClose={()=>setInvoiceForm(null)} onSaved={(invoice)=>{setTab("invoices");setPrint(invoice);}}/>}
