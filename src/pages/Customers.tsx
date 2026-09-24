@@ -8,6 +8,7 @@ import {
   Mail,
   ArrowUpRight,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import {
@@ -49,13 +50,39 @@ function segmentOf(c:Customer,tasks:Task[],events:{customer_id:string|null;kind:
 }
 const segmentLabels:Record<CustomerSegment,string>={inbound:"Neue Anfrage",lead:"Aktiver Lead",customer:"Bestandskunde"};
 export function Customers({ division, onOpenSumup }: { division?: Division; onOpenSumup?:(customerId:string)=>void }) {
-  const { data, save, refresh, demo } = useStore();
+  const { data, save, remove, refresh, demo } = useStore();
   const [search, setSearch] = useState(""),
     [selected, setSelected] = useState<string | null>(null),
     [edit, setEdit] = useState<Customer | true | null>(null),
     [task, setTask] = useState<Task | true | null>(null),
     [error, setError] = useState("");
   const [withStatements,setWithStatements]=useState<Set<string>>(new Set());
+  const [deleteCustomer,setDeleteCustomer]=useState<Customer|null>(null);
+  const [deleteBusy,setDeleteBusy]=useState(false);
+  const [deleteError,setDeleteError]=useState("");
+  const [deleteNotice,setDeleteNotice]=useState("");
+  const [linkedIntake,setLinkedIntake]=useState(false);
+  const [checkingLinks,setCheckingLinks]=useState(false);
+  async function requestCustomerDeletion(c:Customer){
+    setDeleteError("");setLinkedIntake(false);setCheckingLinks(true);setDeleteCustomer(c);
+    if(demo){setCheckingLinks(false);return;}
+    try{
+      const {data:receipts,error}=await client.from("nx_intake_receipts").select("id").eq("customer_id",c.id).limit(1);
+      if(error)throw Error("Verknüpfte Formularanfragen konnten nicht geprüft werden. Bitte erneut versuchen.");
+      setLinkedIntake(!!receipts?.length);
+    }catch(e){setDeleteError(e instanceof Error?e.message:"Verknüpfungen konnten nicht geprüft werden.");}
+    finally{setCheckingLinks(false);}
+  }
+  const deleteLinks=deleteCustomer?{
+    tasks:data.tasks.filter(t=>t.customer_id===deleteCustomer.id).length,
+    events:data.events.filter(e=>e.customer_id===deleteCustomer.id).length,
+    opportunities:data.opportunities.filter(o=>o.customer_id===deleteCustomer.id).length,
+    offers:data.offers.filter(o=>o.customer_id===deleteCustomer.id).length,
+    invoices:data.invoices.filter(i=>i.customer_id===deleteCustomer.id).length,
+    statements:withStatements.has(deleteCustomer.id)
+  }:null;
+  const customerHasLinks=!!deleteLinks&&(Object.values(deleteLinks).some(Boolean)||linkedIntake);
+
   useEffect(()=>{
     let active=true;
     if(demo)return()=>{active=false};
@@ -208,6 +235,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
                 )}</div>
                 <p className="nx-customer-mobile-next">{next?"Nächster Schritt: "+next.title+" · "+appointmentLabel(next.due_at):"Noch keine Wiedervorlage"}</p>
                 <button className="secondary" onClick={()=>setSelected(c.id)}>Kundenakte öffnen</button>
+                <button className="nx-delete-trigger" type="button" onClick={()=>void requestCustomerDeletion(c)}><Trash2 size={16}/> Eintrag löschen</button>
 
               </article>;
             })}
@@ -276,6 +304,9 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
             </button>
             <button className="secondary" onClick={() => setTask(true)}>
               <Plus size={16} /> Wiedervorlage
+            </button>
+            <button className="nx-delete-trigger" type="button" onClick={()=>void requestCustomerDeletion(customer)}>
+              <Trash2 size={16}/> Kundenakte löschen
             </button>
           </div>
           {customer.notes&&!feeText&&<p className="prewrap">{customer.notes}</p>}
@@ -453,6 +484,44 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
 
         </Modal>
       )}
+      {deleteNotice&&<p className="notice" role="status">{deleteNotice}</p>}
+      {deleteCustomer&&<Modal title="Kundenakte löschen" onClose={()=>{if(!deleteBusy)setDeleteCustomer(null);}}>
+        <div className="nx-customer-delete-confirm">
+          <strong>„{deleteCustomer.company}“ wirklich endgültig löschen?</strong>
+          <p>Der Löschvorgang betrifft die zentrale Kundenakte in SumUp und Vape. Er kann nicht rückgängig gemacht werden.</p>
+          {checkingLinks?<p role="status">Verknüpfte Formularanfragen werden geprüft …</p>:customerHasLinks?<>
+            <p className="error" role="alert">Die Kundenakte hat verknüpfte Einträge. Sie wird deshalb nicht unbemerkt zusammen mit Terminen, Angeboten, Rechnungen, Formularanfragen oder Belegen gelöscht.</p>
+            <ul>
+              {deleteLinks?.tasks?<li>{deleteLinks.tasks} Termin(e) / Aufgabe(n)</li>:null}
+              {deleteLinks?.events?<li>{deleteLinks.events} Historieneintrag/-einträge</li>:null}
+              {deleteLinks?.opportunities?<li>{deleteLinks.opportunities} Verkaufschance(n)</li>:null}
+              {deleteLinks?.offers?<li>{deleteLinks.offers} Angebot(e)</li>:null}
+              {deleteLinks?.invoices?<li>{deleteLinks.invoices} Rechnung(en)</li>:null}
+              {deleteLinks?.statements?<li>Hochgeladene Händlerabrechnung vorhanden</li>:null}
+              {linkedIntake?<li>Öffentliche Formularanfrage vorhanden</li>:null}
+            </ul>
+            <p className="hint">Lösche oder archiviere zuerst die verknüpften Einträge entsprechend ihrer Aufbewahrungspflicht. Die Kundenakte bleibt bis dahin unverändert erhalten.</p>
+          </>:<>
+            <p className="notice">Keine verknüpften CRM-Einträge oder Formularanfragen gefunden. Prüfe vor dem endgültigen Löschen gegebenenfalls separat gespeicherte Dokumente in der Kundenakte.</p>
+            <div className="button-row">
+              <button className="nx-delete-confirm-button" type="button" disabled={deleteBusy||!!deleteError} onClick={async()=>{
+                if(!deleteCustomer||deleteBusy)return;
+                const target=deleteCustomer;
+                setDeleteBusy(true);setDeleteError("");
+                try{
+                  await remove("customers",target.id);
+                  if(selected===target.id)setSelected(null);
+                  setDeleteCustomer(null);
+                  setDeleteNotice("Kundenakte „"+target.company+"“ wurde gelöscht.");
+                }catch(e){setDeleteError(e instanceof Error?e.message:"Kundenakte konnte nicht gelöscht werden.")}
+                finally{setDeleteBusy(false)}
+              }}><Trash2 size={16}/>{deleteBusy?"Wird gelöscht …":"Kundenakte endgültig löschen"}</button>
+            </div>
+          </>}
+          {deleteError&&<p className="error" role="alert">{deleteError}</p>}
+          <button className="secondary" type="button" disabled={deleteBusy} onClick={()=>setDeleteCustomer(null)}>Abbrechen / Schließen</button>
+        </div>
+      </Modal>}
       {edit && (
         <CustomerForm
           division={division}
