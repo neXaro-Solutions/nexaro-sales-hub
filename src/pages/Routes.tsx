@@ -30,7 +30,7 @@ import type { Stop, Route } from "../lib/types";
 type HunterStop = {id:string;company:string;street:string;zip:string;city:string;lat:number;lng:number;status:string;customer_id:string|null;note:string};
 const hunterAddress=(x:HunterStop)=>[x.street,[x.zip,x.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 export function Routes() {
-  const { data, save, refresh } = useStore();
+  const { data, save } = useStore();
   const [day, setDay] = useState(today()),
     [origin, setOrigin] = useState(""),
     [stops, setStops] = useState<Stop[]>([]),
@@ -49,7 +49,7 @@ export function Routes() {
   }
   useEffect(() => {
     let active = true;
-    void locateIfGranted().then(p => { if (active && p) { setMyPosition(p); if (!query.trim()) setSearchFromGps(true); } });
+    void locateIfGranted().then(p => { if (active && p) setMyPosition(p); });
     return () => { active = false; };
   }, []);
   useEffect(()=>{let active=true;void loadHunter().catch(e=>{if(active)setMessage((e as Error).message)});return()=>{active=false}},[]);
