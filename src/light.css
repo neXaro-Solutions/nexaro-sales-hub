@@ -543,3 +543,23 @@ input:not([type=checkbox]):not([type=radio]):focus-visible,select:focus-visible,
  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
  .nx-metric-link:hover,.nx-dashboard-shortcut:hover,.division-card:hover,.nx-hunter-tour-stop:hover,.nx-hunter-saved-route:hover{transform:none}
 }
+
+/* Sales knowledge: mobile-first conversational playbooks */
+.nx-knowledge-guide-intro{border-left:5px solid #caff47!important;background:linear-gradient(120deg,#fff 55%,#f4ffdf 100%)!important}
+.nx-knowledge-guide-intro h2{font-size:clamp(18px,3.5vw,24px);margin:12px 0 8px}
+.nx-knowledge-guide-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:15px 0}
+.nx-knowledge-guide-tabs button{background:#fff;color:#35522c;border:1px solid #c6dec0;border-radius:10px;min-height:49px;padding:8px;font-size:12px;font-weight:800;cursor:pointer}
+.nx-knowledge-guide-tabs button.active{border-color:#ff7829;background:#fff0e5;color:#934414;box-shadow:inset 0 0 0 1px #ff7829}
+.nx-knowledge-script-card{border-left:4px solid #a3ff12!important}
+.nx-knowledge-article>summary{display:grid;gap:7px;list-style:none;cursor:pointer;padding:2px}
+.nx-knowledge-article>summary::-webkit-details-marker{display:none}
+.nx-knowledge-article>summary strong{font-size:17px;line-height:1.32;color:#263c25}
+.nx-knowledge-article>summary small{color:#61705d;line-height:1.55}
+.nx-knowledge-read{display:inline-block;justify-self:start;padding:7px 11px;background:#f3ffdf;border:1px solid #c6e3a9;border-radius:8px;color:#35642d;font-size:11px;font-weight:800}
+.nx-knowledge-article[open] .nx-knowledge-read{background:#fff0e5;border-color:#ffb887;color:#874315}
+.nx-knowledge-article[open] .nx-knowledge-read::after{content:" · geöffnet"}
+.nx-knowledge-article-body{margin-top:14px;border-top:1px solid #dfead7;padding-top:8px}
+.nx-knowledge-article-body ol{display:grid;gap:10px;list-style:none;padding:0;margin:8px 0}
+.nx-knowledge-article-body li{padding:12px 13px;border-radius:10px;background:#f9fcf6;border:1px solid #dfebd9;line-height:1.65;color:#344634;font-size:13px}
+.nx-knowledge-article-body li:first-child{border-left:4px solid #ff7829;background:#fff9f3}
+@media(max-width:620px){.nx-knowledge-guide-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.nx-knowledge-guide-tabs button{min-height:45px}.nx-knowledge-article-body li{padding:10px}}
