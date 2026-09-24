@@ -27,6 +27,25 @@ import type { Task } from "../lib/types";
 import { Documents } from "../components/Documents";
 import { CustomerContactPermission } from "../components/ContactCompliance";
 import { appointmentLabel } from "../lib/appointments";
+type CustomerSegment = "inbound"|"lead"|"customer";
+function feeRequestText(c:Customer,events:{customer_id:string|null;kind:string;description:string;created_at:string}[]){
+ const entry=events.filter(e=>e.customer_id===c.id&&e.kind==="Formularanfrage"&&e.description.includes("SumUp Gebührencheck"))
+  .sort((a,b)=>b.created_at.localeCompare(a.created_at))[0];
+ return c.source==="SumUp Gebührencheck" ? c.notes : entry?.description||"";
+}
+function feeFields(raw:string){
+ const volume=raw.match(/Monatlicher Kartenumsatz laut Interessent:\s*([^\n]+)/)?.[1]?.trim()||"Nicht angegeben";
+ const provider=raw.match(/Bisheriger Zahlungsanbieter:\s*([^\n]+)/)?.[1]?.trim()||"Nicht angegeben";
+ const message=raw.split(/Bisheriger Zahlungsanbieter:[^\n]*\n/).slice(1).join("").trim();
+ return {volume,provider,message:message||"Keine zusätzliche Nachricht"};
+}
+function segmentOf(c:Customer,tasks:Task[],events:{customer_id:string|null;kind:string;description:string}[],opportunities:{customer_id:string;stage:string}[]):CustomerSegment{
+ const inbound=events.some(e=>e.customer_id===c.id&&e.kind==="Formularanfrage")||c.source==="SumUp Gebührencheck"||c.source==="Kontaktformular";
+ if(inbound&&tasks.some(t=>t.customer_id===c.id&&!t.done&&(/Gebührenvergleich|Neue Anfrage beantworten/.test(t.title))))return "inbound";
+ if(opportunities.some(o=>o.customer_id===c.id&&o.stage==="Gewonnen"))return "customer";
+ return "lead";
+}
+const segmentLabels:Record<CustomerSegment,string>={inbound:"Neue Anfrage",lead:"Aktiver Lead",customer:"Bestandskunde"};
 export function Customers({ division }: { division?: Division }) {
   const { data, save, refresh, demo } = useStore();
   const [search, setSearch] = useState(""),
@@ -35,10 +54,18 @@ export function Customers({ division }: { division?: Division }) {
     [task, setTask] = useState<Task | true | null>(null),
     [error, setError] = useState("");
   const customer = data.customers.find((c) => c.id === selected);
-  const rows = data.customers.filter(c =>
-    [c.company,c.contact,c.city,c.zip,c.street].join(" ").toLowerCase()
-      .includes(search.toLowerCase().trim())
+  const [segment,setSegment]=useState<"all"|CustomerSegment>("all");
+  const sorted=[...data.customers].sort((a,b)=>{
+    const rank=(c:Customer)=>({inbound:0,lead:1,customer:2})[segmentOf(c,data.tasks,data.events,data.opportunities)];
+    return rank(a)-rank(b)||b.created_at.localeCompare(a.created_at);
+  });
+  const counts={all:data.customers.length,inbound:0,lead:0,customer:0};
+  for(const c of data.customers)counts[segmentOf(c,data.tasks,data.events,data.opportunities)]++;
+  const rows=sorted.filter(c=>(segment==="all"||segmentOf(c,data.tasks,data.events,data.opportunities)===segment)&&
+    [c.company,c.contact,c.city,c.zip,c.street,c.source].join(" ").toLowerCase().includes(search.toLowerCase().trim())
   );
+  const feeText=customer?feeRequestText(customer,data.events):"";
+  const fee=feeFields(feeText);
   return (
     <>
       <div className="section-intro">
@@ -69,7 +96,12 @@ export function Customers({ division }: { division?: Division }) {
               placeholder="Unternehmen, Kontakt oder Ort suchen …"
             />
           </div>
-          <Badge>{rows.length} Standorte</Badge>
+          <Badge>{rows.length} Einträge</Badge>
+        </div>
+        <div className="nx-customer-segments" role="group" aria-label="Kunden und Anfragen filtern">
+          {([["all","Alle",counts.all],["inbound","Neue Anfragen",counts.inbound],["lead","Aktive Leads",counts.lead],["customer","Bestandskunden",counts.customer]] as const).map(([id,label,count])=>
+            <button key={id} type="button" className={segment===id?"active":""} aria-pressed={segment===id} onClick={()=>setSegment(id)}>{label} <span>{count}</span></button>
+          )}
         </div>
         {rows.length ? (
           <div className="table-wrap nx-customers-table">
@@ -89,7 +121,7 @@ export function Customers({ division }: { division?: Division }) {
                     .filter((t) => t.customer_id === c.id && !t.done)
                     .sort((a, b) => a.due_at.localeCompare(b.due_at))[0];
                   return (
-                    <tr key={c.id}>
+                    <tr key={c.id} className={segmentOf(c,data.tasks,data.events,data.opportunities)==="inbound"?"nx-inbound-row":""}>
                       <td>
                         <button
                           className="customer-link"
@@ -97,6 +129,7 @@ export function Customers({ division }: { division?: Division }) {
                         >
                           {c.company}
                         </button>
+                        <small className="nx-customer-origin">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{c.source==="SumUp Gebührencheck"?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":""}</small>
                         <small>
                           {c.contact || c.industry || "Kontakt ergänzen"}
                         </small>
@@ -153,9 +186,11 @@ export function Customers({ division }: { division?: Division }) {
           <div className="nx-customer-mobile-list">
             {rows.map(c=>{
               const next=data.tasks.filter(t=>t.customer_id===c.id&&!t.done).sort((a,b)=>a.due_at.localeCompare(b.due_at))[0];
-              return <article className="nx-customer-mobile-card" key={c.id}>
+              return <article className={"nx-customer-mobile-card"+(segmentOf(c,data.tasks,data.events,data.opportunities)==="inbound"?" nx-inbound-card":"")} key={c.id}>
+                <span className="nx-customer-segment-badge">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{c.source==="SumUp Gebührencheck"?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":""}</span>
                 <button className="nx-customer-mobile-title" onClick={()=>setSelected(c.id)}>{c.company} <ArrowUpRight size={17}/></button>
                 <small>{c.contact||c.industry||"Kontakt ergänzen"}</small>
+                {segmentOf(c,data.tasks,data.events,data.opportunities)==="inbound"&&<small>Eingang: {new Date(c.created_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})}</small>}
                 <p><MapPin size={15}/> {[c.zip,c.city].filter(Boolean).join(" ")||"Standort ergänzen"}</p>
                 <div className="nx-customer-mobile-divisions">{data.opportunities.filter(o=>o.customer_id===c.id).map(o=>
                   <span key={o.id}><DivisionBadge division={o.division}/> <small>{o.stage}</small></span>
@@ -180,6 +215,23 @@ export function Customers({ division }: { division?: Division }) {
             setError("");
           }}
         >
+          <div className="nx-customer-detail-head">
+            <span className="nx-customer-segment-badge">{segmentLabels[segmentOf(customer,data.tasks,data.events,data.opportunities)]}</span>
+            <span>Herkunft: {customer.source||"Nicht erfasst"}</span>
+            <span>Erfasst: {new Date(customer.created_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})}</span>
+          </div>
+          {feeText&&<section className="nx-fee-request" aria-label="Eingegangene SumUp-Gebührencheck-Anfrage">
+            <span className="nx-fee-request-tag">NEUE SUMUP-ANFRAGE · GEBÜHRENCHECK</span>
+            <h3>Angaben aus dem Anfrageformular</h3>
+            <div className="nx-fee-request-grid">
+              <div><small>Monatlicher Kartenumsatz (laut Interessent)</small><strong>{fee.volume}{fee.volume==="Nicht angegeben"?"":" €"}</strong></div>
+              <div><small>Aktueller Zahlungsanbieter</small><strong>{fee.provider}</strong></div>
+              <div><small>Kontaktwunsch</small><strong>Individueller Gebührenvergleich</strong></div>
+            </div>
+            <h4>Nachricht / Beratungswunsch</h4>
+            <p className="prewrap">{fee.message}</p>
+            <p className="hint">Formularangaben sind Selbstauskünfte, noch keine verifizierte Händlerabrechnung. Anfragebezogene Kontaktfreigabe ist von Werbeeinwilligung getrennt.</p>
+          </section>}
           <div className="customer-summary">
             <p>
               <MapPin size={16} /> {address(customer) || "Adresse ergänzen"}
@@ -211,7 +263,7 @@ export function Customers({ division }: { division?: Division }) {
               <Plus size={16} /> Wiedervorlage
             </button>
           </div>
-          <p className="prewrap">{customer.notes}</p>
+          {customer.notes&&!feeText&&<p className="prewrap">{customer.notes}</p>}
           {error && (
             <p className="error" role="alert">
               {error}
