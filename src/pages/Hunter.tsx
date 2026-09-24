@@ -7,10 +7,10 @@ import { locate } from "../lib/location";
 import { osmEmbed } from "../lib/osmEmbed";
 import { optimizeHunterRoute,hunterRouteLength } from "../lib/hunterRoute";
 import { today } from "../lib/calculations";
-import { mapSearch } from "../lib/calculations";
+import { mapSearch, mapsRoutes, dateLabel } from "../lib/calculations";
 import { businessCategories } from "../lib/business-search";
 import { CustomerForm } from "../components/Forms";
-import type { Customer,Stop } from "../lib/types";
+import type { Customer,Stop,Route } from "../lib/types";
 
 type HunterStage = "Neu"|"Vorbereitet"|"Besucht"|"Interesse"|"Wiedervorlage"|"Kein Interesse"|"Übernommen";
 type HunterLead = {
@@ -58,6 +58,9 @@ export function Hunter(){
  const [tourTitle,setTourTitle]=useState("");
  const [tourBusy,setTourBusy]=useState(false);
  const [editCustomer,setEditCustomer]=useState<Customer|null>(null);
+ const [workspaceTab,setWorkspaceTab]=useState<"search"|"leads"|"tour">("leads");
+ const [openedRoute,setOpenedRoute]=useState<string|null>(null);
+ const [editingRoute,setEditingRoute]=useState<string|null>(null);
 
  async function loadLeads(){
   if(demo)return;
@@ -90,7 +93,7 @@ export function Hunter(){
   try{
    const {error}=await client.from("nx_hunter_prospects").insert(leadFrom(p));
    if(error)throw Error(error.code==="23505"?"Geschäft bereits vorgemerkt.":"Vormerken fehlgeschlagen. Bitte erneut versuchen.");
-   await loadLeads();setMessage(p.name+" vorgemerkt – noch kein separater CRM-Kunde angelegt.");
+   await loadLeads();setWorkspaceTab("leads");setMessage(p.name+" vorgemerkt – noch kein separater CRM-Kunde angelegt.");
   }catch(e){setError((e as Error).message)}finally{setBusy(false)}
  }
  async function updateLead(l:HunterLead,status:HunterStage,note:string){
@@ -180,13 +183,14 @@ export function Hunter(){
  async function saveTour(){
   if(demo){setError("Im Demomodus wird keine Route dauerhaft gespeichert.");return;}
   if(!tourStops.length){setError("Bitte zuerst die Route planen.");return;}
-  if(data.routes.some(r=>r.day===tourDay)){setError("Für diesen Tag existiert bereits eine Tagesroute. Bitte anderen Tag wählen oder die Route unter Tagesroute bearbeiten.");return;}
+  const existing=data.routes.find(r=>r.day===tourDay);
+  if(existing&&existing.id!==editingRoute){setError("Für diesen Tag gibt es eine gespeicherte Route. Bitte unten diese Route öffnen und zur Bearbeitung auswählen.");return;}
   setTourBusy(true);setError("");
   try{
    const stops:Stop[]=tourStops.map(l=>({id:l.customer_id||"hunter:"+l.id,company:l.company,address:addressOf(l),lat:Number.isFinite(l.lat)?l.lat:null,lng:Number.isFinite(l.lng)?l.lng:null}));
-   await save("routes",{day:tourDay,name:"HUNTER · "+tourDay,origin:tourOrigin?tourOrigin.lat+","+tourOrigin.lng:"",stops});
-   setTourTitle(tourDay);
-   setMessage("Hunter-Tour für "+tourDay+" im neXaro CRM gespeichert. Alle Stopps sind auch unter Tagesroute verfügbar.");
+   await save("routes",{...(existing&&editingRoute===existing.id?existing:{}),day:tourDay,name:"HUNTER · "+tourDay,origin:tourOrigin?tourOrigin.lat+","+tourOrigin.lng:"",stops});
+   setTourTitle(tourDay);setEditingRoute(null);
+   setMessage("Tour für "+tourDay+" im HUNTER gespeichert. Sie lässt sich hier jederzeit wieder öffnen.");
   }catch(e){setError(e instanceof Error?e.message:"Tagesroute konnte nicht gespeichert werden.")}
   finally{setTourBusy(false)}
  }
@@ -204,17 +208,22 @@ export function Hunter(){
   <div className="section-intro"><div>
    <h1>🎯 neXaro HUNTER</h1><p>SumUp · Außendienst in Berlin/Brandenburg · integriert in deine zentrale Kundenakte.</p>
   </div><span className="badge positive">Hunter Core</span></div>
-  <section className="card" style={{padding:20,marginBottom:16,border:"1px solid #d9e4d6",background:"#f8fbf6"}}>
+  <div className="nx-hunter-workspace-tabs" role="tablist" aria-label="Außendienst-Arbeitsbereich">
+    <button type="button" role="tab" aria-selected={workspaceTab==="search"} className={workspaceTab==="search"?"active":""} onClick={()=>setWorkspaceTab("search")}><Search size={17}/> 1 · Geschäfte finden</button>
+    <button type="button" role="tab" aria-selected={workspaceTab==="leads"} className={workspaceTab==="leads"?"active":""} onClick={()=>setWorkspaceTab("leads")}><Check size={17}/> 2 · Merkliste <b>{leads.length}</b></button>
+    <button type="button" role="tab" aria-selected={workspaceTab==="tour"} className={workspaceTab==="tour"?"active":""} onClick={()=>setWorkspaceTab("tour")}><RouteIcon size={17}/> 3 · Touren <b>{selectedIds.length||data.routes.length}</b></button>
+  </div>
+  {workspaceTab==="search"&&  <section className="card" style={{padding:20,marginBottom:16,border:"1px solid #d9e4d6",background:"#f8fbf6"}}>
    <span className="badge positive">HUNTER AUTO · EINGEHENDE ANFRAGEN</span>
    <h2>SumUp-Beratung – optional mit Abrechnung</h2>
    <p>Das kurze Formular erfasst Beratungsanfragen. Auf Wunsch kann der Interessent eine geschwärzte Händlerabrechnung für eine konkretere Angebotsvorbereitung privat hochladen. Im CRM entsteht eine Bearbeitungsaufgabe – keine Werbeeinwilligung.</p>
    <a className="primary" href="https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/sumup-gebuehrencheck.html" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> SumUp-Beratungsformular öffnen</a>
    <p className="hint">Teile diesen Link nur über zulässige Kanäle, z. B. deine Website, bestehende Unterlagen oder nach einem persönlichen Gespräch. Nicht als unaufgeforderte Werbe-E-Mail versenden.</p>
   </section>
-  <section className="card nx-hunter-tour" aria-label="Hunter Tour und Routenplanung">
+  {workspaceTab==="tour"&&  <section className="card nx-hunter-tour" aria-label="Hunter Tour und Routenplanung">
     <span className="badge positive">HUNTER ROUTE · IM CRM</span>
     <h2>Vorgemerkte Standorte zur Besuchstour zusammenstellen</h2>
-    <p className="hint">Wähle unten mehrere offene Geschäfte aus. Die Besuchsreihenfolge wird über die geografische Nähe einschließlich einer Verbesserungsschleife geplant. Die Karte und alle Folgeaktionen bleiben im CRM.</p>
+    <p className="hint">Wähle im Reiter „Merkliste“ deine Standorte aus. Die Besuchsreihenfolge wird über die geografische Nähe einschließlich einer Verbesserungsschleife geplant. Die Karte und alle Folgeaktionen bleiben im CRM.</p>
     <div className="nx-hunter-tour-stats"><strong>{selectedIds.length} ausgewählt</strong><span>{eligibleTour.length} offen verfügbar</span><span>{tourStops.length} in der Tour</span></div>
     <div className="button-row">
       <button type="button" className="secondary" onClick={()=>{setSelectedIds(eligibleTour.map(l=>l.id));setTour([])}} disabled={busy}>Alle offenen vormerken</button>
@@ -264,14 +273,14 @@ export function Hunter(){
         <label>Besuchstag<input type="date" value={tourDay} onChange={e=>{setTourDay(e.target.value);setTourTitle("")}}/></label>
         <button className="primary" type="button" disabled={tourBusy||!tourDay||!!tourTitle&&tourTitle===tourDay} onClick={()=>void saveTour()}><Check size={16}/> {tourBusy?"Speichern …":tourTitle===tourDay?"Im CRM gespeichert":"Tour im CRM speichern"}</button>
       </div>
-      <p className="hint">Gespeicherte Touren findest du unter „Tagesroute“. Die Bearbeitung von Hunter-Kontakten bleibt hier möglich. Für den Abbiegeweg kann die bestehende Tagesroute Google Maps öffnen.</p>
+      <p className="hint">Tour speichern, später hier wieder öffnen und Kontakte bei jedem Halt bearbeiten. Für die Straßen-Navigation öffnest du bei Bedarf Maps.</p>
     </div>}
-  </section>
-  <div className="analysis-grid">{overview.map(([name,n])=><div className="card" key={name} style={{padding:18}}><small>{name}</small><h2 style={{fontSize:30,margin:"8px 0"}}>{n}</h2></div>)}</div>
+  </section>}
+  {workspaceTab==="leads"&&<div className="analysis-grid">{overview.map(([name,n])=><div className="card" key={name} style={{padding:18}}><small>{name}</small><h2 style={{fontSize:30,margin:"8px 0"}}>{n}</h2></div>)}</div>
   <div className="route-grid">
-   <div>
+   {workspaceTab==="search"&&<div>
     <section className="card" style={{padding:20,marginBottom:16}}>
-     <h2>1 · Geschäfte vor Ort finden</h2>
+     <h2>Geschäfte vor Ort finden</h2>
      <p className="hint">Manuelle Einzelsuche mit vorhandener OSM-Standortsuche und deren Filtern für Behörden, Krankenhäuser und bekannte Ketten. Keine automatisierte Massensuche.</p>
      <div className="form-grid">
       <label>PLZ / Ort / Straße<input value={place} onChange={e=>setPlace(e.target.value)} placeholder="15757 Halbe"/></label>
@@ -287,7 +296,7 @@ export function Hunter(){
      <small>© OpenStreetMap-Mitwirkende (ODbL). Treffer sind Recherchehinweise, keine vollständig verifizierten Unternehmens- oder Kontaktdaten.</small>
     </section>
     <section className="card" style={{padding:20}}>
-     <h2>2 · Recherchetreffer ({results.length})</h2>
+     <h2>Recherchetreffer ({results.length})</h2>
      {results.length===0&&<p className="hint">Starte eine Suche, um lokale, bereits gefilterte Geschäfte zu sehen.</p>}
      {results.map(p=>{
       const duplicate=hunterDuplicate(p,data.customers),existing=bySource.get("osm:"+p.id);
@@ -302,10 +311,10 @@ export function Hunter(){
       </div>
      })}
     </section>
-   </div>
-   <div>
+   </div>}
+   {workspaceTab==="leads"&&<div>
     <section className="card" style={{padding:20}}>
-     <h2>3 · Meine Hunter-Merkliste</h2>
+     <h2>Meine vorgemerkten Geschäfte</h2>
      <p className="hint">Vormerken legt noch keinen zusätzlichen Kunden an. Erst „Ins CRM übernehmen“ erstellt die zentrale Kundenakte.</p>
      <label>Filter<select value={stageFilter} onChange={e=>setStageFilter(e.target.value)}>{["Offen","Alle",...stages].map(st=><option key={st}>{st}</option>)}</select></label>
      <div className="button-row"><button className="secondary" disabled={busy||demo} onClick={()=>void loadLeads().catch(e=>setError((e as Error).message))}><RefreshCw size={15}/> Aktualisieren</button></div>
@@ -323,10 +332,10 @@ export function Hunter(){
        {l.customer_id&&data.customers.find(c=>c.id===l.customer_id)&&<button className="secondary" onClick={()=>setEditCustomer(data.customers.find(c=>c.id===l.customer_id)!)}>Kundenakte bearbeiten</button>}
        <button type="button" className="nx-delete-trigger" disabled={busy} onClick={()=>setConfirmDelete(l)}><Trash2 size={15}/> Löschen</button>
       </div>
-      {l.customer_id&&<p className="hint">✓ Zentraler Kunde verknüpft – Termine, Angebot und Tagesroute über vorhandene CRM-Module bearbeiten.</p>}
+      {l.customer_id&&<p className="hint">✓ Zentraler Kunde verknüpft – weitere Bearbeitung direkt hier im Außendienst.</p>}
      </div>)}
     </section>
-   </div>
+   </div>}
   </div>
   {editCustomer&&<CustomerForm customer={editCustomer} division="sumup" onClose={()=>{setEditCustomer(null);void refresh()}}/>}
   {confirmDelete&&<div className="nx-hunter-overlay" role="presentation">
