@@ -50,43 +50,6 @@ async function publicAction(req:Request){
  }
  return page("<p>Unbekannte Aktion.</p>",400);
 }
-async function sendDue(){
- const required=["TWILIO_ACCOUNT_SID","TWILIO_AUTH_TOKEN","NX_SMS_CRON_SECRET"];
- if(Deno.env.get("NX_SMS_ENABLED")!=="true"||required.some(n=>!Deno.env.get(n))||!(Deno.env.get("TWILIO_FROM")||Deno.env.get("TWILIO_MESSAGING_SERVICE_SID")))return json({enabled:false,reason:"Twilio/SMS noch nicht konfiguriert"});
- const now=new Date(),day=berlinDay(now),hm=berlin(now,{hour:"2-digit",minute:"2-digit",hourCycle:"h23"});if(hm<"07:30"||hm>"07:59")return json({skipped:"Außerhalb des Versandfensters"});
- const {data:rows,error}=await db.from("nx_sms_appointments").select("task_id,status,nx_tasks!inner(id,kind,title,division,due_at,done,customer_id,nx_customers!inner(company,contact,phone))").eq("enabled",true).in("status",["planned","failed"]).limit(500);
- if(error)return json({error:error.message},500);
- let sent=0,failed=0,skipped=0;
- for(const r of rows||[]){
- const t=r.nx_tasks as unknown as {id:string;kind:string;title:string;division:string|null;due_at:string;done:boolean;customer_id:string|null;nx_customers:{company:string;contact:string;phone:string}};
- const c=t?.nx_customers;
- if(!t||t.kind!=="Termin"||t.done||!c?.phone||berlinDay(new Date(t.due_at))!==day||new Date(t.due_at).getTime()<=Date.now()){skipped++;continue}
- const rawPhone=c.phone.replace(/[\s()\/-]/g,"");
- const phone=rawPhone.startsWith("00")?"+"+rawPhone.slice(2):rawPhone.startsWith("0")?"+49"+rawPhone.slice(1):rawPhone;
- if(!/^\+[1-9]\d{7,14}$/.test(phone)){failed++;await db.from("nx_sms_appointments").update({status:"failed",failure_reason:"Mobilnummer im internationalen Format +49… erforderlich"}).eq("task_id",t.id);continue}
- const bytes=crypto.getRandomValues(new Uint8Array(32)),token=Array.from(bytes).map(x=>x.toString(16).padStart(2,"0")).join("");
- const hash=await digest(token);
- const locked=await db.from("nx_sms_appointments").update({status:"sending",token_hash:hash,scheduled_due_at:t.due_at,failure_reason:null,updated_at:new Date().toISOString()}).eq("task_id",t.id).in("status",["planned","failed"]).select("task_id");
- if(!locked.data?.length){skipped++;continue}
- const hour=berlin(new Date(t.due_at),{hour:"2-digit",minute:"2-digit"});
- const purpose=t.division==="sumup"?"zum kostenlosen Vergleich Ihrer Kartenzahlungsgebühren. Bitte halten Sie eine aktuelle Abrechnung Ihres bisherigen Zahlungsanbieters bereit.":t.division==="vape"?"zur Besprechung unseres Vape- und Trendartikel-Sortiments sowie möglicher Konditionen für Ihr Geschäft.":"zu "+t.title+".";
- const link=url+"/functions/v1/nx-sms-appointments?token="+token;
- const body="neXaro Solutions: Guten Morgen! Ihr heutiger Termin um "+hour+" Uhr "+purpose+" Bestätigen oder Verschiebung anfragen: "+link;
- const sid=Deno.env.get("TWILIO_ACCOUNT_SID")!,pass=Deno.env.get("TWILIO_AUTH_TOKEN")!;
- const params=new URLSearchParams({To:phone,Body:body});
- if(Deno.env.get("TWILIO_MESSAGING_SERVICE_SID"))params.set("MessagingServiceSid",Deno.env.get("TWILIO_MESSAGING_SERVICE_SID")!);
- else params.set("From",Deno.env.get("TWILIO_FROM")!);
- try{
- const response=await fetch("https://api.twilio.com/2010-04-01/Accounts/"+encodeURIComponent(sid)+"/Messages.json",{method:"POST",headers:{"authorization":"Basic "+btoa(sid+":"+pass),"content-type":"application/x-www-form-urlencoded"},body:params});
- const result=await response.json();
- if(!response.ok||!result.sid)throw Error("Twilio HTTP "+response.status+": "+String(result.code||"Unbekannter Fehler"));
- await db.from("nx_sms_appointments").update({status:"sent",sent_at:new Date().toISOString(),twilio_sid:result.sid,updated_at:new Date().toISOString()}).eq("task_id",t.id).eq("status","sending");sent++;
- }catch(e){
- await db.from("nx_sms_appointments").update({status:"failed",failure_reason:String(e).slice(0,250),token_hash:null,updated_at:new Date().toISOString()}).eq("task_id",t.id).eq("status","sending");failed++;
- }
- }
- return json({sent,failed,skipped});
-}
 Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return json({});
  try{
@@ -95,12 +58,7 @@ Deno.serve(async(req)=>{
  if(req.method!=="POST")return json({error:"Method not allowed"},405);
  const body=await req.json().catch(()=>({}));
  if(body.action==="dispatch") return json({enabled:false,reason:"SMS permanently disabled: switched to email confirmations"},410);
- if(false){
- const given=req.headers.get("x-nx-cron-secret")||"";
- if(!given||given!==Deno.env.get("NX_SMS_CRON_SECRET"))return json({error:"Forbidden"},403);
- return await sendDue();
- }
  if(!(await owner(req)))return json({error:"Unauthorized"},401);
- return json({ready:true,enabled:Deno.env.get("NX_SMS_ENABLED")==="true",message:"SMS-Einstellungen werden sicher serverseitig verwaltet"});
+ return json({ready:true,enabled:false,message:"Legacy appointment link handler only; email dispatch uses nx-email-appointments"});
  }catch(e){return json({error:String(e)},500)}
 });
