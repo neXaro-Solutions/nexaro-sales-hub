@@ -224,7 +224,42 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
   {workspaceTab==="tour"&&  <section className="card nx-hunter-tour" aria-label="Hunter Tour und Routenplanung">
     <span className="badge positive">HUNTER ROUTE · IM CRM</span>
     <h2>Deine Touren & Besuche</h2>
-    <p className="hint">Wähle im Reiter „Merkliste“ deine Standorte aus. Die Besuchsreihenfolge wird über die geografische Nähe einschließlich einer Verbesserungsschleife geplant. Die Karte und alle Folgeaktionen bleiben im CRM.</p>
+    <p className="hint">Öffne deine gespeicherte Tour oder wähle in der Merkliste Geschäfte aus und plane hier einen neuen Besuchstag. Notizen und Entscheidungen bearbeitest du direkt am Stopp.</p>
+    <section className="nx-hunter-saved-routes" aria-label="Gespeicherte Touren">
+      <h3>Gespeicherte Touren <span>{data.routes.length}</span></h3>
+      {!data.routes.length&&<p className="hint">Noch keine Tour gespeichert. Wähle in der Merkliste deine Geschäfte aus und plane hier deinen Besuchstag.</p>}
+      {data.routes.slice().sort((a,b)=>b.day.localeCompare(a.day)).map(route=><article className="nx-hunter-saved-route" key={route.id}>
+        <button className="nx-hunter-route-header" type="button" onClick={()=>setOpenedRoute(openedRoute===route.id?null:route.id)} aria-expanded={openedRoute===route.id}>
+          <span><strong>{dateLabel(route.day)} · {route.name}</strong><small>{route.stops.length} Stopps · {openedRoute===route.id?"Schließen":"Öffnen"}</small></span><ArrowRight size={17}/>
+        </button>
+        {openedRoute===route.id&&<div className="nx-hunter-saved-route-detail">
+          {route.stops.map((st,i)=>{
+            const hunter=leads.find(l=>"hunter:"+l.id===st.id||l.customer_id===st.id);
+            const customer=data.customers.find(c=>c.id===st.id||c.id===hunter?.customer_id);
+            return <div className="nx-hunter-saved-stop" key={st.id+"-"+i}>
+              <b>{i+1}</b><span><strong>{st.company}</strong><small>{st.address}</small></span>
+              <div className="button-row">
+                {hunter&&<button className="secondary" onClick={()=>{setWorkspaceTab("leads");setStageFilter("Alle");setMessage(hunter.company+" ist in deiner Hunter-Merkliste sichtbar.")}}>Im HUNTER bearbeiten</button>}
+                {customer&&<button className="primary" onClick={()=>setEditCustomer(customer)}>Kundenakte öffnen</button>}
+              </div>
+            </div>;
+          })}
+          <div className="button-row">
+            {mapsRoutes(route.stops,route.origin).map((url,i)=><a className="secondary" href={url} target="_blank" rel="noopener noreferrer" key={url}><Navigation size={15}/> Navigation {route.stops.length>4?" · Etappe "+(i+1):""}</a>)}
+            <button className="secondary" disabled={tourBusy} onClick={()=>{
+              const ids=route.stops.map(st=>leads.find(l=>"hunter:"+l.id===st.id||l.customer_id===st.id)?.id);
+              if(ids.some(id=>!id)){setError("Diese Tour enthält bestehende Kunden oder nicht mehr vorgemerkte Stopps. Alle Stopps bleiben gespeichert. Deren Kundenakte lässt sich oben öffnen.");return;}
+              const leadIds=ids.filter((id):id is string=>!!id);
+              setSelectedIds(leadIds);setTour(leadIds);setTourDay(route.day);setTourTitle(route.day);setEditingRoute(route.id);
+              const coords=route.origin.split(",").map(Number);
+              setTourOrigin(coords.length===2&&coords.every(Number.isFinite)?{lat:coords[0],lng:coords[1]}:null);
+              setOpenedRoute(null);setError("");setMessage("Gespeicherte Hunter-Tour zur Bearbeitung geladen.");
+            }}>Tour bearbeiten</button>
+            <button className="nx-delete-trigger" onClick={()=>setRouteToDelete(route)}><Trash2 size={15}/> Tour löschen</button>
+          </div>
+        </div>}
+      </article>)}
+    </section>
     <div className="nx-hunter-tour-stats"><strong>{selectedIds.length} ausgewählt</strong><span>{eligibleTour.length} offen verfügbar</span><span>{tourStops.length} in der Tour</span></div>
     <div className="button-row">
       <button type="button" className="secondary" onClick={()=>{setSelectedIds(eligibleTour.map(l=>l.id));setTour([])}} disabled={busy}>Alle offenen vormerken</button>
