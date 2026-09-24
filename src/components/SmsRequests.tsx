@@ -32,7 +32,7 @@ export function SmsRequests(){
    </div>:null})}
   {todays.map(t=>{const r=rows.find(x=>x.task_id===t.id);return <div key={t.id} style={{padding:12,borderBottom:"1px solid #e1e8db"}}>
    <strong>{name(t)}</strong> · {new Date(t.due_at).toLocaleTimeString("de-DE",{timeZone:"Europe/Berlin",hour:"2-digit",minute:"2-digit"})} Uhr
-   <p className="hint">{r?.status==="confirmed"?"✓ Bestätigt":r?.status==="reschedule_requested"?"↻ Verschiebung angefragt":r?.status==="sent"?"E-Mail versendet – Antwort offen":r?.status==="failed"?"E-Mail-Versand fehlgeschlagen":r?.enabled?"E-Mail für 07:30 Uhr vorgemerkt":"E-Mail nicht freigegeben"}</p>
+   <p className="hint">{r?.status==="confirmed"?"✓ Bestätigt":r?.status==="reschedule_requested"?"↻ Verschiebung angefragt":r?.status==="sent"?"E-Mail versendet – Antwort offen":r?.status==="failed"?"E-Mail-Versand fehlgeschlagen":r?.enabled?"E-Mail für Vortag 12:00 Uhr vorgemerkt":"E-Mail nicht freigegeben"}</p>
    <button className="secondary" onClick={()=>setEdit(t)}>Termin öffnen</button>
   </div>})}
   {edit&&<TaskForm task={edit} onClose={()=>setEdit(null)}/>}
