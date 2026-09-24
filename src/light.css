@@ -453,3 +453,39 @@ dialog .notice,.card .notice{background:#f0ffda;color:#28522c;border-color:#a6e8
 .nx-hunter-lead-details summary{cursor:pointer;min-height:48px;display:list-item;padding:14px 2px;color:#355632;font-weight:800;font-size:13px}
 .nx-hunter-lead-details[open]{padding-bottom:12px;border-color:#b5db91}
 .nx-hunter-lead-delete{margin-top:5px}
+
+/* Mobile dashboard: actions first, extended modules on demand. */
+.nx-dashboard-welcome{padding:18px 20px!important;min-height:0!important;margin-bottom:12px!important}
+.nx-dashboard-welcome h1{font-size:clamp(24px,4.5vw,35px)!important;line-height:1.12!important;margin:7px 0!important}
+.nx-dashboard-welcome .nx-dashboard-quote{font-size:13px!important;margin:7px 0 14px!important;line-height:1.45!important}
+.nx-dashboard-welcome .welcome-art{max-height:145px}
+.nx-dashboard-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:0 0 15px}
+.nx-dashboard-shortcut{min-width:0;min-height:64px;padding:10px 6px;background:#fff;border:1px solid #d4e2cf;border-radius:12px;color:#274026;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-weight:800;font-size:12px;text-align:center;cursor:pointer;box-shadow:0 4px 14px #28411e08}
+.nx-dashboard-shortcut:first-child{background:#fff0e5;border-color:#ffbc90}
+.nx-dashboard-shortcut:first-child svg{color:#d75108}
+.nx-dashboard-shortcut:nth-child(3){background:#f4ffdf;border-color:#b9e17a}
+.nx-dashboard-shortcut:hover,.nx-dashboard-shortcut:focus-visible{outline:2px solid #ff7829;outline-offset:2px}
+.nx-dashboard-priorities{margin:12px 0!important}
+.nx-dashboard-fold{background:#fff;border:1px solid #d3dfcd;border-radius:13px;margin:12px 0;overflow:hidden;box-shadow:0 3px 14px #1e321009}
+.nx-dashboard-fold>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;min-height:57px;color:#2e482d;font-weight:800;cursor:pointer}
+.nx-dashboard-fold>summary::-webkit-details-marker{display:none}
+.nx-dashboard-fold>summary span{display:flex;align-items:center;gap:10px}
+.nx-dashboard-fold>summary svg{color:#ed6919;flex-shrink:0}
+.nx-dashboard-fold>summary small{font-size:11px;color:#61745d;white-space:nowrap}
+.nx-dashboard-fold[open]>summary{background:#f7ffed;border-bottom:1px solid #d5e8c5}
+.nx-dashboard-fold[open]>summary small{font-size:0}
+.nx-dashboard-fold[open]>summary small:after{content:"Schließen";font-size:11px}
+.nx-dashboard-fold-body{display:grid;gap:14px;padding:14px}
+.nx-dashboard-fold-body>.card{margin:0}
+@media(max-width:700px){
+ .nx-dashboard-welcome{padding:15px!important}
+ .nx-dashboard-welcome .welcome-art{display:none}
+ .nx-dashboard-welcome button{min-height:43px}
+ .nx-dashboard-shortcuts{gap:6px}
+ .nx-dashboard-shortcut{font-size:10px;padding:9px 4px;min-height:64px}
+ .nx-dashboard-shortcut svg{width:18px;height:18px}
+ .nx-dashboard-priorities{grid-template-columns:minmax(0,1fr)}
+ .nx-dashboard-fold>summary{padding:14px 12px;font-size:13px}
+ .nx-dashboard-fold-body{padding:9px}
+}
+@media(max-width:390px){.nx-dashboard-shortcut{font-size:9px}.nx-dashboard-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-dashboard-shortcut{min-height:48px;flex-direction:row;gap:6px}}
