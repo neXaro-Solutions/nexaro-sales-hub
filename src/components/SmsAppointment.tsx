@@ -20,7 +20,7 @@ export function SmsAppointment({task,demo}:{task:Task;demo:boolean}){
  },[task.id,demo]);
  async function toggle(enabled:boolean){
   setBusy(true);setError("");
-  if(demo){setRow(x=>({...x,task_id:task.id,enabled,status:x?.status||"planned",sent_at:null,request_note:"",failure_reason:null,confirmed_at:null}));setBusy(false);return}
+  if(demo){setRow({task_id:task.id,enabled,status:"planned",sent_at:null,request_note:"",failure_reason:null,confirmed_at:null});setBusy(false);return}
   const result=await client.from("nx_sms_appointments").upsert({task_id:task.id,enabled},{onConflict:"task_id"}).select("task_id,enabled,status,sent_at,request_note,failure_reason,confirmed_at").single();
   if(result.error)setError("SMS-Freigabe konnte nicht gespeichert werden.");else setRow(result.data);
   setBusy(false);
