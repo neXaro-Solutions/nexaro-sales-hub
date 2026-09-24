@@ -9,6 +9,7 @@ import { today } from "../lib/calculations";
 import type { Customer, Task, Division } from "../lib/types";
 import { appointmentTime, berlinDateTime, appointmentLabel } from "../lib/appointments";
 import { exportCalendarEvent } from "../lib/iphone-calendar";
+import { SmsAppointment } from "./SmsAppointment";
 export function CustomerForm({
   customer,onClose,
 }: {
@@ -176,7 +177,7 @@ export function TaskForm({
   division?: Division;
   onClose: () => void;
 }) {
-  const { data, save, remove } = useStore();
+  const { data, save, remove, demo } = useStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -225,6 +226,7 @@ export function TaskForm({
             <button className="secondary" type="button" onClick={onClose}>Fertig</button>
           </div>
           {calendarMessage && <p role="status" className="hint">{calendarMessage}</p>}
+          <SmsAppointment task={saved} demo={demo}/>
           <p className="hint">Dies ist eine manuelle Kalenderübernahme, keine laufende Zwei-Wege-Synchronisierung. Änderungen im CRM werden nicht automatisch im iPhone-Kalender aktualisiert.</p>
         </div>
       ) : (
@@ -306,6 +308,7 @@ export function TaskForm({
         </Field>
       </AsyncForm>
       )}
+      {task && !saved && task.kind === "Termin" && <SmsAppointment task={task} demo={demo}/>}
       {task && !saved && <div className="nx-appointment-delete">
         {!confirmDelete ? (
           <button type="button" className="nx-delete-trigger" disabled={deleting}
