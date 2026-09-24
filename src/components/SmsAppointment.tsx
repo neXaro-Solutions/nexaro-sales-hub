@@ -27,7 +27,7 @@ export function SmsAppointment({task,demo}:{task:Task;demo:boolean}){
  }
  return <section className="nx-sms-panel" aria-label="E-Mail-Terminbestätigung" style={{border:"1px solid #d9e4d6",borderRadius:14,padding:16,marginTop:16,background:"#f8fbf6"}}>
   <strong>✉️ E-Mail-Terminbestätigung · Vortag 12:00 Uhr</strong>
-  <p className="hint">Am Termintag, nur für Termine mit Kunde und gültiger E-Mail-Adresse. Auch frühe Termine werden ausschließlich um 07:30 Uhr berücksichtigt; bereits vergangene Termine erhalten keine E-Mail.</p>
+  <p className="hint">Am Vortag um 12:00 Uhr, nur für freigegebene Termine mit gültiger Kunden-E-Mail-Adresse.</p>
   <label style={{display:"flex",gap:10,alignItems:"flex-start",margin:"12px 0"}}>
    <input type="checkbox" checked={!!row?.enabled} disabled={!ready||busy} onChange={e=>void toggle(e.target.checked)} style={{width:19,height:19,flexShrink:0}}/>
    <span>Kunde hat der Terminbestätigung per E-Mail zugestimmt. Automatische Bestätigung für diesen Termin vormerken.</span>
