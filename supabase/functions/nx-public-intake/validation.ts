@@ -17,8 +17,8 @@ export function validatePayload(input: unknown) {
   const volume = text("monthly_volume", 15);
   if(volume && (!/^\d{1,9}(?:\.\d{1,2})?$/.test(volume)||Number(volume)>100000000))throw Error("invalid_volume");
   const requestType = text("request_type",32);
-  if(requestType && requestType!=="sumup_fee_check")throw Error("invalid_request_type");
-  if(requestType==="sumup_fee_check"&&p.interest!=="sumup")throw Error("invalid_interest");
+  if(requestType && !["sumup_fee_check","sumup_consultation"].includes(requestType))throw Error("invalid_request_type");
+  if(["sumup_fee_check","sumup_consultation"].includes(requestType)&&p.interest!=="sumup")throw Error("invalid_interest");
   return {
     monthly_volume:volume,
     current_provider:text("current_provider",100),
