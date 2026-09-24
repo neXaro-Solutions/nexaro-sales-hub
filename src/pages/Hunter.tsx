@@ -9,6 +9,7 @@ import { optimizeHunterRoute,hunterRouteLength } from "../lib/hunterRoute";
 import { today } from "../lib/calculations";
 import { mapSearch } from "../lib/calculations";
 import { businessCategories } from "../lib/business-search";
+import { CustomerForm } from "../components/Forms";
 import type { Customer,Stop } from "../lib/types";
 
 type HunterStage = "Neu"|"Vorbereitet"|"Besucht"|"Interesse"|"Wiedervorlage"|"Kein Interesse"|"Übernommen";
@@ -56,6 +57,7 @@ export function Hunter(){
  const [rejectLead,setRejectLead]=useState<HunterLead|null>(null);
  const [tourTitle,setTourTitle]=useState("");
  const [tourBusy,setTourBusy]=useState(false);
+ const [editCustomer,setEditCustomer]=useState<Customer|null>(null);
 
  async function loadLeads(){
   if(demo)return;
@@ -121,6 +123,7 @@ export function Hunter(){
    const {error}=await client.from("nx_hunter_prospects").update({status:"Übernommen",customer_id:c.id,updated_at:new Date().toISOString()}).eq("id",l.id);
    if(error)throw Error("Kunde gespeichert, aber Hunter-Zuordnung noch nicht aktualisiert. Bitte Liste neu laden.");
    await loadLeads();await refresh();
+   setEditCustomer(c);
    setMessage(c.company+(equivalent?" war bereits im CRM.":" in zentrale Kundenakte übernommen.")+" SumUp-Kundenprofil steht bereit.");
   }catch(e){setError((e as Error).message)}finally{setBusy(false)}
  }
@@ -140,6 +143,7 @@ export function Hunter(){
   finally{setBusy(false)}
  }
  function selectLead(l:HunterLead,checked:boolean){
+  setTourTitle("");
   setSelectedIds(old=>checked?[...new Set([...old,l.id])]:old.filter(id=>id!==l.id));
   setTour(old=>checked?old:old.filter(id=>id!==l.id));
  }
@@ -160,7 +164,7 @@ export function Hunter(){
   const picks=eligibleTour.filter(l=>selectedIds.includes(l.id));
   if(!picks.length){setError("Bitte mindestens einen noch offenen Hunter-Lead auswählen.");return;}
   const ordered=optimizeHunterRoute(picks,tourOrigin);
-  setTour(ordered.map(l=>l.id));
+  setTour(ordered.map(l=>l.id));setTourTitle("");
   setTourFocus(ordered[0]?.id||null);
   setMessage(ordered.length+" Station(en) im Hunter geplant · ca. "+hunterRouteLength(ordered,tourOrigin).toFixed(1).replace(".",",")+" km Luftlinie. Keine berechnete Fahrzeit oder Straßennavigation.");
  }
@@ -168,7 +172,7 @@ export function Hunter(){
   setTourBusy(true);setError("");
   try{
    const location=await locate();
-   setTourOrigin({lat:location.lat,lng:location.lng});
+   setTourOrigin({lat:location.lat,lng:location.lng});setTourTitle("");
    setMessage("GPS-Startpunkt gesetzt. Anschließend „Route nach Nähe planen“ wählen.");
   }catch(e){setError(e instanceof Error?e.message:"GPS konnte nicht ermittelt werden.")}
   finally{setTourBusy(false)}
@@ -239,8 +243,8 @@ export function Hunter(){
           <b>{i+1}</b><span><strong>{l.company}</strong><small>{addressOf(l)||"Adresse prüfen"} · {l.status}</small></span><ArrowRight size={18}/>
         </button>
         <div className="button-row">
-          <button type="button" className="secondary" disabled={i===0} onClick={()=>setTour(x=>{const a=[...x];[a[i],a[i-1]]=[a[i-1],a[i]];return a})}><ArrowUp size={14}/> Hoch</button>
-          <button type="button" className="secondary" disabled={i===tourStops.length-1} onClick={()=>setTour(x=>{const a=[...x];[a[i],a[i+1]]=[a[i+1],a[i]];return a})}><ArrowDown size={14}/> Runter</button>
+          <button type="button" className="secondary" disabled={i===0} onClick={()=>{setTourTitle("");setTour(x=>{const a=[...x];[a[i],a[i-1]]=[a[i-1],a[i]];return a})}}><ArrowUp size={14}/> Hoch</button>
+          <button type="button" className="secondary" disabled={i===tourStops.length-1} onClick={()=>{setTourTitle("");setTour(x=>{const a=[...x];[a[i],a[i+1]]=[a[i+1],a[i]];return a})}}><ArrowDown size={14}/> Runter</button>
           <button type="button" className="secondary" onClick={()=>{selectLead(l,false);setTourFocus(null)}}><X size={14}/> Aus Tour</button>
         </div>
         {tourFocus===l.id&&<div className="nx-hunter-visit-actions">
@@ -251,7 +255,8 @@ export function Hunter(){
             <button className="secondary" disabled={busy} onClick={()=>void updateLead(l,"Besucht",noteOf(l))}>Als besucht markieren</button>
             <button className="primary" disabled={busy||!!l.customer_id} onClick={()=>void promote(l)}>Ins CRM übernehmen</button>
             {l.status!=="Kein Interesse"&&<button className="secondary" disabled={busy} onClick={()=>setRejectLead(l)}>Ablehnen</button>}
-            <button className="nx-delete-trigger" disabled={busy} onClick={()=>setConfirmDelete(l)}>Löschen</button>
+            {l.customer_id&&data.customers.find(c=>c.id===l.customer_id)&&<button className="primary" onClick={()=>setEditCustomer(data.customers.find(c=>c.id===l.customer_id)!)}>Kundenakte bearbeiten</button>}
+       <button className="nx-delete-trigger" disabled={busy} onClick={()=>setConfirmDelete(l)}>Löschen</button>
           </div>
         </div>}
       </article>)}</div>
@@ -315,6 +320,7 @@ export function Hunter(){
        <a className="secondary" href={mapSearch(l.company+" "+addressOf(l))} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> Navigation</a>
        <button className="primary" disabled={busy||!!l.customer_id} onClick={()=>void promote(l)}>Ins CRM übernehmen</button>
        {l.status!=="Kein Interesse"&&l.status!=="Übernommen"&&<button type="button" className="secondary" disabled={busy} onClick={()=>setRejectLead(l)}><X size={15}/> Ablehnen</button>}
+       {l.customer_id&&data.customers.find(c=>c.id===l.customer_id)&&<button className="secondary" onClick={()=>setEditCustomer(data.customers.find(c=>c.id===l.customer_id)!)}>Kundenakte bearbeiten</button>}
        <button type="button" className="nx-delete-trigger" disabled={busy} onClick={()=>setConfirmDelete(l)}><Trash2 size={15}/> Löschen</button>
       </div>
       {l.customer_id&&<p className="hint">✓ Zentraler Kunde verknüpft – Termine, Angebot und Tagesroute über vorhandene CRM-Module bearbeiten.</p>}
@@ -322,6 +328,7 @@ export function Hunter(){
     </section>
    </div>
   </div>
+  {editCustomer&&<CustomerForm customer={editCustomer} division="sumup" onClose={()=>{setEditCustomer(null);void refresh()}}/>}
   {confirmDelete&&<div className="nx-hunter-overlay" role="presentation">
     <section className="nx-hunter-confirm" role="dialog" aria-modal="true" aria-label="Hunter-Eintrag löschen">
       <h3>Eintrag endgültig löschen?</h3><p>„{confirmDelete.company}“ wird aus der Hunter-Merkliste und der aktuellen Tourauswahl entfernt.</p>
