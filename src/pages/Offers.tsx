@@ -280,7 +280,11 @@ export function OfferForm({
   );
 }
 export function Offers() {
-  const { data, refresh } = useStore();
+  const { data, refresh, remove } = useStore();
+  const [deleteOffer,setDeleteOffer] = useState<Offer|null>(null);
+  const [deleteBusy,setDeleteBusy] = useState(false);
+  const [deleteError,setDeleteError] = useState("");
+  const [deleteMessage,setDeleteMessage] = useState("");
   const [sendOffer, setSendOffer] = useState<Offer | null>(null);
   const [edit, setEdit] = useState<Offer | true | null>(null);
   const [invoiceForm, setInvoiceForm] = useState<{invoice?: Invoice; offer?: Offer} | null>(null);
