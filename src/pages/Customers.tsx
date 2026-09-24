@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { client } from "../lib/client";
 import {
   Plus,
   Search,
@@ -54,6 +55,14 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
     [edit, setEdit] = useState<Customer | true | null>(null),
     [task, setTask] = useState<Task | true | null>(null),
     [error, setError] = useState("");
+  const [withStatements,setWithStatements]=useState<Set<string>>(new Set());
+  useEffect(()=>{
+    let active=true;
+    if(demo)return()=>{active=false};
+    void client.from("nx_inbound_statements").select("customer_id").limit(1000)
+      .then(({data,error})=>{if(active&&!error)setWithStatements(new Set((data||[]).map(x=>String(x.customer_id))))});
+    return()=>{active=false};
+  },[data.customers.length,demo]);
   const customer = data.customers.find((c) => c.id === selected);
   const [segment,setSegment]=useState<"all"|CustomerSegment>("all");
   const sorted=[...data.customers].sort((a,b)=>{
@@ -130,7 +139,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
                         >
                           {c.company}
                         </button>
-                        <small className="nx-customer-origin">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{feeRequestText(c,data.events)?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":c.source==="SumUp Beratung"?" · SumUp-Beratung":c.source==="SumUp Angebotsanfrage"?" · Angebot mit Abrechnung":""}</small>
+                        <small className="nx-customer-origin">{segmentLabels[segmentOf(c,data.tasks,data.events,data.opportunities)]}{feeRequestText(c,data.events)?" · SumUp-Gebührencheck":c.source==="Kontaktformular"?" · Kontaktformular":c.source==="SumUp Beratung"?" · SumUp-Beratung":c.source==="SumUp Angebotsanfrage"?" · Angebot mit Abrechnung":""}{withStatements.has(c.id)?" · ✓ Abrechnung vorhanden":""}</small>
                         <small>
                           {c.contact || c.industry || "Kontakt ergänzen"}
                         </small>
