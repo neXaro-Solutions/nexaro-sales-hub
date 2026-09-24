@@ -72,7 +72,7 @@ export function Customers({ division }: { division?: Division }) {
           <Badge>{rows.length} Standorte</Badge>
         </div>
         {rows.length ? (
-          <div className="table-wrap">
+          <div className="table-wrap nx-customers-table">
             <table>
               <thead>
                 <tr>
@@ -149,6 +149,21 @@ export function Customers({ division }: { division?: Division }) {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="nx-customer-mobile-list">
+            {rows.map(c=>{
+              const next=data.tasks.filter(t=>t.customer_id===c.id&&!t.done).sort((a,b)=>a.due_at.localeCompare(b.due_at))[0];
+              return <article className="nx-customer-mobile-card" key={c.id}>
+                <button className="nx-customer-mobile-title" onClick={()=>setSelected(c.id)}>{c.company} <ArrowUpRight size={17}/></button>
+                <small>{c.contact||c.industry||"Kontakt ergänzen"}</small>
+                <p><MapPin size={15}/> {[c.zip,c.city].filter(Boolean).join(" ")||"Standort ergänzen"}</p>
+                <div className="nx-customer-mobile-divisions">{data.opportunities.filter(o=>o.customer_id===c.id).map(o=>
+                  <span key={o.id}><DivisionBadge division={o.division}/> <small>{o.stage}</small></span>
+                )}</div>
+                <p className="nx-customer-mobile-next">{next?"Nächster Schritt: "+next.title+" · "+appointmentLabel(next.due_at):"Noch keine Wiedervorlage"}</p>
+                <button className="secondary" onClick={()=>setSelected(c.id)}>Kundenakte öffnen</button>
+              </article>;
+            })}
           </div>
         ) : (
           <Empty title="Dein nächster Standort wartet">
