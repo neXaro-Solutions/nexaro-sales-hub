@@ -29,11 +29,14 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
         body: { action: "send", offerId: offer.id, to: to.trim(), message: message.trim() }
       });
       if (invokeError || !result?.sent) {
-        let reason = result?.error;
+        let diagnostic: {error?: string; phase?: string; code?: string; smtpStatus?: number; detail?: string} | undefined = result;
+        let reason = diagnostic?.error;
         if (!reason && invokeError && "context" in invokeError) {
-          try { reason = (await (invokeError.context as Response).json()).error; } catch { /* non-JSON upstream response */ }
+          try { diagnostic = await (invokeError.context as Response).json(); reason = diagnostic?.error; } catch { /* non-JSON upstream response */ }
         }
-        throw Error(reason || "Versand konnte nicht bestätigt werden. Bitte vor erneutem Senden die Kundenhistorie prüfen.");
+        const phase = diagnostic?.phase === "pdf" ? "PDF-Erstellung" : diagnostic?.phase === "smtp" ? "E-Mail-Server" : diagnostic?.phase === "documentation" ? "CRM-Dokumentation" : "";
+        const code = diagnostic?.code && diagnostic.code !== "UNKNOWN" ? " (" + diagnostic.code + ")" : "";
+        throw Error([reason || "Versand konnte nicht bestätigt werden. Bitte vor erneutem Senden die Kundenhistorie prüfen.", phase && "Schritt: " + phase + code, diagnostic?.detail].filter(Boolean).join(" "));
       }
       setSuccess(true);
       if (!result.logged || !result.statusUpdated) setLoggingWarning("E-Mail wurde angenommen, aber die CRM-Dokumentation konnte nicht vollständig abgeschlossen werden. Bitte Kundenhistorie prüfen.");
