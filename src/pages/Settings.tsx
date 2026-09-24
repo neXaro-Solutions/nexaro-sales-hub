@@ -15,6 +15,9 @@ import { checkedAt, pricingSource } from "../lib/sumup";
 export function Settings() {
   const { data, demo, refresh } = useStore();
   const [icloud, setIcloud] = useState("unverified");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailStatus, setEmailStatus] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
   const [icloudBusy, setIcloudBusy] = useState(false);
   const [icloudMessage, setIcloudMessage] = useState("");
   async function calendarAction(action:"status"|"sync"){
@@ -30,6 +33,25 @@ export function Settings() {
       else setIcloudMessage(String(result?.error||"Status konnte nicht ermittelt werden."));
     }catch(e){setIcloudMessage((e as Error).message);}
     finally{setIcloudBusy(false);}
+  }
+  async function emailAction(action:"smtp-check"|"send-self-test"){
+    if(demo||emailBusy)return;
+    setEmailBusy(true);setEmailStatus("");
+    try{
+      const {data:result,error}=await client.functions.invoke("nx-email-appointments",{body:{action}});
+      if(error||!result?.ok){
+        setEmailVerified(false);
+        const reason=String(result?.reason||"Die Verbindung konnte nicht bestätigt werden.");
+        setEmailStatus(reason+(result?.code?" ("+String(result.code)+")":""));
+      }else if(action==="smtp-check"){
+        setEmailVerified(true);
+        setEmailStatus("✓ Webador SMTP-Verbindung und STARTTLS-Anmeldung erfolgreich. Es wurde keine E-Mail verschickt.");
+      }else{
+        setEmailStatus("Test-E-Mail an kontakt@nexaro-solutions.de vom SMTP-Server angenommen. Bitte Posteingang und Spam prüfen. Es wurden keine Kunden kontaktiert.");
+      }
+    }catch{
+      setEmailVerified(false);setEmailStatus("Der Webador SMTP-Test ist derzeit nicht erreichbar. Bitte Verbindung und Secrets prüfen.");
+    }finally{setEmailBusy(false)}
   }
   function backup() {
     const blob = new Blob(
@@ -112,6 +134,24 @@ export function Settings() {
           </div>
           {icloudMessage&&<p role="status" className="hint">{icloudMessage}</p>}
           <p className="hint">Der CalDAV-Zugriff bleibt deaktiviert, bis du dein iCloud-Konto eingerichtet und die serverseitige Verbindung freigegeben hast. Niemals dein Apple-Passwort im CRM oder Chat eingeben.</p>
+        </Card>
+        <Card title="E-Mail-Terminbestätigung" eyebrow="WEBADOR · VERSAND NOCH NICHT AKTIV">
+          <div className="settings-item"><ShieldCheck/><div>
+            <strong>kontakt@nexaro-solutions.de</strong>
+            <p>Vorbereitete SMTP-Verbindung mit mail.webador.com über STARTTLS (Port 587).
+              Testaktionen betreffen ausschließlich das eigene Postfach. Automatische Kundennachrichten sind noch nicht freigegeben.</p>
+          </div></div>
+          <div className="button-row">
+            <button className="secondary" disabled={demo||emailBusy} onClick={()=>void emailAction("smtp-check")}>
+              <RefreshCw size={16}/> {emailBusy?"Prüfung läuft …":"SMTP-Verbindung prüfen"}
+            </button>
+            <button className="primary" disabled={demo||emailBusy||!emailVerified}
+              onClick={()=>void emailAction("send-self-test")}>
+              Test-E-Mail an eigenes Postfach senden
+            </button>
+          </div>
+          {emailStatus&&<p role="status" className="hint">{emailStatus}</p>}
+          <p className="hint">Der Testversand ist eine echte E-Mail und wird nur nach Klick ausgelöst. Ein erfolgreicher SMTP-Test bestätigt noch nicht die Zustellung in den Posteingang. Bitte Zugangsdaten ausschließlich in Supabase Secrets verwalten.</p>
         </Card>
         <Card title="Datensicherung">
           <p>
