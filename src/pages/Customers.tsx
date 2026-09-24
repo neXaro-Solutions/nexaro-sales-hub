@@ -25,9 +25,10 @@ import { address, dateLabel, mapSearch, money } from "../lib/calculations";
 import { stages, type Customer, type Division, type Stage } from "../lib/types";
 import type { Task } from "../lib/types";
 import { Documents } from "../components/Documents";
+import { CustomerContactPermission } from "../components/ContactCompliance";
 import { appointmentLabel } from "../lib/appointments";
 export function Customers({ division }: { division?: Division }) {
-  const { data, save, refresh } = useStore();
+  const { data, save, refresh, demo } = useStore();
   const [search, setSearch] = useState(""),
     [selected, setSelected] = useState<string | null>(null),
     [edit, setEdit] = useState<Customer | true | null>(null),
@@ -315,6 +316,7 @@ export function Customers({ division }: { division?: Division }) {
               </Field>
             </AsyncForm>
           </div>
+          <CustomerContactPermission key={customer.id} customer={customer} demo={demo}/>
           <h3>Kundenhistorie</h3>
           {data.events
             .filter(
