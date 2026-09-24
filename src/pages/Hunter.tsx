@@ -197,6 +197,61 @@ export function Hunter(){
    <a className="primary" href="https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/sumup-gebuehrencheck.html" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> SumUp-Beratungsformular öffnen</a>
    <p className="hint">Teile diesen Link nur über zulässige Kanäle, z. B. deine Website, bestehende Unterlagen oder nach einem persönlichen Gespräch. Nicht als unaufgeforderte Werbe-E-Mail versenden.</p>
   </section>
+  <section className="card nx-hunter-tour" aria-label="Hunter Tour und Routenplanung">
+    <span className="badge positive">HUNTER ROUTE · IM CRM</span>
+    <h2>Vorgemerkte Standorte zur Besuchstour zusammenstellen</h2>
+    <p className="hint">Wähle unten mehrere offene Geschäfte aus. Die Besuchsreihenfolge wird über die geografische Nähe einschließlich einer Verbesserungsschleife geplant. Die Karte und alle Folgeaktionen bleiben im CRM.</p>
+    <div className="nx-hunter-tour-stats"><strong>{selectedIds.length} ausgewählt</strong><span>{eligibleTour.length} offen verfügbar</span><span>{tourStops.length} in der Tour</span></div>
+    <div className="button-row">
+      <button type="button" className="secondary" onClick={()=>{setSelectedIds(eligibleTour.map(l=>l.id));setTour([])}} disabled={busy}>Alle offenen vormerken</button>
+      <button type="button" className="secondary" onClick={()=>{setSelectedIds([]);setTour([]);setTourFocus(null)}} disabled={busy}>Auswahl aufheben</button>
+      <button type="button" className="secondary" disabled={tourBusy} onClick={()=>void startGPS()}><MapPin size={15}/> GPS als Start</button>
+      <button type="button" className="primary" disabled={tourBusy||!selectedIds.length} onClick={()=>void planTour()}><RouteIcon size={16}/> Route nach Nähe planen</button>
+    </div>
+    <p className="hint">{tourOrigin?"Startpunkt: ermittelter GPS-Standort":"Startpunkt: erster ausgewählter Standort. Für die Route ab deinem tatsächlichen Standort GPS verwenden."}</p>
+    {tourStops.length>0&&<div className="nx-hunter-tour-result">
+      <div className="nx-hunter-tour-summary"><strong>{tourStops.length} Stopps in Reihenfolge</strong><span>ca. {hunterRouteLength(tourStops,tourOrigin).toLocaleString("de-DE",{maximumFractionDigits:1})} km Luftlinie</span></div>
+      <p className="hint">Geografisch optimierte Näherung ohne Straßenführung, Stau, Besuchsdauer oder Öffnungszeiten – keine Zusage zur kürzesten Fahrzeit.</p>
+      <div className="nx-hunter-tour-map" role="img" aria-label="Schematische geografische Übersicht der ausgewählten Hunter-Route">
+        <svg viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet">
+          <rect width="600" height="340" rx="16" fill="#f6faee"/>
+          <polyline points={polyline} fill="none" stroke="#ff7829" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="9 4"/>
+          {tourOrigin&&<g><circle cx={projected(tourOrigin).x} cy={projected(tourOrigin).y} r="11" fill="#244b2c" stroke="#fff" strokeWidth="3"/><text x={projected(tourOrigin).x+12} y={projected(tourOrigin).y-13} fill="#244b2c" fontSize="14" fontWeight="700">Start</text></g>}
+          {tourMapStops.map((l,i)=>{const v=projected(l);return <g key={l.id}>
+            <circle cx={v.x} cy={v.y} r="13" fill={tourFocus===l.id?"#ff7829":"#caff47"} stroke="#244b2c" strokeWidth="2"/>
+            <text x={v.x} y={v.y+5} textAnchor="middle" fontSize="14" fill="#223a20" fontWeight="800">{i+1}</text>
+          </g>})}
+        </svg>
+      </div>
+      <p className="hint">Schematische Karte anhand der OSM-Koordinaten; die echte Standortkarte erscheint, sobald du einen Stopp unten auswählst.</p>
+      <div className="nx-hunter-tour-stops">{tourStops.map((l,i)=><article key={l.id} className={"nx-hunter-tour-stop"+(tourFocus===l.id?" active":"")}>
+        <button type="button" className="nx-hunter-stop-focus" onClick={()=>setTourFocus(l.id)}>
+          <b>{i+1}</b><span><strong>{l.company}</strong><small>{addressOf(l)||"Adresse prüfen"} · {l.status}</small></span><ArrowRight size={18}/>
+        </button>
+        <div className="button-row">
+          <button type="button" className="secondary" disabled={i===0} onClick={()=>setTour(x=>{const a=[...x];[a[i],a[i-1]]=[a[i-1],a[i]];return a})}><ArrowUp size={14}/> Hoch</button>
+          <button type="button" className="secondary" disabled={i===tourStops.length-1} onClick={()=>setTour(x=>{const a=[...x];[a[i],a[i+1]]=[a[i+1],a[i]];return a})}><ArrowDown size={14}/> Runter</button>
+          <button type="button" className="secondary" onClick={()=>{selectLead(l,false);setTourFocus(null)}}><X size={14}/> Aus Tour</button>
+        </div>
+        {tourFocus===l.id&&<div className="nx-hunter-visit-actions">
+          {Number.isFinite(l.lat)&&Number.isFinite(l.lng)&&<iframe title={"OSM Standortkarte "+l.company} loading="lazy" referrerPolicy="no-referrer" src={osmEmbed(l,.65,l)} />}
+          <label>Besuchsnotiz<textarea value={noteOf(l)} onChange={e=>setDrafts(v=>({...v,[l.id]:e.target.value}))} rows={3} maxLength={3000}/></label>
+          <div className="button-row">
+            <button className="secondary" disabled={busy||noteOf(l)===l.note} onClick={()=>void updateLead(l,l.status,noteOf(l))}><Check size={15}/> Notiz speichern</button>
+            <button className="secondary" disabled={busy} onClick={()=>void updateLead(l,"Besucht",noteOf(l))}>Als besucht markieren</button>
+            <button className="primary" disabled={busy||!!l.customer_id} onClick={()=>void promote(l)}>Ins CRM übernehmen</button>
+            {l.status!=="Kein Interesse"&&<button className="secondary" disabled={busy} onClick={()=>setRejectLead(l)}>Ablehnen</button>}
+            <button className="nx-delete-trigger" disabled={busy} onClick={()=>setConfirmDelete(l)}>Löschen</button>
+          </div>
+        </div>}
+      </article>)}</div>
+      <div className="nx-hunter-tour-save">
+        <label>Besuchstag<input type="date" value={tourDay} onChange={e=>{setTourDay(e.target.value);setTourTitle("")}}/></label>
+        <button className="primary" type="button" disabled={tourBusy||!tourDay||!!tourTitle&&tourTitle===tourDay} onClick={()=>void saveTour()}><Check size={16}/> {tourBusy?"Speichern …":tourTitle===tourDay?"Im CRM gespeichert":"Tour im CRM speichern"}</button>
+      </div>
+      <p className="hint">Gespeicherte Touren findest du unter „Tagesroute“. Die Bearbeitung von Hunter-Kontakten bleibt hier möglich. Für den Abbiegeweg kann die bestehende Tagesroute Google Maps öffnen.</p>
+    </div>}
+  </section>
   <div className="analysis-grid">{overview.map(([name,n])=><div className="card" key={name} style={{padding:18}}><small>{name}</small><h2 style={{fontSize:30,margin:"8px 0"}}>{n}</h2></div>)}</div>
   <div className="route-grid">
    <div>
@@ -241,7 +296,7 @@ export function Hunter(){
      <div className="button-row"><button className="secondary" disabled={busy||demo} onClick={()=>void loadLeads().catch(e=>setError((e as Error).message))}><RefreshCw size={15}/> Aktualisieren</button></div>
      {shown.length===0&&<p className="hint">Noch keine passenden Geschäfte vorgemerkt.</p>}
      {shown.map(l=><div key={l.id} style={{padding:"16px 0",borderBottom:"1px solid #e5eae0"}}>
-      <strong>{l.company}</strong><small style={{display:"block"}}>{addressOf(l)}</small>
+      <label className="nx-hunter-select"><input type="checkbox" checked={selectedIds.includes(l.id)} disabled={busy||["Kein Interesse","Übernommen"].includes(l.status)} onChange={e=>selectLead(l,e.target.checked)}/> <strong>{l.company}</strong><span>{selectedIds.includes(l.id)?"Für Tour ausgewählt":"Für Tour auswählen"}</span></label><small style={{display:"block"}}>{addressOf(l)}</small>
       <small style={{display:"block"}}>Quelle: OpenStreetMap {l.source_id.replace(/^osm:/,"")}</small>
       <label>Status<select disabled={busy} value={l.status} onChange={e=>void updateLead(l,e.target.value as HunterStage,noteOf(l))}>{stages.map(st=><option key={st}>{st}</option>)}</select></label>
       <label>Besuchsnotiz<textarea rows={3} maxLength={3000} value={noteOf(l)} onChange={e=>setDrafts(d=>({...d,[l.id]:e.target.value}))} placeholder="Ansprechpartner, Bedarf, nächster Schritt – nur gesicherte Gesprächsinformationen."/></label>
@@ -249,12 +304,33 @@ export function Hunter(){
        <button className="secondary" disabled={busy||noteOf(l)===l.note} onClick={()=>void updateLead(l,l.status,noteOf(l))}><Check size={15}/> Notiz speichern</button>
        <a className="secondary" href={mapSearch(l.company+" "+addressOf(l))} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> Navigation</a>
        <button className="primary" disabled={busy||!!l.customer_id} onClick={()=>void promote(l)}>Ins CRM übernehmen</button>
+       {l.status!=="Kein Interesse"&&l.status!=="Übernommen"&&<button type="button" className="secondary" disabled={busy} onClick={()=>setRejectLead(l)}><X size={15}/> Ablehnen</button>}
+       <button type="button" className="nx-delete-trigger" disabled={busy} onClick={()=>setConfirmDelete(l)}><Trash2 size={15}/> Löschen</button>
       </div>
       {l.customer_id&&<p className="hint">✓ Zentraler Kunde verknüpft – Termine, Angebot und Tagesroute über vorhandene CRM-Module bearbeiten.</p>}
      </div>)}
     </section>
    </div>
   </div>
+  {confirmDelete&&<div className="nx-hunter-overlay" role="presentation">
+    <section className="nx-hunter-confirm" role="dialog" aria-modal="true" aria-label="Hunter-Eintrag löschen">
+      <h3>Eintrag endgültig löschen?</h3><p>„{confirmDelete.company}“ wird aus der Hunter-Merkliste und der aktuellen Tourauswahl entfernt.</p>
+      {confirmDelete.customer_id&&<p className="hint">Die bereits übernommene zentrale Kundenakte und bestehende gespeicherte Tagesrouten bleiben erhalten.</p>}
+      <div className="button-row">
+        <button className="nx-delete-confirm-button" disabled={busy} onClick={()=>void deleteLead(confirmDelete)}><Trash2 size={16}/> Löschen bestätigen</button>
+        <button className="secondary" disabled={busy} onClick={()=>setConfirmDelete(null)}>Abbrechen</button>
+      </div>
+    </section>
+  </div>}
+  {rejectLead&&<div className="nx-hunter-overlay" role="presentation">
+    <section className="nx-hunter-confirm" role="dialog" aria-modal="true" aria-label="Hunter-Lead ablehnen">
+      <h3>Kein Interesse dokumentieren?</h3><p>„{rejectLead.company}“ wird als „Kein Interesse“ markiert und aus der offenen Tourauswahl genommen, bleibt aber unter dem Filter „Alle“ erhalten.</p>
+      <div className="button-row">
+        <button className="primary" disabled={busy} onClick={async()=>{const l=rejectLead;await updateLead(l,"Kein Interesse",noteOf(l));setRejectLead(null)}}>Ablehnen und speichern</button>
+        <button className="secondary" disabled={busy} onClick={()=>setRejectLead(null)}>Abbrechen</button>
+      </div>
+    </section>
+  </div>}
   {message&&<p className="notice" role="status">{message}</p>}
   {error&&<p className="error" role="alert">{error}</p>}
   <p className="hint">B2B-Kontaktregeln beachten: Keine automatischen Werbe-E-Mails oder Massenanrufe. OSM-Daten können veraltet sein; berechtigten Kontaktgrund, Widersprüche und Quelle dokumentieren.</p>
