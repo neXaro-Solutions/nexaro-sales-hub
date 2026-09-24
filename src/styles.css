@@ -2932,3 +2932,31 @@ progress {
  .nx-customer-mobile-next{border-top:1px solid #e5ede0;padding-top:10px}
  .nx-customer-mobile-card>.secondary{width:100%;min-height:43px;justify-content:center}
 }
+
+/* Customer / inquiry cockpit: mobile-first segmentation and structured form detail. */
+.nx-customer-segments{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 17px}
+.nx-customer-segments button{display:inline-flex;align-items:center;gap:9px;border:1px solid #d4dfc9;background:#fff;color:#3e4d3b;border-radius:12px;padding:10px 13px;font-weight:700;font-size:12px;min-height:42px;cursor:pointer}
+.nx-customer-segments button span{display:inline-grid;place-items:center;min-width:25px;height:23px;border-radius:8px;background:#edf3e7;color:#30422b;font-variant-numeric:tabular-nums}
+.nx-customer-segments button.active{border-color:#f0742c;background:#fff3e8;color:#963c0d;box-shadow:inset 0 0 0 1px #ffbc86}
+.nx-customer-segments button.active span{background:#ffdbbc;color:#963c0d}
+.nx-customer-origin{font-weight:750!important;color:#bd4d14!important;white-space:normal}
+.nx-inbound-row{background:#fff8ef}
+.nx-customer-segment-badge{display:inline-flex;align-self:start;width:fit-content;padding:6px 10px;border:1px solid #ffbf92;background:#fff1e5;color:#9d460e;border-radius:9px;font-weight:750;font-size:11px;line-height:1.35}
+.nx-inbound-card{border-left:5px solid #f47728!important;background:#fffaf5!important}
+.nx-customer-detail-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 15px;padding:13px;background:#f5f9f1;border-radius:11px;color:#405040;font-size:12px}
+.nx-fee-request{margin:15px 0 19px;border:1px solid #ebbf9a;border-left:5px solid #f47728;border-radius:14px;background:#fffaf5;padding:17px;min-width:0;overflow-wrap:anywhere}
+.nx-fee-request-tag{font-size:10px;font-weight:850;letter-spacing:.065em;color:#9b4310}
+.nx-fee-request h3{margin:7px 0 14px;color:#253525;font-size:18px}
+.nx-fee-request-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.nx-fee-request-grid>div{padding:11px 12px;border:1px solid #e7eadc;border-radius:10px;background:#fff;display:flex;flex-direction:column;gap:8px;min-width:0}
+.nx-fee-request-grid small{font-size:11px;line-height:1.4;color:#5f6d5a}
+.nx-fee-request-grid strong{font-size:14px;color:#253525;overflow-wrap:anywhere}
+.nx-fee-request h4{margin:16px 0 6px;font-size:13px;color:#28362a}
+.nx-fee-request .prewrap{margin:0;color:#344634;line-height:1.55}
+@media(max-width:700px){
+ .nx-customer-segments{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .nx-customer-segments button{width:100%;justify-content:space-between;padding:10px 9px;font-size:11px;white-space:normal;text-align:left}
+ .nx-fee-request{padding:13px}
+ .nx-fee-request-grid{grid-template-columns:1fr}
+ .nx-customer-detail-head{flex-direction:column;align-items:flex-start}
+}
