@@ -3,6 +3,7 @@ import { Camera, ArrowRight, ArrowLeft, Save, FileText } from "lucide-react";
 import { EditableNumberInput } from "../components/EditableNumberInput";
 import { Card, Field, External } from "../components/UI";
 import type { PaymentInput } from "../lib/calculations";
+import type { IncomingSumupInquiry } from "../lib/incomingSumupInquiry";
 import { money, round } from "../lib/calculations";
 import type { StatementReview } from "../components/StatementCapture";
 import { compareFieldSales, type ExistingProviderInput, type SumupPlan } from "../lib/fieldSalesComparison";
@@ -68,7 +69,8 @@ const editable=(value:number,onChange:(v:number)=>void,props:{step?:string;min?:
   <EditableNumberInput min={props.min??"0"} max={props.max} step={props.step??".01"}
     value={value} onChange={event=>onChange(numeric(event.target.value))}/>;
 
-export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,onCapture,onOffer,step,setStep}:{
+export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoReview,onCapture,onOffer,step,setStep}:{
+  inquiry:IncomingSumupInquiry|null;
   customerId:string;photoInput:PaymentInput;photoAvailable:boolean;photoReview:StatementReview|null;
   onCapture:()=>void;onOffer:(draft:OfferDraft)=>void;
   step:1|2|3;setStep:(step:1|2|3)=>void;
@@ -88,8 +90,8 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
   },[step]);
   const opportunity=data.opportunities.find(o=>o.customer_id===customerId&&o.division==="sumup");
   const saved=(opportunity?.details.salesStudio||{}) as SavedStudio;
-  const [current,setCurrent]=useState<ExistingProviderInput>(()=>({...defaultCurrent,...saved.current}));
-  const [provider,setProvider]=useState(saved.provider||"");
+  const [current,setCurrent]=useState<ExistingProviderInput>(()=>({...defaultCurrent,...(inquiry?.volume!==null&&inquiry?.volume!==undefined?{volume:inquiry.volume}:{}),...saved.current}));
+  const [provider,setProvider]=useState(saved.provider||inquiry?.provider||"");
   const [hardware,setHardware]=useState(saved.competitorHardware||"");
   const [otherHardware,setOtherHardware]=useState(saved.otherHardware||"");
   const [contract,setContract]=useState(saved.contract||"");
@@ -240,6 +242,7 @@ export function SalesStudio({customerId,photoInput,photoAvailable,photoReview,on
     </Card>}
     {step===2&&<>
       <Card title="02 · Händler & Umsatz" eyebrow="IST-BESTAND · AKTUELLER ANBIETER">
+        {inquiry&&<p className="notice" role="status">📨 Angaben aus der Kundenanfrage vorausgefüllt, soweit noch keine Vertriebsstudio-Werte gespeichert waren. Umsatz und Anbieter sind Selbstauskünfte. EC-/Debit-Anteil (80/20-Vorgabe) sowie Gebühren sind Annahmen, keine aus dem Formular ermittelten Fakten. Bitte vor dem Gebührenvergleich prüfen.</p>}
         {readReview&&<p role="status" className="notice">{readReview}</p>}
         <button type="button" className="secondary" onClick={onCapture}><Camera size={17}/> Abrechnung erneut fotografieren / hochladen</button>
         {photoReview?.details?.merchant&&<p className="notice"><strong>Erkannter Händler / Firmenname:</strong> {photoReview.details.merchant}. Bitte mit der zentralen Kundenakte abgleichen; diese wird nicht ohne Bestätigung überschrieben.</p>}
