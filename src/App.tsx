@@ -88,7 +88,8 @@ function Shell({ onLogout }: { onLogout: () => void }) {
       window.removeEventListener("offline", down);
     };
   }, []);
-  function navigate(p: string) {
+  function navigate(p: string, customerId = "") {
+    if(p==="sumup")setSumupCustomer(customerId);
     setPage(p);
     setMobile(false);
     window.scrollTo(0, 0);
@@ -227,7 +228,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
                   newTask={() => setNewTask(true)}
                 />
               )}{" "}
-              {page === "customers" && <Customers onOpenSumup={id=>{setSumupCustomer(id);navigate("sumup")}}/>}
+              {page === "customers" && <Customers onOpenSumup={id=>navigate("sumup",id)}/>}
               {page === "sumup" && <Sumup key={sumupCustomer||"general"} initialCustomerId={sumupCustomer}/>}
               {page === "vape" && <Dealers />}
               {page === "tasks" && <Tasks />}
