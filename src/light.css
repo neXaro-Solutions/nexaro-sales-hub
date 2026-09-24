@@ -370,3 +370,17 @@ dialog .notice,.card .notice{background:#f0ffda;color:#28522c;border-color:#a6e8
 .nx-statement-file small{color:#60705d}
 .nx-statement-file button{min-height:44px}
 @media(max-width:700px){.nx-inbound-statement-card{padding:13px}.nx-statement-file{flex-direction:column;align-items:stretch}.nx-inbound-statement-card>.primary{width:100%}}
+
+/* Verified fee comparison hand-off after incoming statement OCR */
+.nx-fee-readiness-intro{border:1px solid #c9e7a3;border-left:5px solid #a3ff12;background:#f8ffed;border-radius:13px;padding:15px;margin:13px 0;display:grid;gap:8px}
+.nx-fee-readiness-intro strong{color:#243e24;font-size:15px}
+.nx-fee-readiness-intro p{margin:0;color:#435941;font-size:12px;line-height:1.5}
+.nx-fee-readiness{margin:18px 0;border:1px solid #f4bd98;border-left:5px solid #ff7829;border-radius:13px;padding:17px;background:#fffaf5;color:#263a25}
+.nx-fee-readiness h3{font-size:17px;margin:0 0 12px}
+.nx-fee-readiness p{font-size:12px;line-height:1.6;color:#4e5d48;margin:7px 0}
+.nx-fee-readiness ul{list-style:none;padding:0;display:grid;gap:8px;margin:12px 0}
+.nx-fee-readiness li{background:#fff;border:1px solid #f4d6bf;padding:10px 12px;border-radius:8px;color:#844014;font-weight:700;font-size:12px;line-height:1.45}
+.nx-fee-readiness label{background:#f4ffdf;border:1px solid #b9de86;border-radius:9px;padding:12px;color:#243e24;font-weight:750}
+.nx-fee-readiness input[type=checkbox]{accent-color:#86bf20}
+.nx-fee-ready{color:#2d692c!important;font-weight:700}
+@media(max-width:700px){.nx-fee-readiness,.nx-fee-readiness-intro{padding:12px}}
