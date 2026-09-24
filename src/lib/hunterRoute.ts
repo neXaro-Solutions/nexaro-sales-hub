@@ -17,7 +17,7 @@ export function optimizeHunterRoute<T extends HunterRoutePoint>(points:T[],origi
  const missing=points.filter(p=>!hasCoordinates(p));
  if(!valid.length)return [...missing];
  const sequence:T[]=[];
- let last=origin||valid[0];
+ let last:{lat:number;lng:number}=origin||valid[0];
  const remaining=[...valid];
  while(remaining.length){
   let nearest=0;
