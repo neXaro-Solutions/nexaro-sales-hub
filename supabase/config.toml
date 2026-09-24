@@ -3,3 +3,7 @@ project_id = "nexaro-sales-hub"
 # validates the payload and invokes a service-only rate-limited transaction.
 [functions.nx-public-intake]
 verify_jwt = false
+
+# Scheduled calls authenticated inside the function using Vault-backed cron secret.
+[functions.nx-email-appointments]
+verify_jwt = false
