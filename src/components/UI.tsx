@@ -79,22 +79,26 @@ export function Metric({
   value,
   detail,
   icon,
+  onClick,
 }: {
   label: string;
   value: ReactNode;
   detail: string;
   icon?: ReactNode;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="metric">
-      <div className="metric-top">
-        {label}
-        {icon || <ArrowUpRight size={17} />}
-      </div>
-      <strong>{value}</strong>
-      <small>{detail}</small>
+  const content = <>
+    <div className="metric-top">
+      {label}
+      {icon || <ArrowUpRight size={17} />}
     </div>
-  );
+    <strong>{value}</strong>
+    <small>{detail}</small>
+    {onClick && <span className="nx-metric-open">Bereich öffnen <ArrowUpRight size={14} /></span>}
+  </>;
+  return onClick
+    ? <button type="button" className="metric nx-metric-link" onClick={onClick} aria-label={label+" – "+detail+" – Bereich öffnen"}>{content}</button>
+    : <div className="metric">{content}</div>;
 }
 export function Modal({
   title,
