@@ -7,6 +7,7 @@ import {
   Map,
   Crosshair,
   CheckSquare,
+  CalendarDays,
   FileText,
   BookOpen,
   Settings as SettingsIcon,
@@ -24,6 +25,7 @@ import { Brand, Field } from "./components/UI";
 import { PageVisual } from "./components/PageVisual";
 import { CustomerForm, TaskForm } from "./components/Forms";
 import { Dashboard } from "./pages/Dashboard";
+import { DashboardCalendar } from "./components/DashboardCalendar";
 import { Customers } from "./pages/Customers";
 import { Sumup } from "./pages/Sumup";
 import { Dealers } from "./pages/Dealers";
@@ -38,6 +40,7 @@ const nav = [
   { id: "customers", label: "Kunden & Leads", icon: Users },
   { id: "routes", label: "Tagesroute", icon: Map },
   { id: "hunter", label: "neXaro HUNTER", icon: Crosshair },
+  { id: "calendar", label: "Kalender", icon: CalendarDays },
   { id: "sumup", label: "SumUp", icon: CreditCard },
   { id: "vape", label: "Vape", icon: Package },
   { id: "offers", label: "Angebote & Rechnungen", icon: FileText },
@@ -111,12 +114,12 @@ function Shell({ onLogout }: { onLogout: () => void }) {
           <span className="orange-dot" /> neXaro CRM <span>09/26</span>
         </div>
         <nav>
-          {nav.map((n, i) => (
+          {nav.map((n) => (
             <div key={n.id}>
-              {i === 4 && (
+              {n.id === "sumup" && (
                 <span className="nav-section">VERTRIEBSBEREICHE</span>
               )}
-              {i === 7 && <span className="nav-section">ORGANISATION</span>}
+              {n.id === "knowledge" && <span className="nav-section">ORGANISATION</span>}
               <button
                 className={page === n.id ? "active" : ""}
                 onClick={() => navigate(n.id)}
@@ -232,6 +235,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               {page === "sumup" && <Sumup key={sumupCustomer||"general"} initialCustomerId={sumupCustomer}/>}
               {page === "vape" && <Dealers />}
               {page === "tasks" && <Tasks />}
+              {page === "calendar" && <DashboardCalendar newTask={() => setNewTask(true)} navigate={navigate} />}
               {page === "routes" && <Routes />}
               {page === "hunter" && <Hunter />}
               {page === "offers" && <Offers />}
