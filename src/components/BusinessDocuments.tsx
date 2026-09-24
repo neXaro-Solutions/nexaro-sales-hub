@@ -1,7 +1,7 @@
 import { EditableNumberInput } from "./EditableNumberInput";
 import { SumupOfferComparison } from "./SumupOfferComparison";
 import { useState } from "react";
-import { Plus, Printer, Trash2 } from "lucide-react";
+import { Plus, Printer, Trash2, Mail } from "lucide-react";
 import { AsyncForm, Field, Modal } from "../components/UI";
 import { useStore } from "../lib/store";
 import { seller, invoiceTerms } from "../lib/branding";
@@ -87,7 +87,7 @@ export function InvoiceForm({
 }
 
 type Party = {company?: string; contact?: string; address?: string; email?: string};
-export function DocumentPreview({ document, onClose }: { document: Offer | Invoice; onClose: () => void }) {
+export function DocumentPreview({ document, onClose, onSendOffer }: { document: Offer | Invoice; onClose: () => void; onSendOffer?: () => void }) {
   const { data } = useStore();
   const invoice = "issue_date" in document;
   const customer = data.customers.find((c) => c.id === document.customer_id);
@@ -156,8 +156,9 @@ export function DocumentPreview({ document, onClose }: { document: Offer | Invoi
     </div>
     <div className="no-print document-export-actions">
       <button type="button" className="primary" onClick={() => window.print()}><Printer size={16}/> Drucken / als PDF sichern</button>
-      <button type="button" className="secondary" onClick={() => void shareSummary()}>Angebot teilen / E-Mail</button>
-      <p className="hint">Auf dem iPhone: „Drucken“ öffnen und die Druckvorschau über „Teilen“ als PDF sichern. Der E-Mail-Knopf bereitet die Nachricht vor; das gesicherte PDF muss als Anhang hinzugefügt werden.{!document.customer_id?" Ohne Kundenakte ist dies ein interner Angebotsentwurf.":""}</p>
+      {onSendOffer && document.customer_id && <button type="button" className="primary" onClick={onSendOffer}><Mail size={16}/> Angebot direkt per E-Mail senden</button>}
+      <button type="button" className="secondary" onClick={() => void shareSummary()}>Über E-Mail-App teilen (PDF manuell)</button>
+      <p className="hint">Auf dem iPhone: „Drucken“ öffnen und die Druckvorschau über „Teilen“ als PDF sichern. Beim direkten CRM-Versand wird das PDF automatisch angehängt. Nur beim Teilen über die E-Mail-App muss es manuell angehängt werden.{!document.customer_id?" Ohne Kundenakte ist dies ein interner Angebotsentwurf.":""}</p>
     </div>
   </Modal>;
 }
