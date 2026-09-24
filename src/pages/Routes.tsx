@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { locate, locateIfGranted, type Position } from "../lib/location";
+import { client } from "../lib/client";
 import {
-  Search,
   MapPin,
   Plus,
   ArrowUp,
@@ -17,39 +17,22 @@ import {
   Field,
   Badge,
   Empty,
-  External,
-  DivisionBadge,
 } from "../components/UI";
 import {
   address,
-  mapSearch,
-  streetView,
   orderStops,
   mapsRoutes,
   today,
   dateLabel,
-  distance,
   dayKey,
 } from "../lib/calculations";
-import { geocode, findProspects, type Prospect } from "../lib/maps";
-import { businessCategories } from "../lib/business-search";
-import { osmEmbed, osmLocation } from "../lib/osmEmbed";
 import type { Stop, Route } from "../lib/types";
+type HunterStop = {id:string;company:string;street:string;zip:string;city:string;lat:number;lng:number;status:string;customer_id:string|null;note:string};
+const hunterAddress=(x:HunterStop)=>[x.street,[x.zip,x.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 export function Routes() {
   const { data, save, refresh } = useStore();
   const [day, setDay] = useState(today()),
     [origin, setOrigin] = useState(""),
-    [query, setQuery] = useState(""),
-    [radius, setRadius] = useState(2),
-    [category, setCategory] = useState("all"),
-    [results, setResults] = useState<Prospect[]>([]),
-    [selectedProspect, setSelectedProspect] = useState<string | null>(null),
-    [showAllResults, setShowAllResults] = useState(false),
-    [center, setCenter] = useState<{
-      lat: number;
-      lng: number;
-      city: string;
-    } | null>(null),
     [stops, setStops] = useState<Stop[]>([]),
     [route, setRoute] = useState<Route | undefined>(),
     [busy, setBusy] = useState(""),
@@ -57,35 +40,24 @@ export function Routes() {
     [filter, setFilter] = useState("all"),
     [saved, setSaved] = useState(false),
     [myPosition, setMyPosition] = useState<Position | null>(null),
-    [searchFromGps, setSearchFromGps] = useState(false);
+    [hunterLeads, setHunterLeads] = useState<HunterStop[]>([]),
+    [hunterFilter, setHunterFilter] = useState("Alle");
+  async function loadHunter(){
+    const {data:rows,error}=await client.from("nx_hunter_prospects").select("id,company,street,zip,city,lat,lng,status,customer_id,note").order("updated_at",{ascending:false}).limit(500);
+    if(error)throw Error("Hunter-Merkliste nicht erreichbar. Bitte erneut laden.");
+    setHunterLeads((rows||[]) as HunterStop[]);
+  }
   useEffect(() => {
     let active = true;
     void locateIfGranted().then(p => { if (active && p) { setMyPosition(p); if (!query.trim()) setSearchFromGps(true); } });
     return () => { active = false; };
   }, []);
-  async function useMyLocation() {
-    setBusy("location"); setMessage("");
-    try {
-      const p = await locate();
-      setMyPosition(p);
-      setSearchFromGps(true);
-      setResults([]);
-      setSelectedProspect(null);
-      setShowAllResults(false);
-      const gpsCenter = { lat: p.lat, lng: p.lng, city: "GPS-Standort" };
-      setCenter(gpsCenter);
-      setBusy("search");
-      const nearby = await findProspects(gpsCenter, radius, category);
-      setResults(nearby);
-      setMessage(nearby.length
-        ? `${nearby.length} Standorte im Umkreis von ${radius} km gefunden (GPS-Genauigkeit ca. ${Math.round(p.accuracy)} m).`
-        : "Keine Treffer an deinem aktuellen Standort. Bitte Branche oder Radius anpassen.");
-    } catch (e) { setMessage((e as Error).message); }
-    finally { setBusy(""); }
-  }
-  function focusProspect(p:Prospect) {
-    setSelectedProspect(p.id);
-    document.getElementById("route-search-map")?.scrollIntoView({behavior:"smooth",block:"start"});
+  useEffect(()=>{let active=true;void loadHunter().catch(e=>{if(active)setMessage((e as Error).message)});return()=>{active=false}},[]);
+  async function useMyLocation(){
+    setBusy("location");setMessage("");
+    try{const p=await locate();setMyPosition(p);setMessage("Standort für die Routensortierung ermittelt (Genauigkeit ca. "+Math.round(p.accuracy)+" m).");}
+    catch(e){setMessage((e as Error).message)}
+    finally{setBusy("")}
   }
   const routeOrigin = origin.trim() || (myPosition ? `${myPosition.lat},${myPosition.lng}` : "");
   const links = mapsRoutes(stops, routeOrigin);
@@ -112,78 +84,11 @@ export function Routes() {
     setStops((v) => [...v, s]);
     setSaved(false);
   };
-  async function search() {
-    setBusy("search");
-    setMessage("");
-    try {
-      const c = searchFromGps && myPosition
-        ? { lat: myPosition.lat, lng: myPosition.lng, city: "GPS-Standort" }
-        : await geocode(query);
-      setCenter(c);
-      const p = await findProspects(c, radius, category);
-      setResults(p);
-      setSelectedProspect(null);
-      setShowAllResults(false);
-      if (!p.length)
-        setMessage(
-          "Keine Treffer in diesem Suchbereich. Branche oder Radius anpassen.",
-        );
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Suche fehlgeschlagen.");
-    } finally {
-      setBusy("");
-    }
-  }
-  async function importLead(p: Prospect) {
-    setBusy(p.id);
-    setMessage("");
-    try {
-      let c = data.customers.find(
-        (c) =>
-          c.source === "OpenStreetMap " + p.id ||
-          (c.company.toLowerCase() === p.name.toLowerCase() &&
-            c.street === p.street &&
-            c.city === (p.city || center?.city || "")),
-      );
-      if (!c) {
-        c = await save("customers", {
-          company: p.name,
-          contact: "",
-          email: "",
-          phone: p.phone,
-          street: p.street,
-          zip: p.zip,
-          city: p.city || center?.city || "",
-          industry: p.category,
-          source: "OpenStreetMap " + p.id,
-          notes:
-            "Öffentlicher Recherchetreffer. Kontaktdaten und Bedarf vor Ort prüfen.",
-          lat: p.lat,
-          lng: p.lng,
-          interests: ["sumup","vape"],
-        });
-        await refresh();
-      }
-      add({
-        id: c.id,
-        company: c.company,
-        address: address(c),
-        lat: c.lat,
-        lng: c.lng,
-      });
-      setSelectedProspect(p.id);
-      setMessage("Standort einmal zentral im CRM gespeichert und in der Tagesroute ergänzt. Für SumUp und Vape nutzbar.");
-    } catch (e) {
-      setMessage((e as Error).message);
-    } finally {
-      setBusy("");
-    }
-  }
   async function optimize() {
     setBusy("optimize");
     setMessage("");
     try {
-      const start = myPosition || center || undefined;
+      const start = myPosition || undefined;
       setStops((v) => orderStops(v, start));
       setSaved(false);
       setMessage(
@@ -201,7 +106,7 @@ export function Routes() {
         <div>
           <h1>Mehr Besuche. Weniger Umwege.</h1>
           <p>
-            Standorte recherchieren, Tagesroute zusammenstellen und losfahren.
+            Hunter-Leads und bestehende Kunden zu einer Besuchstour zusammenstellen.
           </p>
         </div>
         <Badge>
@@ -210,161 +115,36 @@ export function Routes() {
       </div>
       <div className="route-grid">
         <div>
-          <Card
-            title="1 · Standort & Branche"
-            eyebrow="NEUE KUNDEN · GEMEINSAME KUNDENAKTE"
-          >
-            <div className="form-grid">
-              <button className="secondary route-gps-button" type="button" disabled={!!busy} onClick={() => void useMyLocation()}>
-                <MapPin size={15} /> {busy === "location" ? "Standort wird ermittelt …" : busy === "search" ? "Standorte werden gesucht …" : "Meinen Standort ermitteln & suchen"}
-              </button>
-              {myPosition && <p className="hint route-gps-hint">Aktueller Standort erkannt (Genauigkeit ca. {Math.round(myPosition.accuracy)} m). {searchFromGps ? "Mittelpunkt der Umkreissuche, Navigation und Routensortierung." : "Für Navigation und Routensortierung verfügbar; die Ortssuche nutzt die eingegebene PLZ."} Nicht in der Kundenakte gespeichert.</p>}
-              <Field label="PLZ / Ort">
-                <input
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setSearchFromGps(false); }}
-                  placeholder="z. B. 15757 Halbe"
-                />
-              </Field>
-              <Field label="Umkreis">
-                <select
-                  value={radius}
-                  onChange={(e) => setRadius(+e.target.value)}
-                >
-                  <option value="1">1 km</option>
-                  <option value="2">2 km</option>
-                  <option value="5">5 km</option>
-                  <option value="10">10 km</option>
-                  <option value="15">15 km</option>
-                  <option value="20">20 km</option>
-                  <option value="25">25 km</option>
-                  <option value="30">30 km</option>
-                </select>
-              </Field>
-              <Field label="Branche">
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  {businessCategories.map(item=><option value={item.id} key={item.id}>{item.label}</option>)}
-                </select>
-              </Field>
-
-            </div>
+          <Card title="1 · Hunter-Leads zur Route hinzufügen" eyebrow="NEUKUNDENGEWINNUNG · SUMUP">
+            <p className="hint">Neue Geschäfte suchst und qualifizierst du nur noch im Menü „neXaro HUNTER“. Vorgemerkte Standorte lassen sich hier ohne doppelte Kundenakte zur Route hinzufügen.</p>
             <div className="button-row">
-              <button
-                className="primary"
-                onClick={() => void search()}
-                disabled={!!busy || (!searchFromGps && query.trim().length < 3)}
-              >
-                <Search size={16} />
-                {busy === "search" ? "Suche läuft …" : "Standorte suchen"}
-              </button>
-              {query && (
-                <External
-                  href={mapSearch(
-                    query +
-                      " " +
-                      (businessCategories.find(item=>item.id===category)?.label||"Geschäfte"),
-                  )}
-                >
-                  Google Maps Recherche
-                </External>
-              )}
+              <button className="secondary" disabled={!!busy} type="button" onClick={()=>void loadHunter().then(()=>setMessage("Hunter-Merkliste aktualisiert.")).catch(e=>setMessage((e as Error).message))}>Hunter-Leads aktualisieren</button>
+              <button className="secondary" disabled={!!busy} type="button" onClick={()=>void useMyLocation()}><MapPin size={15}/> Aktueller GPS-Standort</button>
             </div>
-            <p className="hint">Alle Geschäftsarten sind vorausgewählt. Bekannte Konzerne und Filialketten werden aus den Suchergebnissen entfernt; nicht eindeutig gekennzeichnete Filialen können vereinzelt noch erscheinen.</p>
-            <p className="hint">Recherchetreffer werden zentral unter „Kunden & Leads“ gespeichert. Jeder Kunde kann anschließend sowohl SumUp- als auch Vape-Angebote erhalten.</p>
-            <details className="route-search-help"><summary>Hinweise zur öffentlichen Suche & Datenquelle</summary>
-            <p className="hint">
-              Ortssuche nur auf deinen Klick, maximal eine Anfrage pro Sekunde,
-              keine automatische Massensuche. Nur öffentliche Geschäftsorte
-              eingeben.{" "}
-              <a
-                className="text-link"
-                href="https://operations.osmfoundation.org/policies/nominatim/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Nutzungsregeln der Ortssuche
-              </a>
-            </p>
-            <p className="hint">
-              Ergebnisse aus OpenStreetMap, bis zu 60 Treffer je Suche. Bei großen Radien kann die Suche länger dauern; 60 Treffer sind keine vollständige Gebietserfassung. Unvollständige
-              Daten sind möglich. Google Maps ergänzt die manuelle Recherche.
-            </p>
-            <External href="https://www.openstreetmap.org/copyright">
-              © OpenStreetMap-Mitwirkende · ODbL
-            </External>
-            </details>
-          </Card>
-          {message && (
-            <p className="notice" role="status">
-              {message}
-            </p>
-          )}
-          {center && <div id="route-search-map"><Card title="2 · Standort auf der Karte" eyebrow="KARTENAUSSCHNITT · SUCHGEBIET">
-            <div className="route-map-header">
-              <div><strong>{selectedProspect ? results.find(p=>p.id===selectedProspect)?.name||center.city : center.city}</strong>
-                <p className="hint">{selectedProspect?"Ausgewähltes Geschäft mit Standortmarker":"Suchmittelpunkt mit Standortmarker"} · Umkreis der Suche: {radius} km</p></div>
-              {selectedProspect && <button className="secondary" onClick={()=>setSelectedProspect(null)}>Gesamtes Suchgebiet</button>}
-            </div>
-            <iframe title={"OpenStreetMap: "+(selectedProspect?results.find(p=>p.id===selectedProspect)?.name||center.city:center.city)}
-              src={osmEmbed(center,radius,results.find(p=>p.id===selectedProspect))}
-              className="route-map-frame" loading="lazy" referrerPolicy="no-referrer"
-              allowFullScreen />
-            <div className="route-map-footer"><span>© OpenStreetMap-Mitwirkende</span>
-              <External href={osmLocation(results.find(p=>p.id===selectedProspect)?.lat??center.lat,
-                results.find(p=>p.id===selectedProspect)?.lng??center.lng)}>Große Karte öffnen</External></div>
-          </Card></div>}
-          {results.length > 0 && (
-            <Card title={`3 · ${results.length} Recherchetreffer`}>
-              {results.slice(0,showAllResults?results.length:12).map((p) => (
-                <div className={"prospect route-prospect"+(selectedProspect===p.id?" route-prospect-active":"")} key={p.id}>
-                  <div className="grow">
-                    <strong>{p.name}</strong>
-                    <small>
-                      {[p.street, p.zip, p.city || center?.city]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </small>
-                    <small>
-                      {p.category}
-                      {center &&
-                        " · " +
-                          distance(center, p).toFixed(1) +
-                          " km Luftlinie"}
-                    </small>
-                    <div className="button-row">
-                      <button className="secondary" onClick={()=>focusProspect(p)}><MapPin size={15}/> Auf Karte</button>
-                      <External
-                        href={mapSearch(
-                          p.name +
-                            " " +
-                            p.street +
-                            " " +
-                            (p.city || center?.city),
-                        )}
-                      >
-                        Maps
-                      </External>
-                      <External href={streetView(p.lat, p.lng)}>
-                        Street View
-                      </External>
-                    </div>
-                  </div>
-                  <button
-                    className="secondary"
-                    disabled={!!busy}
-                    onClick={() => void importLead(p)}
-                  >
-                    <Plus size={15} /> Zentral speichern + Route
-                  </button>
+            <Field label="Hunter-Status">
+              <select value={hunterFilter} onChange={e=>setHunterFilter(e.target.value)}>
+                {["Alle","Neu","Vorbereitet","Besucht","Interesse","Wiedervorlage"].map(x=><option key={x}>{x}</option>)}
+              </select>
+            </Field>
+            {hunterLeads.filter(l=>!["Kein Interesse","Übernommen"].includes(l.status)&&(hunterFilter==="Alle"||l.status===hunterFilter)).map(l=>{
+              const id=l.customer_id||"hunter:"+l.id;
+              const planned=stops.some(st=>st.id===id||st.id==="hunter:"+l.id);
+              return <div className="prospect" key={l.id}>
+                <div className="grow">
+                  <strong>{l.company}</strong>
+                  <small>{hunterAddress(l)||"Adresse bitte vor Ort prüfen"} · {l.status}</small>
+                  {l.note&&<small>{l.note}</small>}
                 </div>
-              ))}
-              {results.length>12&&<button className="secondary wide" onClick={()=>setShowAllResults(v=>!v)}>{showAllResults?"Weniger Treffer anzeigen":"Alle "+results.length+" Treffer anzeigen"}</button>}
-            </Card>
-          )}
-          <Card title="4 · Kunden zur Route hinzufügen">
+                <button className="secondary" disabled={planned||!!busy} onClick={()=>add({id,company:l.company,address:hunterAddress(l),lat:l.lat,lng:l.lng})}>
+                  <Plus size={15}/>{planned?" Eingeplant":" Zur Route"}
+                </button>
+              </div>;
+            })}
+            {!hunterLeads.some(l=>!["Kein Interesse","Übernommen"].includes(l.status))&&<Empty title="Noch keine Hunter-Leads">Öffne neXaro HUNTER, suche Geschäfte und merke passende Standorte vor. Bereits gespeicherte Tagesrouten bleiben erhalten.</Empty>}
+            <p className="hint">Hunter-Merkliste: nur persönlich vorgemerkte Geschäfte. Für Angebote und Termine muss der Lead in die zentrale Kundenakte übernommen werden.</p>
+          </Card>
+          {message&&<p className="notice" role="status">{message}</p>}
+          <Card title="2 · Bestehende Kunden zur Route hinzufügen">
             <select
               value={filter}
               aria-label="Routenkunden filtern"
@@ -485,7 +265,7 @@ export function Routes() {
               </ol>
             ) : (
               <Empty title="Dein Tag nimmt Form an">
-                Füge Kunden oder Recherchetreffer hinzu.
+                Füge Kunden oder Hunter-Leads hinzu.
               </Empty>
             )}
             <button
@@ -496,7 +276,7 @@ export function Routes() {
               <RouteIcon size={16} /> Nach Nähe sortieren
             </button>
             <p className="hint">
-              Heuristische Reihenfolge ab aktuellem Standort, Suchgebiet oder erstem Stopp nach
+              Heuristische Reihenfolge ab aktuellem GPS-Standort oder erstem Stopp nach
               Luftlinie. Eine manuell eingegebene Startadresse hat bei der Navigation Vorrang vor GPS.
               Ohne Verkehrsdaten; Stopps ohne Koordinaten bleiben am Ende.
               Besuchsdauer und Öffnungszeiten selbst berücksichtigen.
