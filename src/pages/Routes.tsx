@@ -30,7 +30,7 @@ import type { Stop, Route } from "../lib/types";
 type HunterStop = {id:string;company:string;street:string;zip:string;city:string;lat:number;lng:number;status:string;customer_id:string|null;note:string};
 const hunterAddress=(x:HunterStop)=>[x.street,[x.zip,x.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 export function Routes() {
-  const { data, save } = useStore();
+  const { data, save, demo } = useStore();
   const [day, setDay] = useState(today()),
     [origin, setOrigin] = useState(""),
     [stops, setStops] = useState<Stop[]>([]),
@@ -43,6 +43,7 @@ export function Routes() {
     [hunterLeads, setHunterLeads] = useState<HunterStop[]>([]),
     [hunterFilter, setHunterFilter] = useState("Alle");
   async function loadHunter(){
+    if(demo){setHunterLeads([]);return}
     const {data:rows,error}=await client.from("nx_hunter_prospects").select("id,company,street,zip,city,lat,lng,status,customer_id,note").order("updated_at",{ascending:false}).limit(500);
     if(error)throw Error("Hunter-Merkliste nicht erreichbar. Bitte erneut laden.");
     setHunterLeads((rows||[]) as HunterStop[]);
@@ -118,7 +119,7 @@ export function Routes() {
           <Card title="1 · Hunter-Leads zur Route hinzufügen" eyebrow="NEUKUNDENGEWINNUNG · SUMUP">
             <p className="hint">Neue Geschäfte suchst und qualifizierst du nur noch im Menü „neXaro HUNTER“. Vorgemerkte Standorte lassen sich hier ohne doppelte Kundenakte zur Route hinzufügen.</p>
             <div className="button-row">
-              <button className="secondary" disabled={!!busy} type="button" onClick={()=>void loadHunter().then(()=>setMessage("Hunter-Merkliste aktualisiert.")).catch(e=>setMessage((e as Error).message))}>Hunter-Leads aktualisieren</button>
+              <button className="secondary" disabled={!!busy||demo} type="button" onClick={()=>void loadHunter().then(()=>setMessage("Hunter-Merkliste aktualisiert.")).catch(e=>setMessage((e as Error).message))}>Hunter-Leads aktualisieren</button>
               <button className="secondary" disabled={!!busy} type="button" onClick={()=>void useMyLocation()}><MapPin size={15}/> Aktueller GPS-Standort</button>
             </div>
             <Field label="Hunter-Status">
