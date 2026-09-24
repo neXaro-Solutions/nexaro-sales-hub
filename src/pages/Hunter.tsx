@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, MapPin, Navigation, Plus, Check, ExternalLink, RefreshCw } from "lucide-react";
+import { Search, MapPin, Navigation, Plus, Check, ExternalLink, RefreshCw, Trash2, Route as RouteIcon, ArrowRight, X, ArrowUp, ArrowDown } from "lucide-react";
 import { client } from "../lib/client";
 import { useStore } from "../lib/store";
 import { geocode, findProspects, wasProspectSearchCached, type Prospect } from "../lib/maps";
 import { locate } from "../lib/location";
 import { osmEmbed } from "../lib/osmEmbed";
+import { optimizeHunterRoute,hunterRouteLength } from "../lib/hunterRoute";
+import { today } from "../lib/calculations";
 import { mapSearch } from "../lib/calculations";
 import { businessCategories } from "../lib/business-search";
-import type { Customer } from "../lib/types";
+import type { Customer,Stop } from "../lib/types";
 
 type HunterStage = "Neu"|"Vorbereitet"|"Besucht"|"Interesse"|"Wiedervorlage"|"Kein Interesse"|"Übernommen";
 type HunterLead = {
@@ -85,7 +87,9 @@ export function Hunter(){
   try{
    const {error}=await client.from("nx_hunter_prospects").update({status,note:note.slice(0,3000),updated_at:new Date().toISOString()}).eq("id",l.id);
    if(error)throw Error("Hunter-Status konnte nicht gespeichert werden.");
-   await loadLeads();setMessage(l.company+": "+status+" dokumentiert.");
+   await loadLeads();
+   if(status==="Kein Interesse"){setSelectedIds(ids=>ids.filter(id=>id!==l.id));setTour(ids=>ids.filter(id=>id!==l.id));}
+   setMessage(l.company+": "+status+" dokumentiert.");
   }catch(e){setError((e as Error).message)}finally{setBusy(false)}
  }
  async function promote(l:HunterLead){
@@ -109,6 +113,68 @@ export function Hunter(){
    await loadLeads();await refresh();
    setMessage(c.company+(equivalent?" war bereits im CRM.":" in zentrale Kundenakte übernommen.")+" SumUp-Kundenprofil steht bereit.");
   }catch(e){setError((e as Error).message)}finally{setBusy(false)}
+ }
+ async function deleteLead(l:HunterLead){
+  if(demo||busy)return;
+  setBusy(true);setError("");
+  try{
+   const {data:deleted,error}=await client.from("nx_hunter_prospects").delete().eq("id",l.id).select("id");
+   if(error||!deleted?.length)throw Error("Vorgemerkter Eintrag konnte nicht gelöscht werden.");
+   setSelectedIds(ids=>ids.filter(id=>id!==l.id));
+   setTour(ids=>ids.filter(id=>id!==l.id));
+   if(tourFocus===l.id)setTourFocus(null);
+   setConfirmDelete(null);
+   await loadLeads();
+   setMessage("„"+l.company+"“ aus der Hunter-Merkliste entfernt. Eine bereits übernommene zentrale Kundenakte bleibt erhalten.");
+  }catch(e){setError(e instanceof Error?e.message:"Löschen fehlgeschlagen.")}
+  finally{setBusy(false)}
+ }
+ function selectLead(l:HunterLead,checked:boolean){
+  setSelectedIds(old=>checked?[...new Set([...old,l.id])]:old.filter(id=>id!==l.id));
+  setTour(old=>checked?old:old.filter(id=>id!==l.id));
+ }
+ const eligibleTour=leads.filter(l=>!["Kein Interesse","Übernommen"].includes(l.status));
+ const tourStops=tour.map(id=>leads.find(l=>l.id===id)).filter((l):l is HunterLead=>!!l);
+ const tourMapStops=tourStops.filter(l=>Number.isFinite(l.lat)&&Number.isFinite(l.lng));
+ const mapCoordinates=tourOrigin?[...tourMapStops,tourOrigin]:tourMapStops;
+ const minLat=mapCoordinates.length?Math.min(...mapCoordinates.map(l=>l.lat)):52.3;
+ const maxLat=mapCoordinates.length?Math.max(...mapCoordinates.map(l=>l.lat)):52.4;
+ const minLng=mapCoordinates.length?Math.min(...mapCoordinates.map(l=>l.lng)):13;
+ const maxLng=mapCoordinates.length?Math.max(...mapCoordinates.map(l=>l.lng)):13.1;
+ const projected=(l:{lat:number;lng:number})=>({
+  x:28+((l.lng-minLng)/Math.max(.005,maxLng-minLng))*544,
+  y:28+((maxLat-l.lat)/Math.max(.005,maxLat-minLat))*284
+ });
+ const polyline=[...(tourOrigin?[tourOrigin]:[]),...tourMapStops].map(l=>{const p=projected(l);return p.x+","+p.y}).join(" ");
+ async function planTour(){
+  const picks=eligibleTour.filter(l=>selectedIds.includes(l.id));
+  if(!picks.length){setError("Bitte mindestens einen noch offenen Hunter-Lead auswählen.");return;}
+  const ordered=optimizeHunterRoute(picks,tourOrigin);
+  setTour(ordered.map(l=>l.id));
+  setTourFocus(ordered[0]?.id||null);
+  setMessage(ordered.length+" Station(en) im Hunter geplant · ca. "+hunterRouteLength(ordered,tourOrigin).toFixed(1).replace(".",",")+" km Luftlinie. Keine berechnete Fahrzeit oder Straßennavigation.");
+ }
+ async function startGPS(){
+  setTourBusy(true);setError("");
+  try{
+   const location=await locate();
+   setTourOrigin({lat:location.lat,lng:location.lng});
+   setMessage("GPS-Startpunkt gesetzt. Anschließend „Route nach Nähe planen“ wählen.");
+  }catch(e){setError(e instanceof Error?e.message:"GPS konnte nicht ermittelt werden.")}
+  finally{setTourBusy(false)}
+ }
+ async function saveTour(){
+  if(demo){setError("Im Demomodus wird keine Route dauerhaft gespeichert.");return;}
+  if(!tourStops.length){setError("Bitte zuerst die Route planen.");return;}
+  if(data.routes.some(r=>r.day===tourDay)){setError("Für diesen Tag existiert bereits eine Tagesroute. Bitte anderen Tag wählen oder die Route unter Tagesroute bearbeiten.");return;}
+  setTourBusy(true);setError("");
+  try{
+   const stops:Stop[]=tourStops.map(l=>({id:l.customer_id||"hunter:"+l.id,company:l.company,address:addressOf(l),lat:Number.isFinite(l.lat)?l.lat:null,lng:Number.isFinite(l.lng)?l.lng:null}));
+   await save("routes",{day:tourDay,name:"HUNTER · "+tourDay,origin:tourOrigin?tourOrigin.lat+","+tourOrigin.lng:"",stops});
+   setTourTitle(tourDay);
+   setMessage("Hunter-Tour für "+tourDay+" im neXaro CRM gespeichert. Alle Stopps sind auch unter Tagesroute verfügbar.");
+  }catch(e){setError(e instanceof Error?e.message:"Tagesroute konnte nicht gespeichert werden.")}
+  finally{setTourBusy(false)}
  }
  const shown=leads.filter(l=>stageFilter==="Alle"||stageFilter==="Offen"
   ?stageFilter==="Alle"||!["Kein Interesse","Übernommen"].includes(l.status)
