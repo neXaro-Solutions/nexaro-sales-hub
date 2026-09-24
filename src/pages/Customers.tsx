@@ -46,7 +46,7 @@ function segmentOf(c:Customer,tasks:Task[],events:{customer_id:string|null;kind:
  return "lead";
 }
 const segmentLabels:Record<CustomerSegment,string>={inbound:"Neue Anfrage",lead:"Aktiver Lead",customer:"Bestandskunde"};
-export function Customers({ division }: { division?: Division }) {
+export function Customers({ division, onOpenSumup }: { division?: Division; onOpenSumup?:(customerId:string)=>void }) {
   const { data, save, refresh, demo } = useStore();
   const [search, setSearch] = useState(""),
     [selected, setSelected] = useState<string | null>(null),
@@ -197,6 +197,7 @@ export function Customers({ division }: { division?: Division }) {
                 )}</div>
                 <p className="nx-customer-mobile-next">{next?"Nächster Schritt: "+next.title+" · "+appointmentLabel(next.due_at):"Noch keine Wiedervorlage"}</p>
                 <button className="secondary" onClick={()=>setSelected(c.id)}>Kundenakte öffnen</button>
+                {onOpenSumup&&feeRequestText(c,data.events)&&<button className="primary" onClick={()=>onOpenSumup(c.id)}>Gebührenvergleich starten →</button>}
               </article>;
             })}
           </div>
@@ -231,6 +232,7 @@ export function Customers({ division }: { division?: Division }) {
             <h4>Nachricht / Beratungswunsch</h4>
             <p className="prewrap">{fee.message}</p>
             <p className="hint">Formularangaben sind Selbstauskünfte, noch keine verifizierte Händlerabrechnung. Anfragebezogene Kontaktfreigabe ist von Werbeeinwilligung getrennt.</p>
+            {onOpenSumup&&<button className="primary" type="button" onClick={()=>onOpenSumup(customer.id)}>SumUp-Gebührenvergleich starten →</button>}
           </section>}
           <div className="customer-summary">
             <p>
