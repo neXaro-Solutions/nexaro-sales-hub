@@ -12,6 +12,7 @@ import { useStore } from "../lib/store";
 import { Card, External, Badge } from "../components/UI";
 import { today, dateLabel } from "../lib/calculations";
 import { checkedAt, pricingSource } from "../lib/sumup";
+import { MarketingSuppressions } from "../components/ContactCompliance";
 export function Settings() {
   const { data, demo, refresh } = useStore();
   const [icloud, setIcloud] = useState("unverified");
@@ -86,6 +87,7 @@ export function Settings() {
         </div>
         <Badge>Einzelnutzer-Betrieb</Badge>
       </div>
+      <MarketingSuppressions demo={demo}/>
       <div className="analysis-grid">
         <Card title="Daten & Zugriff" eyebrow="ZENTRAL GESPEICHERT">
           <div className="settings-item">
