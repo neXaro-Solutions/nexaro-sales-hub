@@ -75,6 +75,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
   const [page, setPage] = useState("dashboard"),
     [mobile, setMobile] = useState(false),
     [newCustomer, setNewCustomer] = useState(false),
+    [sumupCustomer,setSumupCustomer]=useState(""),
     [newTask, setNewTask] = useState(false),
     [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -226,8 +227,8 @@ function Shell({ onLogout }: { onLogout: () => void }) {
                   newTask={() => setNewTask(true)}
                 />
               )}{" "}
-              {page === "customers" && <Customers />}
-              {page === "sumup" && <Sumup />}
+              {page === "customers" && <Customers onOpenSumup={id=>{setSumupCustomer(id);navigate("sumup")}}/>}
+              {page === "sumup" && <Sumup key={sumupCustomer||"general"} initialCustomerId={sumupCustomer}/>}
               {page === "vape" && <Dealers />}
               {page === "tasks" && <Tasks />}
               {page === "routes" && <Routes />}
