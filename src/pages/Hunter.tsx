@@ -47,6 +47,16 @@ export function Hunter(){
  const [stageFilter,setStageFilter]=useState("Offen");
  const [drafts,setDrafts]=useState<Record<string,string>>({});
  const [cached,setCached]=useState(false);
+ const [selectedIds,setSelectedIds]=useState<string[]>([]);
+ const [tour,setTour]=useState<string[]>([]);
+ const [tourDay,setTourDay]=useState(today());
+ const [tourOrigin,setTourOrigin]=useState<{lat:number;lng:number}|null>(null);
+ const [tourFocus,setTourFocus]=useState<string|null>(null);
+ const [confirmDelete,setConfirmDelete]=useState<HunterLead|null>(null);
+ const [rejectLead,setRejectLead]=useState<HunterLead|null>(null);
+ const [tourTitle,setTourTitle]=useState("");
+ const [tourBusy,setTourBusy]=useState(false);
+
  async function loadLeads(){
   if(demo)return;
   const {data:rows,error}=await client.from("nx_hunter_prospects").select("*").order("updated_at",{ascending:false}).limit(500);
