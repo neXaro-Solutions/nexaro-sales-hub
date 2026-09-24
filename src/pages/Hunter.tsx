@@ -163,10 +163,10 @@ export function Hunter(){
  async function planTour(){
   const picks=eligibleTour.filter(l=>selectedIds.includes(l.id));
   if(!picks.length){setError("Bitte mindestens einen noch offenen Hunter-Lead auswählen.");return;}
-  const ordered=optimizeHunterRoute(picks,tourOrigin);
+  const ordered=optimizeHunterRoute(picks,tourOrigin||undefined);
   setTour(ordered.map(l=>l.id));setTourTitle("");
   setTourFocus(ordered[0]?.id||null);
-  setMessage(ordered.length+" Station(en) im Hunter geplant · ca. "+hunterRouteLength(ordered,tourOrigin).toFixed(1).replace(".",",")+" km Luftlinie. Keine berechnete Fahrzeit oder Straßennavigation.");
+  setMessage(ordered.length+" Station(en) im Hunter geplant · ca. "+hunterRouteLength(ordered,tourOrigin||undefined).toFixed(1).replace(".",",")+" km Luftlinie. Keine berechnete Fahrzeit oder Straßennavigation.");
  }
  async function startGPS(){
   setTourBusy(true);setError("");
@@ -224,7 +224,7 @@ export function Hunter(){
     </div>
     <p className="hint">{tourOrigin?"Startpunkt: ermittelter GPS-Standort":"Startpunkt: erster ausgewählter Standort. Für die Route ab deinem tatsächlichen Standort GPS verwenden."}</p>
     {tourStops.length>0&&<div className="nx-hunter-tour-result">
-      <div className="nx-hunter-tour-summary"><strong>{tourStops.length} Stopps in Reihenfolge</strong><span>ca. {hunterRouteLength(tourStops,tourOrigin).toLocaleString("de-DE",{maximumFractionDigits:1})} km Luftlinie</span></div>
+      <div className="nx-hunter-tour-summary"><strong>{tourStops.length} Stopps in Reihenfolge</strong><span>ca. {hunterRouteLength(tourStops,tourOrigin||undefined).toLocaleString("de-DE",{maximumFractionDigits:1})} km Luftlinie</span></div>
       <p className="hint">Geografisch optimierte Näherung ohne Straßenführung, Stau, Besuchsdauer oder Öffnungszeiten – keine Zusage zur kürzesten Fahrzeit.</p>
       <div className="nx-hunter-tour-map" role="img" aria-label="Schematische geografische Übersicht der ausgewählten Hunter-Route">
         <svg viewBox="0 0 600 340" preserveAspectRatio="xMidYMid meet">
