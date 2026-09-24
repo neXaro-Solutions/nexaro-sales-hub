@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { OfferSendDialog } from "../components/OfferSendDialog";
+import { Mail } from "lucide-react";
 import { EditableNumberInput } from "../components/EditableNumberInput";
 import { Plus, Printer, Trash2, FileText, Receipt, ArrowRight } from "lucide-react";
 import { InvoiceForm, DocumentPreview, customerSnapshot } from "../components/BusinessDocuments";
@@ -278,7 +280,8 @@ export function OfferForm({
   );
 }
 export function Offers() {
-  const { data } = useStore();
+  const { data, refresh } = useStore();
+  const [sendOffer, setSendOffer] = useState<Offer | null>(null);
   const [edit, setEdit] = useState<Offer | true | null>(null);
   const [invoiceForm, setInvoiceForm] = useState<{invoice?: Invoice; offer?: Offer} | null>(null);
   const [print, setPrint] = useState<Offer | Invoice | null>(null);
@@ -303,7 +306,8 @@ export function Offers() {
           <td>{data.customers.find((c)=>c.id===o.customer_id)?.company || String((o.snapshot.customer as {company?: string}|undefined)?.company || "Ohne Kunden · Entwurf")}</td>
           <td><DivisionBadge division={o.division}/></td><td>{money(o.net)}</td><td>{o.status}</td>
           <td><div className="button-row">
-            <button className="secondary" aria-label={o.number+" drucken, PDF sichern oder versenden"} onClick={()=>setPrint(o)}><Printer size={16}/> PDF / Teilen</button>
+            <button className="secondary" aria-label={o.number+" drucken oder PDF sichern"} onClick={()=>setPrint(o)}><Printer size={16}/> PDF</button>
+            <button className="primary" disabled={!o.customer_id} title={!o.customer_id?"Vor Versand Kunden zuordnen":undefined} onClick={()=>setSendOffer(o)}><Mail size={16}/> E-Mail senden</button>
             <button className="secondary" disabled={!o.customer_id} title={!o.customer_id?"Vor Rechnung Kunden zuordnen":undefined} aria-label={o.number+" in Rechnung umwandeln"} onClick={()=>{setInvoiceForm({offer:o});setTab("invoices");}}><ArrowRight size={16}/> Rechnung</button>
           </div></td>
         </tr>)}</tbody>
@@ -321,6 +325,7 @@ export function Offers() {
     {edit && <OfferForm offer={edit===true?undefined:edit} onClose={()=>setEdit(null)} onSaved={saved=>{setTab("offers");setPrint(saved);}}/>}
     {invoiceForm && <InvoiceForm invoice={invoiceForm.invoice} offer={invoiceForm.offer}
       onClose={()=>setInvoiceForm(null)} onSaved={(invoice)=>{setTab("invoices");setPrint(invoice);}}/>}
-    {print && <DocumentPreview document={print} onClose={()=>setPrint(null)}/>}
+    {print && <DocumentPreview document={print} onClose={()=>setPrint(null)} onSendOffer={"issue_date" in print ? undefined : ()=>{setSendOffer(print);setPrint(null);}}/>}
+    {sendOffer && <OfferSendDialog offer={sendOffer} onClose={()=>setSendOffer(null)} onSent={refresh}/>}
   </>;
 }
