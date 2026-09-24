@@ -325,7 +325,7 @@ export function Offers() {
     {edit && <OfferForm offer={edit===true?undefined:edit} onClose={()=>setEdit(null)} onSaved={saved=>{setTab("offers");setPrint(saved);}}/>}
     {invoiceForm && <InvoiceForm invoice={invoiceForm.invoice} offer={invoiceForm.offer}
       onClose={()=>setInvoiceForm(null)} onSaved={(invoice)=>{setTab("invoices");setPrint(invoice);}}/>}
-    {print && <DocumentPreview document={print} onClose={()=>setPrint(null)} onSendOffer={"issue_date" in print ? undefined : ()=>{setSendOffer(print);setPrint(null);}}/>}
+    {print && <DocumentPreview document={print} onClose={()=>setPrint(null)} onSendOffer={"issue_date" in print ? undefined : ()=>{setSendOffer(print as Offer);setPrint(null);}}/>}
     {sendOffer && <OfferSendDialog offer={sendOffer} onClose={()=>setSendOffer(null)} onSent={refresh}/>}
   </>;
 }
