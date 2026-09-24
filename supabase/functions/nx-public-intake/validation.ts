@@ -14,7 +14,15 @@ export function validatePayload(input: unknown) {
     throw Error("invalid_interest");
   const email = text("email", 254, true);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw Error("invalid_email");
+  const volume = text("monthly_volume", 15);
+  if(volume && (!/^\d{1,9}(?:\.\d{1,2})?$/.test(volume)||Number(volume)>100000000))throw Error("invalid_volume");
+  const requestType = text("request_type",32);
+  if(requestType && requestType!=="sumup_fee_check")throw Error("invalid_request_type");
+  if(requestType==="sumup_fee_check"&&p.interest!=="sumup")throw Error("invalid_interest");
   return {
+    monthly_volume:volume,
+    current_provider:text("current_provider",100),
+    request_type:requestType,
     company: text("company", 200, true),
     contact: text("contact", 160, true),
     email: email.toLowerCase(),
