@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 import { DashboardWeather } from "../components/DashboardWeather";
 import { DashboardCalendar } from "../components/DashboardCalendar";
+import { SmsRequests } from "../components/SmsRequests";
 import { DashboardIllustration } from "../components/PageVisual";
 import { useStore } from "../lib/store";
 import { today, money, dateLabel, dayKey } from "../lib/calculations";
@@ -113,6 +114,7 @@ export function Dashboard({
         <p className="hint">SumUp-Hardware nur mit regulären Nettopreisen; Kartenmix standardmäßig 80 % Debit / 20 % Kredit. Nicht freigegebene Händlerpreise werden nicht als verbindliche VK übernommen.</p>
       </Card>
       <DashboardCalendar newTask={newTask} navigate={navigate}/>
+      <SmsRequests/>
       <DashboardWeather />
       <div className="metrics">
         <Metric
