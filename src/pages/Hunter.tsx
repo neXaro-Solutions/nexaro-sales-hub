@@ -373,6 +373,23 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
     </section>
    </div>}
   </div>
+  {routeToDelete&&<div className="nx-hunter-overlay" role="presentation"><section className="nx-hunter-confirm" role="dialog" aria-modal="true" aria-label="Gespeicherte Tour löschen">
+    <h3>Gespeicherte Tour endgültig löschen?</h3>
+    <p>Die Tour „{routeToDelete.name}“ vom {dateLabel(routeToDelete.day)} wird entfernt. Alle Hunter-Einträge und Kundenakten bleiben bestehen.</p>
+    <div className="button-row">
+      <button className="nx-delete-confirm-button" disabled={tourBusy} onClick={async()=>{
+        if(!routeToDelete||tourBusy)return;
+        setTourBusy(true);setError("");
+        try{
+          await remove("routes",routeToDelete.id);
+          setOpenedRoute(null);setEditingRoute(null);setRouteToDelete(null);setTourTitle("");
+          setMessage("Tour entfernt – Kunden und Merkliste unverändert.");
+        }catch(e){setError(e instanceof Error?e.message:"Tour konnte nicht gelöscht werden.")}
+        finally{setTourBusy(false)}
+      }}>Tour endgültig löschen</button>
+      <button className="secondary" disabled={tourBusy} onClick={()=>setRouteToDelete(null)}>Abbrechen</button>
+    </div>
+  </section></div>}
   {editCustomer&&<CustomerForm customer={editCustomer} division="sumup" onClose={()=>{setEditCustomer(null);void refresh()}}/>}
   {confirmDelete&&<div className="nx-hunter-overlay" role="presentation">
     <section className="nx-hunter-confirm" role="dialog" aria-modal="true" aria-label="Hunter-Eintrag löschen">
