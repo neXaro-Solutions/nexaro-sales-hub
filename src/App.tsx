@@ -1,6 +1,8 @@
 import { useEffect, useState, Component, type ReactNode } from "react";
 import {
   LayoutDashboard,
+  House,
+  ChevronRight,
   Users,
   CreditCard,
   Package,
@@ -176,9 +178,8 @@ function Shell({ onLogout }: { onLogout: () => void }) {
             >
               <Menu />
             </button>
-            <span>Workspace</span>
-            <span>/</span>
-            <b>{nav.find((n) => n.id === page)?.label}</b>
+            <button type="button" className="nx-breadcrumb-home" onClick={()=>navigate("dashboard")} aria-label="Zur Dashboard-Übersicht"><House size={15}/><span>Übersicht</span></button>
+            {page!=="dashboard"&&<><ChevronRight className="nx-breadcrumb-chevron" size={14}/><b>{nav.find((n) => n.id === page)?.label}</b></>}
           </div>
           <div className="topbar-right">
             <span className={"connection " + (!online ? "offline" : "")}>
@@ -219,6 +220,10 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               </button>
             </div>
           )}
+          {page!=="dashboard"&&!loading&&<div className="nx-page-backbar">
+            <button type="button" className="nx-back-dashboard" onClick={()=>navigate("dashboard")}><House size={17}/> Zur Übersicht <ArrowRight size={15}/></button>
+            <span>{nav.find(n=>n.id===page)?.label||"Dein CRM"}</span>
+          </div>}
           {!loading && <PageVisual page={page} />}
           {loading ? (
             <div className="loading">Dein Arbeitsbereich wird geladen …</div>
