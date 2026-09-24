@@ -4,6 +4,7 @@ import { EditableNumberInput } from "../components/EditableNumberInput";
 import { Card, Field, External } from "../components/UI";
 import type { PaymentInput } from "../lib/calculations";
 import type { IncomingSumupInquiry } from "../lib/incomingSumupInquiry";
+import {feeReadiness,feeReviewSignature} from "../lib/feeReadiness";
 import { money, round } from "../lib/calculations";
 import type { StatementReview } from "../components/StatementCapture";
 import { compareFieldSales, type ExistingProviderInput, type SumupPlan } from "../lib/fieldSalesComparison";
@@ -109,10 +110,12 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
   const [saving,setSaving]=useState(false);
   const [notice,setNotice]=useState("");
   const [readReview,setReadReview]=useState("");
+  const [reviewedSignature,setReviewedSignature]=useState("");
   const update=<K extends keyof ExistingProviderInput>(key:K,value:ExistingProviderInput[K])=>
     setCurrent(old=>({...old,[key]:value}));
   useEffect(()=>{
     if(!photoAvailable||!photoReview)return;
+    setReviewedSignature("");
     const recognized=new Set(photoReview.recognizedFields||[]);
     const detail=photoReview.details||{};
     const hasVolume=recognized.has("volume"),hasOnline=recognized.has("onlineVolume");
@@ -145,6 +148,9 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
       ?"Automatisch aus dem Foto übernommen (NOCH NICHT GEPRÜFT): "+fields.join(", ")+". Bitte jeden Wert mit der Abrechnung kontrollieren."
       :"Keine eindeutigen Werte erkannt. Bitte das Foto besser zuschneiden oder die Angaben manuell erfassen.");
   },[photoReview?.confirmedAt,photoAvailable]);
+  const readiness=feeReadiness(current,provider,cardMixConfirmed,feeRatesConfirmed);
+  const reviewSignature=feeReviewSignature(current,provider,cardMixConfirmed,feeRatesConfirmed);
+  const finalized=readiness.ready&&reviewedSignature===reviewSignature;
   const suggestedFee=deriveCampaignPrefill(current.debitRate,feeRatesConfirmed);
   const suggestedMix=deriveDomesticShare({debitShare:current.debitShare,cardMixConfirmed});
   const effectiveSidekick=noFixedTerm?withoutFixedTerm(sidekick):normalizeSidekickSelection({...sidekick,
@@ -155,6 +161,7 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
   const packageName=selectedPackageName(effectiveSidekick);
   const advisor=useMemo(()=>{try{return recommendSumup(current,needs,future,hardware+" "+otherHardware)}catch{return null;}},[current,needs,future,hardware,otherHardware]);
   function applyRecommendation(){
+    if(!finalized){setNotice("Bitte fehlende Belegwerte prüfen und den Ist-Bestand ausdrücklich freigeben.");return;}
     if(!advisor){setNotice("Bitte zuerst gültige Gebühren und Umsätze erfassen.");return;}
     setSidekick(old=>{const next=normalizeSidekickSelection({...old,licenses:noFixedTerm?[]:advisor.licenses,hardware:[{id:advisor.hardwareId,quantity:1}],payout:advisor.payout});return noFixedTerm?withoutFixedTerm(next):next;});
     if(allowedHardware.some(h=>h.id===advisor.hardwareId))setHardwareId(advisor.hardwareId as HardwareId);
@@ -173,7 +180,7 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
     try{return compareFieldSales(current,"plus");}catch{return null;}
   },[current]);
   const hardwarePrice=hardwareOfferPrice(selectedHardware.price??0,hardwareDiscount,Number.isSafeInteger(quantity)&&quantity>=1&&quantity<=100?quantity:1);
-  const good=!!(estimate.data&&current.volume>0&&selectedHardware.price!==null&&
+  const good=!!(finalized&&estimate.data&&current.volume>0&&selectedHardware.price!==null&&
     Number.isSafeInteger(quantity)&&quantity>0&&quantity<=100);
   const offerNotes=()=>{
     if(!estimate.data)return "";
@@ -209,7 +216,7 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
     finally{setSaving(false);}
   }
   function createOffer(){
-    if(!good||!estimate.data)return;
+    if(!good||!estimate.data){setNotice("Angebot gesperrt: Ist-Bestand vollständig prüfen und freigeben.");return;}
     const offerSelection=normalizeSidekickSelection(effectiveSidekick);
     onOffer({
       division:"sumup",...(customerId?{customer_id:customerId}:{}),
@@ -231,7 +238,7 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
     </div><External href={catalogSource}>SumUp-Preise prüfen</External></div>
     <div className="field-progress" role="navigation" aria-label="Vertriebsstudio Schritte">
       {([1,2,3] as const).map(n=><button key={n} className={step===n?"active":""}
-        onClick={()=>setStep(n)} aria-current={step===n?"step":undefined}>
+        onClick={()=>{if(n===3&&!finalized){setStep(2);setNotice("Bitte den Ist-Bestand unten prüfen und freigeben.");return;}setStep(n)}} aria-current={step===n?"step":undefined}>
         <b>{n}</b><span>{n===1?"Foto-Import":n===2?"Ist-Bestand":"Vergleichsangebot"}</span>
       </button>)}
     </div>
@@ -244,6 +251,11 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
       <Card title="02 · Händler & Umsatz" eyebrow="IST-BESTAND · AKTUELLER ANBIETER">
         {inquiry&&<p className="notice" role="status">📨 Angaben aus der Kundenanfrage vorausgefüllt, soweit noch keine Vertriebsstudio-Werte gespeichert waren. Umsatz und Anbieter sind Selbstauskünfte. EC-/Debit-Anteil (80/20-Vorgabe) sowie Gebühren sind Annahmen, keine aus dem Formular ermittelten Fakten. Bitte vor dem Gebührenvergleich prüfen.</p>}
         {readReview&&<p role="status" className="notice">{readReview}</p>}
+        {photoReview&&<div className="nx-fee-readiness-intro">
+          <span className="badge positive">FOTO EINGELESEN · PRÜFUNG ERFORDERLICH</span>
+          <strong>Erkannte Werte sind Vorschläge, keine geprüften Gebühren.</strong>
+          <p>Prüfe Umsatz, Anbieter, Kartenanteile und Gebühren unten mit der eingereichten Abrechnung. Nicht erkannte Felder bleiben offen; vorhandene Schätzwerte gelten nicht als Belegwerte.</p>
+        </div>}
         <button type="button" className="secondary" onClick={onCapture}><Camera size={17}/> Abrechnung erneut fotografieren / hochladen</button>
         {photoReview?.details?.merchant&&<p className="notice"><strong>Erkannter Händler / Firmenname:</strong> {photoReview.details.merchant}. Bitte mit der zentralen Kundenakte abgleichen; diese wird nicht ohne Bestätigung überschrieben.</p>}
         {photoReview&&<details className="photo-recognition-evidence"><summary>Fotoauslesung und erkannte Textstellen überprüfen</summary>
@@ -324,20 +336,34 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
               setNeeds(old=>e.target.checked?[...old,w.id]:old.filter(v=>v!==w.id))}/>
             {w.label}</label>)}
         </div>
+        <section className="nx-fee-readiness" aria-label="Prüfung vor dem Vergleich">
+          <h3>✅ Prüfung vor dem SumUp-Vergleich</h3>
+          {readiness.missing.length?<>
+            <p>Diese Angaben sind noch offen. Ohne sie wird kein Vergleichsangebot aus den angenommenen Ist-Gebühren erstellt.</p>
+            <ul>{readiness.missing.map(item=><li key={item}>⚠ {item}</li>)}</ul>
+          </>:<p className="nx-fee-ready">Alle Pflichtangaben für die Vergleichsvorbereitung sind erfasst. Stimmen die Werte mit der Abrechnung überein?</p>}
+          <label className="checkbox-field">
+            <input type="checkbox" checked={finalized}
+              disabled={!readiness.ready}
+              onChange={e=>setReviewedSignature(e.target.checked?reviewSignature:"")}/>
+            Ich habe Anbieter, Kartenumsatz, Kartenmix und Ist-Gebühren mit der Abrechnung abgeglichen; nicht bestätigte Werte sind keine belegten Ist-Konditionen.
+          </label>
+          <p className="hint">Änderungen an den überprüften Werten heben die Freigabe automatisch auf. Eine gespeicherte Kundenakte ersetzt diese Prüfung nicht.</p>
+        </section>
         {estimate.error&&<p className="error" role="alert">{estimate.error}</p>}
         <div className="button-row field-actions">
           <button className="secondary" onClick={()=>setStep(1)}><ArrowLeft size={15}/> Foto</button>
           <button className="secondary" disabled={saving||!customerId} onClick={()=>void persist()}>
             <Save size={15}/>{saving?"Speichern …":"Bestand speichern"}
           </button>
-          <button className="primary" disabled={!estimate.data||current.volume<=0} onClick={applyRecommendation}>
+          <button className="primary" disabled={!finalized||!estimate.data||current.volume<=0} onClick={applyRecommendation}>
             Wünsche auswerten & Angebot konfigurieren <ArrowRight size={17}/>
           </button>
         </div>
         {notice&&<p role="status" className="notice">{notice}</p>}
       </Card>
     </>}
-    {step===3&&<>
+    {step===3&&finalized&&<>
       {advisor&&<Card title="Deine bedarfsbasierte SumUp-Konfiguration" eyebrow="ZUKUNFTSWÜNSCHE · NACHVOLLZIEHBARE EMPFEHLUNG"><p><strong>{packageName.title}</strong></p><p className="hint">{advisor.reasons.join(" ")}</p><p className="hint">{noFixedTerm?"Die Vorgabe ohne Laufzeitbindung hat Vorrang vor kostenpflichtigen Plus-Abos. Umsatzbasiertes Zahlen bleibt ausgewählt.":"Eine Plus-Variante wird durch den erfassten Bedarf bestimmt. Der Wechsel in der Matrix ersetzt die bisherige Plus-Auswahl; KDS ist eine passende Zusatzoption."}</p><button className="secondary" type="button" onClick={applyRecommendation}>Vorschlag erneut übernehmen</button></Card>}
       <SidekickMatrix value={effectiveSidekick} noFixedTerm={noFixedTerm} onChange={next=>setSidekick(normalizeSidekickSelection(noFixedTerm?{...next,licenses:[],campaignIndex:null,campaignAuthorized:false}:next))}/>
       <Card title="03 · Vergleichsangebot" eyebrow="IST-ANBIETER GEGEN SUMUP · MONATLICHE KOSTEN">
