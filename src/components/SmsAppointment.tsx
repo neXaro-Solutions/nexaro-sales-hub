@@ -32,7 +32,7 @@ export function SmsAppointment({task,demo}:{task:Task;demo:boolean}){
    <input type="checkbox" checked={!!row?.enabled} disabled={!ready||busy} onChange={e=>void toggle(e.target.checked)} style={{width:19,height:19,flexShrink:0}}/>
    <span>Kunde hat Termin-SMS ausdrücklich zugestimmt. Automatische Bestätigung für diesen Termin aktivieren.</span>
   </label>
-  <p role="status"><strong>Status: {names[row?.status||"planned"]||"Noch nicht eingerichtet"}</strong></p>
+  <p role="status"><strong>Status: {!row?.enabled?"Nicht für SMS freigegeben":names[row?.status||"planned"]||"Noch nicht eingerichtet"}</strong></p>
   {row?.request_note&&row.status==="reschedule_requested"&&<p className="notice">📅 {row.request_note}<br/>Bitte mit dem Kunden abstimmen und anschließend den Termin im CRM bearbeiten. Der ursprüngliche Termin wird nicht automatisch überschrieben.</p>}
   {row?.failure_reason&&row.status==="failed"&&<p className="error" role="alert">{row.failure_reason}</p>}
   {row?.sent_at&&<small>Versand an Twilio: {new Date(row.sent_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})}</small>}
