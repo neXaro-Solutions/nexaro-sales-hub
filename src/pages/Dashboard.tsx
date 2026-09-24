@@ -119,24 +119,28 @@ export function Dashboard({
       <div className="metrics">
         <Metric
           label="Kunden & Leads"
+          onClick={() => navigate("customers")}
           value={data.customers.length}
           detail={`${open.length} offene Verkaufschancen`}
           icon={<Users size={17} />}
         />
         <Metric
           label="Heute zu erledigen"
+          onClick={() => navigate("tasks")}
           value={due.length}
           detail={`${data.tasks.filter((t) => !t.done).length} Aufgaben insgesamt offen`}
           icon={<Clock3 size={17} />}
         />
         <Metric
           label="SumUp-Potenzial"
+          onClick={() => navigate("sumup")}
           value={money(sumup)}
           detail="Monatliches Volumen offener Chancen"
           icon={<Target size={17} />}
         />
         <Metric
           label="Vape-Händler"
+          onClick={() => navigate("vape")}
           value={dealerCount}
           detail="Neutrale Betreuung und Dokumentation"
         />
