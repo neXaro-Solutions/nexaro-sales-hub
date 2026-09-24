@@ -13,7 +13,7 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
   const customer = data.customers.find(c => c.id === offer.customer_id);
   const [to, setTo] = useState(customer?.email || "");
   const [salutation, setSalutation] = useState<"neutral" | "herr" | "frau">("neutral");
-  const [recipientName, setRecipientName] = useState(customer?.contact?.trim().split(/\\s+/).at(-1) || "");
+  const [recipientName, setRecipientName] = useState(customer?.contact?.trim().split(/\s+/).at(-1) || "");
   const greeting = salutation === "herr" && recipientName.trim() ? "Guten Tag Herr " + recipientName.trim() + "," : salutation === "frau" && recipientName.trim() ? "Guten Tag Frau " + recipientName.trim() + "," : "Guten Tag,";
   const [message, setMessage] = useState(
     "vielen Dank für Ihr Interesse. Anbei erhalten Sie unser Angebot " + offer.number +
@@ -28,7 +28,7 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
     setSending(true); setError("");
     try {
       const { data: result, error: invokeError } = await client.functions.invoke("nx-send-offer", {
-        body: { action: "send", offerId: offer.id, to: to.trim(), message: greeting + "\\n\\n" + message.trim() }
+        body: { action: "send", offerId: offer.id, to: to.trim(), message: greeting + "\n\n" + message.trim() }
       });
       if (invokeError || !result?.sent) {
         let diagnostic: {error?: string; phase?: string; code?: string; smtpStatus?: number; detail?: string} | undefined = result;
