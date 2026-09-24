@@ -393,3 +393,37 @@ dialog .notice,.card .notice{background:#f0ffda;color:#28522c;border-color:#a6e8
 .nx-followup-metrics strong{font-size:27px;color:#203a1c}
 .nx-followup-metrics small{font-size:11px;line-height:1.45;color:#566a51}
 @media(max-width:600px){.nx-followup-metrics{grid-template-columns:1fr 1fr}.nx-followup-metrics>div:last-child{grid-column:1/-1}.nx-followup-metrics strong{font-size:23px}}
+
+/* Hunter route planner: light mobile-first field-visit workflow. */
+.nx-hunter-tour{margin:18px 0;border:1px solid #c7e6aa!important;border-left:5px solid #caff47!important;background:#fff!important}
+.nx-hunter-tour h2{font-size:clamp(18px,4vw,25px);color:#233b22}
+.nx-hunter-tour-stats{display:flex;gap:9px;flex-wrap:wrap;margin:15px 0}
+.nx-hunter-tour-stats>*{padding:9px 12px;background:#f4ffdf;border:1px solid #bddf9b;border-radius:9px;color:#2b472a;font-size:12px}
+.nx-hunter-tour-stats strong{background:#ffefe4;border-color:#ffc49c}
+.nx-hunter-select{display:flex;align-items:center;gap:10px;background:#f9fff4;border:1px solid #d6e9c8;border-radius:11px;padding:10px 12px;margin:3px 0 8px;flex-wrap:wrap}
+.nx-hunter-select input{width:21px;height:21px;accent-color:#8bdf14;flex-shrink:0}
+.nx-hunter-select strong{font-size:15px;color:#233a21}
+.nx-hunter-select span{font-size:11px;color:#60785a}
+.nx-hunter-tour-result{display:grid;gap:13px;margin-top:19px}
+.nx-hunter-tour-summary{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap}
+.nx-hunter-tour-summary span{font-weight:800;background:#caff47;border-radius:9px;padding:8px 12px;color:#26411d}
+.nx-hunter-tour-map{background:#f6faee;border:1px solid #bcdca6;border-radius:15px;overflow:hidden}
+.nx-hunter-tour-map svg{display:block;width:100%;max-height:330px}
+.nx-hunter-tour-stops{display:grid;gap:10px}
+.nx-hunter-tour-stop{border:1px solid #d0e1c7;border-radius:13px;padding:12px;background:#fff}
+.nx-hunter-tour-stop.active{border-color:#ff7829;box-shadow:0 0 0 2px #ff782920}
+.nx-hunter-stop-focus{width:100%;display:flex;align-items:center;gap:10px;text-align:left;background:none;color:#243925;border:0;padding:5px 0;cursor:pointer;min-height:48px}
+.nx-hunter-stop-focus b{background:#caff47;border:1px solid #a1c671;width:31px;height:31px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.nx-hunter-stop-focus span{flex:1;min-width:0;display:grid;gap:4px}
+.nx-hunter-stop-focus small{font-weight:400;font-size:12px;color:#61725b}
+.nx-hunter-visit-actions{display:grid;gap:12px;padding-top:12px;border-top:1px solid #e3ebdb;margin-top:10px}
+.nx-hunter-visit-actions iframe{height:260px;width:100%;border:1px solid #d5e4c9;border-radius:12px}
+.nx-hunter-visit-actions textarea{width:100%;background:#fff;color:#243925;border:1px solid #bed4b3;border-radius:9px;padding:10px}
+.nx-hunter-tour-save{display:flex;align-items:end;gap:12px;flex-wrap:wrap;background:#f7ffef;padding:14px;border-radius:12px}
+.nx-hunter-tour-save label{display:grid;gap:6px;flex:1;min-width:150px}
+.nx-hunter-tour-save input{min-height:44px;border:1px solid #bed5ad;border-radius:9px;background:#fff;padding:9px;color:#243925}
+.nx-hunter-overlay{position:fixed;inset:0;background:#14251799;z-index:1200;display:grid;place-items:center;padding:16px}
+.nx-hunter-confirm{background:#fff;border:1px solid #ffb584;border-top:5px solid #ff7829;color:#223b25;border-radius:15px;max-width:510px;width:100%;padding:22px;box-shadow:0 16px 50px #0003}
+.nx-hunter-confirm h3{margin:0 0 12px;font-size:20px}
+.nx-hunter-confirm p{line-height:1.55}
+@media(max-width:650px){.nx-hunter-tour{padding:13px!important}.nx-hunter-tour .button-row{gap:7px;display:flex;flex-wrap:wrap}.nx-hunter-tour .button-row>button{flex:1 1 125px;min-width:0;min-height:43px}.nx-hunter-tour-stop{padding:10px}.nx-hunter-tour-save>button{width:100%}}
