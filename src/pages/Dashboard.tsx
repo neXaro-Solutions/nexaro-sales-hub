@@ -403,3 +403,6 @@ export function Dashboard({
       </Card>
         </div>
       </details>
+    </>
+  );
+}
