@@ -44,3 +44,21 @@ select cron.schedule(
 ```
 
 Für einen unmittelbaren Test außerhalb des morgendlichen Versandfensters ist ein **separater, authentifizierter Testmodus** erforderlich; niemals dafür die Zeitprüfung der normalen Kundenauslieferung aufweichen.
+
+## Webador – bestätigte Postfachkonfiguration
+
+Webador dokumentiert: `mail.webador.com`, SMTP `587` mit STARTTLS, Benutzername die vollständige Postfachadresse. Das Passwort ist das **Postfachpasswort**, nicht das Passwort zum Einloggen bei Webador. Voraussetzung ist, dass das vorhandene Postfach mit dem Webador-Tarif bereits enthalten ist. Webador dokumentiert externen Mailprogrammzugriff, allerdings keine uneingeschränkte Massenversand-Freigabe; das Versandvolumen vor Produktivbetrieb beim Anbieter klären.
+
+In Supabase Edge Functions → Secrets:
+
+```text
+SMTP_HOST=mail.webador.com
+SMTP_PORT=587
+SMTP_USER=kontakt@nexaro-solutions.de
+SMTP_PASSWORD=<individuelles Webador-Postfachpasswort; niemals im Chat/GitHub>
+SMTP_FROM=neXaro Solutions <kontakt@nexaro-solutions.de>
+```
+
+Die Edge Function verlangt nun STARTTLS, mindestens TLS 1.2. `NX_EMAIL_ENABLED` erst nach Freigabe und Test auf `true` setzen. Die vorgeschlagene Verwendung des bestehenden Postfaches benötigt möglicherweise keine Zusatzlizenz; die automatische Verwendung als CRM-Mailer und tägliche Versandlimits sind separat zu bestätigen.
+
+Quelle: https://help.webador.com/hc/de/articles/29426718005777-E-Mail-Postfach-mit-deinem-E-Mail-Programm-verkn%C3%BCpfen
