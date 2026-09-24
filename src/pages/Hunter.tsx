@@ -126,9 +126,9 @@ export function Hunter(){
   </div><span className="badge positive">Hunter Core</span></div>
   <section className="card" style={{padding:20,marginBottom:16,border:"1px solid #d9e4d6",background:"#f8fbf6"}}>
    <span className="badge positive">HUNTER AUTO · EINGEHENDE ANFRAGEN</span>
-   <h2>SumUp-Gebührencheck für Interessenten</h2>
-   <p>Dein öffentliches Anfrageformular leitet SumUp-Interessenten in die zentrale Kundenakte und legt eine Bearbeitungsaufgabe an. Es erteilt keine pauschale Werbeeinwilligung.</p>
-   <a className="primary" href="https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/sumup-gebuehrencheck.html" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> Öffentlichen Gebührencheck öffnen</a>
+   <h2>SumUp-Beratung – optional mit Abrechnung</h2>
+   <p>Das kurze Formular erfasst Beratungsanfragen. Auf Wunsch kann der Interessent eine geschwärzte Händlerabrechnung für eine konkretere Angebotsvorbereitung privat hochladen. Im CRM entsteht eine Bearbeitungsaufgabe – keine Werbeeinwilligung.</p>
+   <a className="primary" href="https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/sumup-gebuehrencheck.html" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> SumUp-Beratungsformular öffnen</a>
    <p className="hint">Teile diesen Link nur über zulässige Kanäle, z. B. deine Website, bestehende Unterlagen oder nach einem persönlichen Gespräch. Nicht als unaufgeforderte Werbe-E-Mail versenden.</p>
   </section>
   <div className="analysis-grid">{overview.map(([name,n])=><div className="card" key={name} style={{padding:18}}><small>{name}</small><h2 style={{fontSize:30,margin:"8px 0"}}>{n}</h2></div>)}</div>
