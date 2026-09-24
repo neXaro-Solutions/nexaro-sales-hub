@@ -114,6 +114,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
           )}
         </div>
         {rows.length ? (
+          <>
           <div className="table-wrap nx-customers-table">
             <table>
               <thead>
@@ -211,6 +212,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
               </article>;
             })}
           </div>
+          </>
         ) : (
           <Empty title="Dein nächster Standort wartet">
             Erfasse deinen ersten Lead oder übernimm einen Recherchetreffer.
