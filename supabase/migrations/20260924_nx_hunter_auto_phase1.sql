@@ -49,9 +49,7 @@ drop trigger if exists nx_apply_marketing_suppression on public.nx_marketing_sup
 create trigger nx_apply_marketing_suppression after insert on public.nx_marketing_suppressions for each row execute function public.nx_apply_marketing_suppression();
 create or replace function public.nx_reset_marketing_on_customer_email() returns trigger language plpgsql set search_path='' as $$
 begin
- if lower(trim(new.email)) is distinct from lower(trim(old.email)) and exists(
- select 1 from public.nx_marketing_suppressions where email=lower(trim(new.email))
- ) then
+ if lower(trim(new.email)) is distinct from lower(trim(old.email)) then
   update public.nx_contact_permissions set marketing_email=false,marketing_verified_at=null,marketing_evidence='',updated_at=now() where customer_id=new.id;
  end if;
  return new;
