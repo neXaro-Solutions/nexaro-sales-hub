@@ -43,6 +43,14 @@ export function Dashboard({
   const [error, setError] = useState(""),
     [busy, setBusy] = useState("");
   const now = today();
+  const hunterFollowups=data.tasks.filter(t=>!t.done&&t.division==="sumup"&&(
+    /Gebührenvergleich|Beratungsanfrage|Abrechnung prüfen|Neue Anfrage beantworten/i.test(t.title)
+    ||t.notes?.startsWith("nx-offer-followup:")
+  )).sort((a,b)=>a.due_at.localeCompare(b.due_at));
+  const newInquiries=hunterFollowups.filter(t=>!t.notes?.startsWith("nx-offer-followup:"));
+  const proposalFollowups=hunterFollowups.filter(t=>t.notes?.startsWith("nx-offer-followup:"));
+  const overdueHunter=hunterFollowups.filter(t=>dayKey(t.due_at)<now);
+
   const due = data.tasks
     .filter((t) => !t.done && dayKey(t.due_at) <= now)
     .sort((a, b) => a.due_at.localeCompare(b.due_at));
@@ -114,6 +122,31 @@ export function Dashboard({
         <p className="hint">SumUp-Hardware nur mit regulären Nettopreisen; Kartenmix standardmäßig 80 % Debit / 20 % Kredit. Nicht freigegebene Händlerpreise werden nicht als verbindliche VK übernommen.</p>
       </Card>
       <DashboardCalendar newTask={newTask} navigate={navigate}/>
+      <Card title="HUNTER AUTO · Nachverfolgung" eyebrow="ANFRAGEN · ABRECHNUNGEN · ANGEBOTE">
+        <p>Das CRM legt bei einer eingehenden Anfrage oder Abrechnung eine interne Bearbeitungsaufgabe an. Ein als „Gesendet“ markiertes Angebot erhält automatisch eine persönliche Wiedervorlage nach drei Tagen – ohne automatische Werbe-E-Mail.</p>
+        <div className="nx-followup-metrics">
+          <div><strong>{newInquiries.length}</strong><small>Offene SumUp-Anfragen und Abrechnungen</small></div>
+          <div><strong>{proposalFollowups.length}</strong><small>Angebote persönlich nachfassen</small></div>
+          <div><strong>{overdueHunter.length}</strong><small>Überfällige nächste Schritte</small></div>
+        </div>
+        {hunterFollowups.length?<div className="task-list">
+          {hunterFollowups.slice(0,6).map(t=><div className="task-row" key={t.id}>
+            <Clock3 size={17}/>
+            <div className="grow">
+              <strong>{t.title}</strong>
+              <small>{data.customers.find(c=>c.id===t.customer_id)?.company||"Kundenakte prüfen"} · {dateLabel(t.due_at)}</small>
+            </div>
+            <span className={dayKey(t.due_at)<now?"overdue":"muted"}>
+              {dayKey(t.due_at)<now?"Überfällig":"Geplant"}
+            </span>
+          </div>)}
+        </div>:<p className="hint">Keine offenen SumUp-Anfragen oder automatischen Angebots-Wiedervorlagen.</p>}
+        <div className="button-row">
+          <button className="primary" onClick={()=>navigate("tasks")}>Wiedervorlagen bearbeiten <ArrowRight size={16}/></button>
+          <button className="secondary" onClick={()=>navigate("customers")}>Neue Leads öffnen <ArrowRight size={16}/></button>
+        </div>
+        <p className="hint">Werbliche Kontaktaufnahme nur auf einem zulässigen, dokumentierten Kanal. Die Terminbestätigung bleibt separat.</p>
+      </Card>
       <SmsRequests/>
       <DashboardWeather />
       <div className="metrics">
