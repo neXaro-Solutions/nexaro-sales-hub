@@ -94,7 +94,8 @@ Deno.serve(async(req)=>{
  if(req.method==="GET"||(req.method==="POST"&&(req.headers.get("content-type")||"").includes("application/x-www-form-urlencoded")))return await publicAction(req);
  if(req.method!=="POST")return json({error:"Method not allowed"},405);
  const body=await req.json().catch(()=>({}));
- if(body.action==="dispatch"){
+ if(body.action==="dispatch") return json({enabled:false,reason:"SMS permanently disabled: switched to email confirmations"},410);
+ if(false){
  const given=req.headers.get("x-nx-cron-secret")||"";
  if(!given||given!==Deno.env.get("NX_SMS_CRON_SECRET"))return json({error:"Forbidden"},403);
  return await sendDue();
