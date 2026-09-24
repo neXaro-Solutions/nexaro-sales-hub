@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StatementCapture, type StatementReview } from "../components/StatementCapture";
 import { Field, DivisionBadge } from "../components/UI";
 import { useStore } from "../lib/store";
@@ -8,6 +8,8 @@ import { OfferForm, type OfferDraft } from "./Offers";
 import { DocumentPreview } from "../components/BusinessDocuments";
 import type { Offer } from "../lib/types";
 import { useInboundStatements } from "../components/InboundStatementPanel";
+import { recognizeStatement } from "../lib/ocr";
+import { analyzeStatementText } from "../lib/statement-details";
 
 const emptyStatement: PaymentInput = {
   volume: 0, onlineVolume: 0, transactions: 0, eligibleShare: 80,
@@ -21,6 +23,9 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
   const [capture,setCapture] = useState(false);
   const [initialFile,setInitialFile]=useState<File|null>(null);
   const [loadingStatement,setLoadingStatement]=useState(false);
+  const [statementProgress,setStatementProgress]=useState(0);
+  const statementJob=useRef<AbortController|null>(null);
+  useEffect(()=>()=>statementJob.current?.abort(),[]);
   const [statementNotice,setStatementNotice]=useState("");
   const [photoInput,setPhotoInput] = useState<PaymentInput>(emptyStatement);
   const [photoReview,setPhotoReview] = useState<StatementReview|null>(null);
@@ -29,14 +34,51 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
   const chosen=data.customers.find(c=>c.id===customer);
   const {items:incomingStatements,error:statementError}=useInboundStatements(customer,demo);
   async function inspectStatement(path:string,name:string,mime:string){
-    if(mime==="application/pdf"){setStatementNotice("PDF-Abrechnung bitte über die Kundenakte geschützt öffnen und prüfen. Für die automatische Texterkennung ein Foto oder eine Bilddatei der Abrechnung verwenden.");return;}
-    setLoadingStatement(true);setStatementNotice("");
+    statementJob.current?.abort();
+    const job=new AbortController();
+    statementJob.current=job;
+    setLoadingStatement(true);setStatementProgress(0);setStatementNotice("");
     try{
       const blob=await downloadDocument(customer,path);
-      setInitialFile(new File([blob],name,{type:mime}));
-      setCapture(true);
-    }catch{setStatementNotice("Abrechnung konnte nicht geladen werden. Bitte erneut versuchen.")}
-    finally{setLoadingStatement(false)}
+      if(job.signal.aborted)return;
+      // The document has already been saved privately. Open the data-review step
+      // immediately; OCR is an enhancement, not a second compulsory upload.
+      setPhotoReview(null);
+      setPhotoInput(emptyStatement);
+      setStep(2);
+      if(mime==="application/pdf"){
+        setStatementNotice("PDF-Abrechnung liegt geschützt in der Kundenakte. Bitte dort öffnen und die Ist-Werte hier manuell ergänzen. Die automatische Fotoerkennung unterstützt JPG, PNG und WebP.");
+        return;
+      }
+      setStatementNotice("Gespeicherte Abrechnung wird automatisch eingelesen. Bitte warten …");
+      const file=new File([blob],name,{type:mime});
+      const recognized=await recognizeStatement(file,job.signal,value=>{
+        if(!job.signal.aborted)setStatementProgress(value);
+      },"statement");
+      if(job.signal.aborted)return;
+      const parsed=analyzeStatementText(recognized.text);
+      const details=parsed.details;
+      setPhotoInput({...emptyStatement,...parsed.values});
+      setPhotoReview({
+        confirmedAt:new Date().toISOString(),months:1,source:"photo",
+        confidence:recognized.confidence,verified:false,
+        recognizedFields:[...Object.keys(parsed.values),...Object.keys(details)],
+        details,evidence:parsed.evidence,warnings:parsed.warnings,
+        ocrText:recognized.text,eligibleVolume:details.eligibleVolume,
+        otherVolume:details.otherVolume
+      });
+      setStatementNotice("Abrechnung eingelesen. Bitte die Werte in Schritt 2 anhand des Belegs prüfen.");
+    }catch(e){
+      if(!job.signal.aborted){
+        setStep(2);
+        setStatementNotice("Schritt 2 ist geöffnet. Die automatische Erkennung war nicht erfolgreich: "+(e instanceof Error?e.message:"Unbekannter Fehler")+". Du kannst die Werte manuell eintragen oder die gespeicherte Abrechnung später erneut einlesen – ohne sie hochzuladen.");
+      }
+    }finally{
+      if(statementJob.current===job){
+        statementJob.current=null;
+        setLoadingStatement(false);
+      }
+    }
   }
   return <>
     <div className="section-intro">
@@ -46,6 +88,7 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
     <div className="card">
       <Field label="Kundenakte für das Vertriebsstudio">
         <select value={customer} onChange={event=>{
+          statementJob.current?.abort();setLoadingStatement(false);setStatementNotice("");
           setCustomer(event.target.value);
           setPhotoInput(emptyStatement);
           setPhotoReview(null);
@@ -66,13 +109,15 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
           {loadingStatement?"Abrechnung wird geladen …":file.mime==="application/pdf"?"PDF-Abrechnung prüfen · "+file.original_name:"Abrechnung einlesen · "+file.original_name}
         </button>)}
       </>:<p className="hint">Keine Abrechnung aus dem Anfrageformular vorhanden. Für einen belastbaren Ist-Gebührenvergleich bitte eine Händlerabrechnung beim Kunden anfordern oder im Studio selbst fotografieren.</p>}
+      {loadingStatement&&<p role="status" className="notice">Texterkennung läuft {statementProgress?statementProgress+" %":"…"} · Schritt 2 ist bereits geöffnet.</p>}
       {(statementNotice||statementError)&&<p role="status" className="hint">{statementNotice||statementError}</p>}
+      {step===2&&<button type="button" className="secondary" onClick={()=>document.getElementById("nx-sumup-studio")?.scrollIntoView({block:"start",behavior:"smooth"})}>Zu Schritt 2 · Ist-Bestand ↓</button>}
     </div>}
-    <SalesStudio key={customer||"ohne-kunde"} customerId={customer} inquiry={null}
+    <div id="nx-sumup-studio" style={{scrollMarginTop:16}}><SalesStudio key={customer||"ohne-kunde"} customerId={customer} inquiry={null}
       step={step} setStep={setStep}
       photoInput={photoInput} photoReview={photoReview}
       photoAvailable={!!photoReview} onCapture={()=>{setInitialFile(null);setCapture(true)}}
-      onOffer={setDraft}/>
+      onOffer={setDraft}/></div>
     {capture&&<StatementCapture autoApply initialFile={initialFile} onClose={()=>{setCapture(false);setInitialFile(null)}}
       onApply={(values,review)=>{
         setPhotoInput({...emptyStatement,...values});
