@@ -4,7 +4,6 @@ import {
   Users,
   CreditCard,
   Package,
-  Map,
   Crosshair,
   CheckSquare,
   CalendarDays,
@@ -29,7 +28,6 @@ import { DashboardCalendar } from "./components/DashboardCalendar";
 import { Customers } from "./pages/Customers";
 import { Sumup } from "./pages/Sumup";
 import { Dealers } from "./pages/Dealers";
-import { Routes } from "./pages/Routes";
 import { Hunter } from "./pages/Hunter";
 import { Tasks } from "./pages/Tasks";
 import { Offers } from "./pages/Offers";
@@ -38,8 +36,7 @@ import { Settings } from "./pages/Settings";
 const nav = [
   { id: "dashboard", label: "Übersicht", icon: LayoutDashboard },
   { id: "customers", label: "Kunden & Leads", icon: Users },
-  { id: "routes", label: "Tagesroute", icon: Map },
-  { id: "hunter", label: "neXaro HUNTER", icon: Crosshair },
+  { id: "hunter", label: "Außendienst · HUNTER", icon: Crosshair },
   { id: "calendar", label: "Kalender", icon: CalendarDays },
   { id: "sumup", label: "SumUp", icon: CreditCard },
   { id: "vape", label: "Vape", icon: Package },
@@ -79,6 +76,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
     [mobile, setMobile] = useState(false),
     [newCustomer, setNewCustomer] = useState(false),
     [sumupCustomer,setSumupCustomer]=useState(""),
+    [hunterStart,setHunterStart]=useState<"leads"|"tour">("leads"),
     [newTask, setNewTask] = useState(false),
     [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -92,6 +90,8 @@ function Shell({ onLogout }: { onLogout: () => void }) {
     };
   }, []);
   function navigate(p: string, customerId = "") {
+    if(p==="routes"){setHunterStart("tour");p="hunter";}
+    else if(p==="hunter")setHunterStart("leads");
     if(p==="sumup")setSumupCustomer(customerId);
     setPage(p);
     setMobile(false);
@@ -236,8 +236,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               {page === "vape" && <Dealers />}
               {page === "tasks" && <Tasks />}
               {page === "calendar" && <DashboardCalendar newTask={() => setNewTask(true)} navigate={navigate} />}
-              {page === "routes" && <Routes />}
-              {page === "hunter" && <Hunter />}
+              {page === "hunter" && <Hunter key={hunterStart} initialTab={hunterStart}/>}
               {page === "offers" && <Offers />}
               {page === "knowledge" && <KnowledgeBase />}
               {page === "settings" && <Settings />}
