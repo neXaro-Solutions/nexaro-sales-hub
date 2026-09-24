@@ -37,6 +37,6 @@ export function SmsAppointment({task,demo}:{task:Task;demo:boolean}){
   {row?.failure_reason&&row.status==="failed"&&<p className="error" role="alert">{row.failure_reason}</p>}
   {row?.sent_at&&<small>Versand: {new Date(row.sent_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})}</small>}
   {error&&<p className="error" role="alert">{error}</p>}
-  <p className="hint">Der Versand erfolgt ausschließlich am Termintag im Zeitfenster ab 07:30 Uhr, wenn der zentrale E-Mail-Versand freigegeben ist. Das Vormerken löst keinen sofortigen Versand aus.</p>
+  <p className="hint">Der Versand erfolgt am Vortag zwischen 12:00 und 12:29 Uhr (deutsche Ortszeit). Das Vormerken löst keinen sofortigen Versand aus.</p>
  </section>;
 }
