@@ -20,7 +20,7 @@ async function dispatch(){
  if(error)return response({error:"Could not read appointment confirmations"},500);
  const port=Number(env("SMTP_PORT"));
  if(!Number.isInteger(port)||port<1||port>65535)return response({error:"Invalid SMTP port"},503);
- const transport=nodemailer.createTransport({host:env("SMTP_HOST"),port,secure:port===465,auth:{user:env("SMTP_USER"),pass:env("SMTP_PASSWORD")},connectionTimeout:12000,greetingTimeout:12000,socketTimeout:20000});
+ const transport=nodemailer.createTransport({host:env("SMTP_HOST"),port,secure:port===465,requireTLS:port!==465,tls:{minVersion:"TLSv1.2",serverName:env("SMTP_HOST")},auth:{user:env("SMTP_USER"),pass:env("SMTP_PASSWORD")},connectionTimeout:12000,greetingTimeout:12000,socketTimeout:20000});
  let sent=0,failed=0,skipped=0;
  try{
  for(const record of records||[]){
