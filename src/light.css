@@ -489,3 +489,57 @@ dialog .notice,.card .notice{background:#f0ffda;color:#28522c;border-color:#a6e8
  .nx-dashboard-fold-body{padding:9px}
 }
 @media(max-width:390px){.nx-dashboard-shortcut{font-size:9px}.nx-dashboard-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}.nx-dashboard-shortcut{min-height:48px;flex-direction:row;gap:6px}}
+
+/* neXaro interactive CRM experience · shared, accessible visual language */
+.nx-metric-link{position:relative;display:flex;flex-direction:column;align-items:stretch;text-align:left;font:inherit;color:inherit;width:100%;cursor:pointer;overflow:hidden;isolation:isolate;min-height:100%;border-radius:inherit}
+.nx-metric-link .metric-top,.nx-metric-link>strong,.nx-metric-link>small,.nx-metric-open{position:relative;z-index:1}
+.nx-metric-link::before{content:"";position:absolute;inset:0;background:linear-gradient(125deg,transparent 33%,#b8ff6423 73%,#ffad6a20);opacity:0;pointer-events:none;transition:opacity .25s}
+.nx-metric-link::after{content:"";position:absolute;right:17px;bottom:18px;width:9px;height:9px;border-top:2px solid #5a962b;border-right:2px solid #5a962b;transform:rotate(45deg);transition:transform .23s ease;pointer-events:none}
+.nx-metric-link .nx-metric-open{display:inline-flex;align-items:center;gap:5px;align-self:flex-start;margin-top:auto;padding-top:12px;color:#446b2b;font-size:11px;font-weight:800;opacity:.88}
+.nx-metric-link:focus-visible,.nx-breadcrumb-home:focus-visible,.nx-back-dashboard:focus-visible{outline:3px solid #ff7829;outline-offset:3px}
+.nx-breadcrumb-home{display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;border-radius:8px;padding:7px;color:#315c26;font:inherit;font-weight:800;cursor:pointer}
+.nx-breadcrumb-home:hover{background:#f0ffda;color:#214a1b}
+.nx-breadcrumb-chevron{color:#90a38a;flex-shrink:0}
+.nx-page-backbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;padding:8px 3px 12px;margin-bottom:3px;border-bottom:1px solid #e6eddf}
+.nx-back-dashboard{display:inline-flex;align-items:center;gap:8px;min-height:40px;background:#f5ffea;border:1px solid #c7e4a8;border-radius:12px;padding:8px 12px;color:#2a5324;font:inherit;font-size:13px;font-weight:800;cursor:pointer}
+.nx-back-dashboard>svg:last-child{transform:rotate(180deg);margin-left:3px}
+.nx-page-backbar>span{font-size:12px;color:#637560;font-weight:750}
+.metric,.card,.nx-dashboard-shortcut,.division-card,.prospect,.nx-hunter-tour-stop,.nx-hunter-saved-route{transition:transform .22s ease,box-shadow .23s ease,border-color .23s ease,background-color .23s ease}
+.metric{position:relative}
+.card{background-image:linear-gradient(145deg,#ffffff 0%,#ffffff 76%,#fafff8 100%)}
+.metric strong{font-variant-numeric:tabular-nums}
+button,.primary,.secondary,a{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:not(:disabled),a{transition:background-color .2s,border-color .2s,color .2s,box-shadow .2s,transform .15s ease}
+button:disabled{cursor:not-allowed;opacity:.62}
+input:not([type=checkbox]):not([type=radio]),select,textarea{transition:border-color .18s,box-shadow .18s,background-color .18s}
+input:not([type=checkbox]):not([type=radio]):focus-visible,select:focus-visible,textarea:focus-visible{border-color:#f97b30;box-shadow:0 0 0 3px #ff78292b}
+.nx-dashboard-fold[open],.nx-hunter-lead-details[open]{box-shadow:0 9px 28px #425d2615}
+.nx-hunter-workspace-tabs button.active,.nx-dashboard-shortcut:first-child{box-shadow:0 5px 15px #ff822b13}
+.nx-back-dashboard:hover{background:#eaffd2;border-color:#9adb54}
+@media(hover:hover) and (pointer:fine){
+ .nx-metric-link:hover,.nx-dashboard-shortcut:hover,.division-card:hover,.nx-hunter-tour-stop:hover,.nx-hunter-saved-route:hover{transform:translateY(-3px);box-shadow:0 12px 27px #2b4b251c;border-color:#afe36f}
+ .nx-metric-link:hover::before{opacity:1}
+ .nx-metric-link:hover::after{transform:translate(3px,-3px) rotate(45deg)}
+ .card:not(:has(.nx-metric-link)):hover{border-color:#c4e0a9;box-shadow:0 8px 23px #2b4b2510}
+ .primary:hover:not(:disabled),.secondary:hover:not(:disabled),.nx-back-dashboard:hover{transform:translateY(-1px)}
+}
+@media(hover:none){
+ .nx-metric-link:active,.nx-dashboard-shortcut:active,.nx-hunter-workspace-tabs button:active,.nx-back-dashboard:active{transform:scale(.985);background-color:#f1ffdd}
+ .nx-metric-link:active::before{opacity:1}
+}
+@keyframes nx-view-arrive{from{opacity:.5;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes nx-status-appear{from{opacity:.25;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes nx-soft-shine{0%,100%{box-shadow:0 0 0 0 #a3ff1200}50%{box-shadow:0 0 0 5px #a3ff1220}}
+.main-shell>main>.section-intro,.main-shell>main>.welcome,.main-shell>main>.nx-page-backbar{animation:nx-view-arrive .32s ease-out both}
+.notice,.error[role=alert]{animation:nx-status-appear .25s ease-out both}
+.connection.online i,.connection:not(.offline) i{animation:nx-soft-shine 3.4s ease-in-out infinite}
+@media(max-width:700px){
+ .nx-page-backbar{padding:7px 0 11px}
+ .nx-back-dashboard{min-height:42px}
+ .nx-page-backbar>span{max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .nx-breadcrumb-home{min-height:36px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
+ .nx-metric-link:hover,.nx-dashboard-shortcut:hover,.division-card:hover,.nx-hunter-tour-stop:hover,.nx-hunter-saved-route:hover{transform:none}
+}
