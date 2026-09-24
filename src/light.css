@@ -346,3 +346,27 @@ button.nx-calendar-entry:focus-visible{outline:3px solid #ff671f;outline-offset:
 .nx-delete-confirm-button:hover:not(:disabled){background:#96261d}
 .nx-delete-confirm-button:disabled,.nx-delete-trigger:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:520px){.nx-delete-confirm .button-row{display:flex;flex-direction:column}.nx-delete-confirm .button-row button{width:100%}}
+
+/* HUNTER intake and all CRM forms: consistent white, orange action, neon-green progress. */
+dialog form, .card form, .form-panel, .nx-inbound-statement-card{color:#1e3021}
+dialog input:not([type=checkbox]):not([type=radio]):not([type=range]),dialog select,dialog textarea,
+.card form input:not([type=checkbox]):not([type=radio]):not([type=range]),
+.card form select,.card form textarea,.nx-inbound-statement-card input,
+.sales-studio input:not([type=checkbox]):not([type=radio]):not([type=range]),
+.sales-studio select,.sales-studio textarea{background:#fff;color:#1d3021;border:1px solid #c5d8bd;border-radius:10px;min-width:0;max-width:100%}
+dialog input:focus,.card form input:focus,.sales-studio input:focus,
+dialog select:focus,.card form select:focus,.sales-studio select:focus,
+dialog textarea:focus,.card form textarea:focus,.sales-studio textarea:focus{outline:2px solid #ff7829;outline-offset:2px;border-color:#ff7829}
+dialog input[type=checkbox],.card input[type=checkbox],.sales-studio input[type=checkbox]{accent-color:#97df13}
+dialog .primary,.card .primary,.sales-studio .primary{background:#ff7829;color:#202c17;border-color:#ff7829}
+dialog .secondary,.card .secondary,.sales-studio .secondary{background:#fff;color:#2c4e26;border-color:#c2d8b4}
+dialog .notice,.card .notice{background:#f0ffda;color:#28522c;border-color:#a6e84f}
+.nx-inbound-statement-card{margin:15px 0;padding:17px;background:#f8ffed;border:1px solid #b0df75;border-left:5px solid #a3ff12;border-radius:13px;display:grid;gap:12px;min-width:0}
+.nx-inbound-statement-card h3{margin:0;font-size:17px;color:#233e27}
+.nx-inbound-statement-card p{margin:0;color:#4d6150;line-height:1.5;font-size:13px}
+.nx-statement-status{display:inline-flex;width:fit-content;padding:7px 11px;background:#caff56;border-radius:9px;color:#24411b;font-size:12px;font-weight:800}
+.nx-statement-file{background:#fff;border:1px solid #dcebd0;border-radius:10px;padding:13px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-width:0}
+.nx-statement-file strong{overflow-wrap:anywhere;flex:1 1 160px}
+.nx-statement-file small{color:#60705d}
+.nx-statement-file button{min-height:44px}
+@media(max-width:700px){.nx-inbound-statement-card{padding:13px}.nx-statement-file{flex-direction:column;align-items:stretch}.nx-inbound-statement-card>.primary{width:100%}}
