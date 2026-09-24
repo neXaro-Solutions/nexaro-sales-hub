@@ -7,7 +7,7 @@ Der alte SMS-Job `nx-sms-dispatch` wurde am 24.09.2026 beendet. Der alte Dispatc
 - Die CRM-Oberfläche spricht von E-Mail, nicht SMS. Die Termin-Einwilligung ist pro Termin zunächst ausgeschaltet; bestehende Datensätze bleiben erhalten.
 - Die neue Supabase-Funktion `nx-email-appointments` wurde bereitgestellt, startet jedoch **keinen Versand**, solange SMTP-Konfiguration, `NX_EMAIL_ENABLED=true` und ein neuer Cron-Job fehlen.
 - Die vorhandene Vault-Eintragung `nx_sms_cron_secret` und das Edge Secret `NX_SMS_CRON_SECRET` werden für die Signatur des künftigen E-Mail-Jobs weiterverwendet; die Bezeichnung ist historisch und erfordert keinerlei Twilio-Nutzung.
-- Automatisch nur um 07:30 bis 07:59 in `Europe/Berlin`. Keine E-Mails für vor 07:30 begonnene Termine oder Termine ohne freigegebene E-Mail.
+- Automatisch nur um 12:00 bis 12:29 in `Europe/Berlin`. Keine E-Mails für Termine außerhalb des folgenden Kalendertags oder Termine ohne freigegebene E-Mail.
 - Der Kunde bestätigt oder schickt einen Änderungswunsch über einen persönlichen, einmalig für diesen Termindurchlauf gültigen Link. Ein Änderungswunsch verschiebt den CRM-Termin nicht automatisch.
 
 ## Nächste Einrichtungsschritte (nicht ohne Postfachinhaber abschließen)
@@ -29,7 +29,7 @@ Nach Einrichtung und sicherem Test Cron neu anlegen (nicht automatisch vorzeitig
 ```sql
 select cron.schedule(
  'nx-email-dispatch',
- '*/5 5,6 * * *',
+ '*/5 10,11 * * *',
  $$
  select net.http_post(
   url := 'https://hbuqzdmjqvgybwohfnqy.supabase.co/functions/v1/nx-email-appointments',
@@ -43,7 +43,7 @@ select cron.schedule(
 );
 ```
 
-Für einen unmittelbaren Test außerhalb des morgendlichen Versandfensters ist ein **separater, authentifizierter Testmodus** erforderlich; niemals dafür die Zeitprüfung der normalen Kundenauslieferung aufweichen.
+Für einen unmittelbaren Test außerhalb des mittäglichen Versandfensters ist ein **separater, authentifizierter Testmodus** erforderlich; niemals dafür die Zeitprüfung der normalen Kundenauslieferung aufweichen.
 
 ## Webador – bestätigte Postfachkonfiguration
 
