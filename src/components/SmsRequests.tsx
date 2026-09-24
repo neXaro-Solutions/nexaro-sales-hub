@@ -24,7 +24,7 @@ export function SmsRequests(){
  if(!requests.length&&!todays.length)return null;
  const name=(t:Task)=>data.customers.find(c=>c.id===t.customer_id)?.company||"Ohne Kunden";
  return <section className="card" style={{padding:20,margin:"20px 0",border:"1px solid #d7e7cb",borderRadius:16,background:"#fff"}}>
-  <h2>📲 SMS-Terminbestätigungen</h2>
+  <h2>✉️ E-Mail-Terminbestätigungen</h2>
   {requests.length>0&&<p role="status"><strong>{requests.length} Verschiebungsanfrage(n)</strong> – bitte persönlich mit den Kunden vereinbaren.</p>}
   {requests.map(r=>{const t=data.tasks.find(x=>x.id===r.task_id);return t?<div key={r.task_id} style={{padding:12,borderBottom:"1px solid #e1e8db"}}>
     <strong>📅 {name(t)} · {t.title}</strong><p>{r.request_note}</p>
@@ -32,7 +32,7 @@ export function SmsRequests(){
    </div>:null})}
   {todays.map(t=>{const r=rows.find(x=>x.task_id===t.id);return <div key={t.id} style={{padding:12,borderBottom:"1px solid #e1e8db"}}>
    <strong>{name(t)}</strong> · {new Date(t.due_at).toLocaleTimeString("de-DE",{timeZone:"Europe/Berlin",hour:"2-digit",minute:"2-digit"})} Uhr
-   <p className="hint">{r?.status==="confirmed"?"✓ Bestätigt":r?.status==="reschedule_requested"?"↻ Verschiebung angefragt":r?.status==="sent"?"SMS versendet – Antwort offen":r?.status==="failed"?"SMS-Versand fehlgeschlagen":r?.enabled?"SMS für 07:30 Uhr geplant":"SMS nicht freigegeben"}</p>
+   <p className="hint">{r?.status==="confirmed"?"✓ Bestätigt":r?.status==="reschedule_requested"?"↻ Verschiebung angefragt":r?.status==="sent"?"E-Mail versendet – Antwort offen":r?.status==="failed"?"E-Mail-Versand fehlgeschlagen":r?.enabled?"E-Mail für 07:30 Uhr vorgemerkt":"E-Mail nicht freigegeben"}</p>
    <button className="secondary" onClick={()=>setEdit(t)}>Termin öffnen</button>
   </div>})}
   {edit&&<TaskForm task={edit} onClose={()=>setEdit(null)}/>}
