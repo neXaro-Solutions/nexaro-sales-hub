@@ -177,9 +177,23 @@ export function KnowledgeBase() {
         <div><DivisionBadge division="sumup" /><h1>Vertriebswissen</h1><p>Eine zentrale, durchsuchbare Wissensdatenbank im neXaro-Farbschema für unterwegs.</p></div>
         <BookOpen size={38} aria-hidden="true" />
       </div>
+      <Card className="nx-knowledge-guide-intro">
+        <span className="badge positive">NEU · GESPRÄCHSLEITFÄDEN</span>
+        <h2>Vom ersten „Guten Tag“ zum klaren nächsten Schritt</h2>
+        <p>Drei direkte Einstiege für das Kundengespräch – mit Formulierungen, offenen Fragen und respektvollen Reaktionen auf Einwände.</p>
+        <div className="nx-knowledge-guide-tabs">
+          {[
+            ["Gesprächseinstieg","1 · Einstieg"],
+            ["Bedarfsermittlung","2 · Bedarf"],
+            ["Einwandbehandlung","3 · Einwand"]
+          ].map(([key,label])=><button key={key} type="button" className={group===key?"active":""} aria-pressed={group===key} onClick={()=>{setGroup(key);setSearch("");}}>{label}</button>)}
+          <button type="button" className={group==="Alle"?"active":""} aria-pressed={group==="Alle"} onClick={()=>{setGroup("Alle");setSearch("");}}>Alle Themen</button>
+        </div>
+        <p className="hint">Tipp: Im Außendienst nur die passende Gesprächsphase öffnen. Die Leitfäden sind Gesprächshilfen, keine starren Verkaufsskripte.</p>
+      </Card>
       <Card>
         <div className="toolbar">
-          <label className="search" style={{ minWidth: 220 }}><Search size={17} /><input aria-label="Wissensdatenbank durchsuchen" placeholder="Nach Tarif, Einwand, Hardware, VE … suchen" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+          <label className="search" style={{ minWidth: 220 }}><Search size={17} /><input aria-label="Wissensdatenbank durchsuchen" placeholder="Einstieg, Kosten, Einwand, Hardware …" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
           <select aria-label="Thema filtern" value={group} onChange={(event) => setGroup(event.target.value)}>{groups.map((item) => <option key={item} value={item}>{item}</option>)}</select>
         </div>
         <p className="hint">Vertriebsreferenz · Preise und vertragliche Konditionen vor einem verbindlichen Angebot anhand der offiziellen SumUp-Seiten prüfen. Hardware stets ohne Aktionspreise.</p>
@@ -187,11 +201,14 @@ export function KnowledgeBase() {
         <p role="status" className="hint">{filtered.length} von {articles.length} Einträgen</p>
       </Card>
       {filtered.length === 0 ? <Card><p>Keine Treffer. Suchbegriff oder Filter ändern.</p></Card> : filtered.map((article) => (
-        <Card key={article.title}>
-          <span className="eyebrow">{article.group}</span>
-          <h2>{article.title}</h2><p>{article.summary}</p>
-          <ul style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.9, paddingLeft: 22 }}>{article.points.map((point) => <li key={point}>{point}</li>)}</ul>
-          {article.source && <a href={article.source} target="_blank" rel="noopener noreferrer" className="text-link">Offizielle Quelle <ExternalLink size={14} /></a>}
+        <Card key={article.title} className={["Gesprächseinstieg","Bedarfsermittlung","Einwandbehandlung"].includes(article.group)?"nx-knowledge-script-card":""}>
+          <details className="nx-knowledge-article" open={undefined}>
+            <summary><span className="eyebrow">{article.group}</span><strong>{article.title}</strong><small>{article.summary}</small><span className="nx-knowledge-read">Leitfaden öffnen</span></summary>
+            <div className="nx-knowledge-article-body">
+              <ol>{article.points.map((point) => <li key={point}>{point}</li>)}</ol>
+              {article.source && <a href={article.source} target="_blank" rel="noopener noreferrer" className="text-link">Offizielle Quelle <ExternalLink size={14} /></a>}
+            </div>
+          </details>
         </Card>
       ))}
     </section>
