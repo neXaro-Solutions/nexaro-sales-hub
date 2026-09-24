@@ -427,3 +427,24 @@ dialog .notice,.card .notice{background:#f0ffda;color:#28522c;border-color:#a6e8
 .nx-hunter-confirm h3{margin:0 0 12px;font-size:20px}
 .nx-hunter-confirm p{line-height:1.55}
 @media(max-width:650px){.nx-hunter-tour{padding:13px!important}.nx-hunter-tour .button-row{gap:7px;display:flex;flex-wrap:wrap}.nx-hunter-tour .button-row>button{flex:1 1 125px;min-width:0;min-height:43px}.nx-hunter-tour-stop{padding:10px}.nx-hunter-tour-save>button{width:100%}}
+
+/* Consolidated single Außendienst workspace: three purposeful steps. */
+.nx-hunter-workspace-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0 20px}
+.nx-hunter-workspace-tabs button{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;text-align:center;min-height:57px;background:#fff;color:#2c452e;border:1px solid #d3dfcd;border-radius:13px;padding:10px;cursor:pointer;font-weight:800;line-height:1.3}
+.nx-hunter-workspace-tabs button.active{border-color:#ff7829;background:#fff3e9;box-shadow:inset 0 0 0 1px #ff7829;color:#833e12}
+.nx-hunter-workspace-tabs b{background:#d5faaa;border-radius:8px;padding:3px 7px}
+.nx-hunter-workspace-tabs button.active b{background:#ffd6b8}
+.nx-hunter-saved-routes{display:grid;gap:9px;background:#f9fff3;border:1px solid #c6e6a3;border-radius:13px;padding:14px;margin:14px 0 20px}
+.nx-hunter-saved-routes h3{display:flex;align-items:center;gap:8px;margin:0 0 3px;color:#2e4d29;font-size:17px}
+.nx-hunter-saved-routes h3 span{background:#caff47;border-radius:10px;padding:3px 8px}
+.nx-hunter-saved-route{background:#fff;border:1px solid #dae7d1;border-radius:11px;overflow:hidden}
+.nx-hunter-route-header{display:flex;width:100%;align-items:center;justify-content:space-between;gap:11px;text-align:left;border:0;color:#29452a;background:#fff;padding:12px;cursor:pointer;min-height:52px}
+.nx-hunter-route-header>span{display:grid;gap:5px;min-width:0}
+.nx-hunter-route-header small{color:#667a5c;font-size:12px}
+.nx-hunter-saved-route-detail{display:grid;gap:10px;border-top:1px solid #dae7d1;padding:12px}
+.nx-hunter-saved-stop{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:9px;border:1px solid #e3e9de;border-radius:9px}
+.nx-hunter-saved-stop>b{background:#caff47;border-radius:50%;width:30px;height:30px;flex-shrink:0;display:grid;place-items:center}
+.nx-hunter-saved-stop>span{min-width:100px;flex:1;display:grid;gap:4px}
+.nx-hunter-saved-stop small{font-size:12px;color:#62735d}
+.nx-hunter-saved-stop .button-row{flex:1 1 100%}
+@media(max-width:620px){.nx-hunter-workspace-tabs{gap:5px}.nx-hunter-workspace-tabs button{padding:8px 4px;gap:4px;min-height:62px;font-size:11px}.nx-hunter-workspace-tabs svg{width:16px}.nx-hunter-saved-routes{padding:10px}.nx-hunter-saved-stop .button-row button{flex:1 1 125px}}
