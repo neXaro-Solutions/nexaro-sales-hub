@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Camera, ArrowRight, ArrowLeft, Save, FileText } from "lucide-react";
+import { Camera, ArrowRight, ArrowLeft, Save, FileText, Mail } from "lucide-react";
 import { EditableNumberInput } from "../components/EditableNumberInput";
 import { Card, Field, External } from "../components/UI";
 import type { PaymentInput } from "../lib/calculations";
@@ -70,10 +70,10 @@ const editable=(value:number,onChange:(v:number)=>void,props:{step?:string;min?:
   <EditableNumberInput min={props.min??"0"} max={props.max} step={props.step??".01"}
     value={value} onChange={event=>onChange(numeric(event.target.value))}/>;
 
-export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoReview,onCapture,onOffer,step,setStep}:{
+export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoReview,onCapture,onOffer,onDirectSend,step,setStep}:{
   inquiry:IncomingSumupInquiry|null;
   customerId:string;photoInput:PaymentInput;photoAvailable:boolean;photoReview:StatementReview|null;
-  onCapture:()=>void;onOffer:(draft:OfferDraft)=>void;
+  onCapture:()=>void;onOffer:(draft:OfferDraft)=>void;onDirectSend:(draft:OfferDraft)=>Promise<void>;
   step:1|2|3;setStep:(step:1|2|3)=>void;
 }) {
   const {data,save}=useStore();
@@ -108,6 +108,8 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
   const [cardMixConfirmed,setCardMixConfirmed]=useState(saved.cardMixConfirmed??false);
   const [feeRatesConfirmed,setFeeRatesConfirmed]=useState(saved.feeRatesConfirmed??false);
   const [saving,setSaving]=useState(false);
+  const [sendingOffer,setSendingOffer]=useState(false);
+  const [offerSent,setOfferSent]=useState(false);
   const [notice,setNotice]=useState("");
   const [readReview,setReadReview]=useState("");
   const [reviewedSignature,setReviewedSignature]=useState("");
@@ -215,10 +217,10 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
     }catch(e){setNotice("Speichern fehlgeschlagen: "+(e instanceof Error?e.message:"Unbekannter Fehler"));}
     finally{setSaving(false);}
   }
-  function createOffer(){
-    if(!good||!estimate.data){setNotice("Angebot gesperrt: Ist-Bestand vollständig prüfen und freigeben.");return;}
+  function buildOffer():OfferDraft|null{
+    if(!good||!estimate.data){setNotice("Angebot gesperrt: Ist-Bestand vollständig prüfen und freigeben.");return null;}
     const offerSelection=normalizeSidekickSelection(effectiveSidekick);
-    onOffer({
+    return {
       division:"sumup",...(customerId?{customer_id:customerId}:{}),
       lines:(offerSelection.hardware.length||offerSelection.licenses.length)?sidekickOfferLines(offerSelection):[{name:"SumUp "+selectedHardware.name+" · Hardware"+(hardwareDiscount?" · "+hardwareDiscount+" % Nachlass":""),quantity,
         price:hardwarePrice.discountedUnit,vat:19}],
@@ -228,7 +230,24 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
         sumupHardware:offerSelection.hardware.length?offerSelection.hardware.map(x=>x.quantity+" × "+(sumupSidekickHardware.find(p=>p.id===x.id)?.name||x.id)).join(", "):selectedHardware.name,quantity,hardwareDiscount,hardwarePricing:sidekick.hardware.length?undefined:hardwarePrice,
         comparison:estimate.data,sidekick:offerSelection,checkedAt:catalogCheckedAt,
         source:catalogSource,hardwareSource:catalogHardwareSource}}
-    });
+    };
+  }
+  function createOffer(){
+    const draft=buildOffer();
+    if(draft)onOffer(draft);
+  }
+  async function sendOfferDirectly(){
+    if(sendingOffer||offerSent)return;
+    if(!customerId){setNotice("Bitte zuerst eine Kundenakte auswählen.");return;}
+    const draft=buildOffer();
+    if(!draft)return;
+    setSendingOffer(true);setNotice("");
+    try{
+      await onDirectSend(draft);
+      setOfferSent(true);
+      setNotice("Angebot an Versandserver übergeben. Die Zustellung beim Empfänger ist noch nicht bestätigt.");
+    }catch(e){setNotice(e instanceof Error?e.message:"Versand nicht möglich. Bitte Kundenhistorie prüfen.");}
+    finally{setSendingOffer(false);}
   }
   return <div ref={studioTop} className="sales-studio field-studio" style={{scrollMarginTop:16}}>
     <div className="section-intro"><div>
@@ -430,7 +449,11 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
           <button className="primary" disabled={!good} onClick={createOffer}>
             <FileText size={17}/> Vergleichsangebot übernehmen
           </button>
+          <button className="primary" type="button" disabled={!good||!customerId||sendingOffer||offerSent} onClick={()=>void sendOfferDirectly()}>
+            <Mail size={17}/>{sendingOffer?"Angebot wird gesendet …":offerSent?"An Versandserver übergeben":"Angebot direkt per E-Mail senden"}
+          </button>
         </div>
+        <p className="hint">Ein Klick speichert das Angebot mit PDF und versendet die bisherige CRM-E-Mail an die Adresse aus der Kundenakte. Keine zusätzliche Vorschau oder Versandbestätigung. Bei unklarem Versandstatus vor erneutem Versuch die Kundenhistorie prüfen.</p>
         {!customerId&&<p className="notice">Auch ohne Kundenakte: Vergleichsangebot öffnen und als Entwurf mit automatischer Nummer speichern. Kunden später zuordnen.</p>}
         {notice&&<p role="status" className="notice">{notice}</p>}
       </Card>
