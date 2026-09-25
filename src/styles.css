@@ -2960,3 +2960,14 @@ progress {
  .nx-fee-request-grid{grid-template-columns:1fr}
  .nx-customer-detail-head{flex-direction:column;align-items:flex-start}
 }
+
+/* neXaro CRM notifications */
+.nx-notifications{position:relative;z-index:50}
+.nx-notification-button{position:relative;border:1px solid #d8e1d6;background:#fff;border-radius:14px;padding:10px;display:flex;align-items:center;justify-content:center;color:#26352b;cursor:pointer}
+.nx-notification-count{position:absolute;top:-8px;right:-7px;background:#e8691e;color:white;font-size:10px;font-weight:800;min-width:20px;height:20px;border-radius:20px;padding:3px;line-height:14px}
+.nx-notification-panel{position:absolute;top:calc(100% + 12px);right:0;width:min(420px,calc(100vw - 24px));max-height:75dvh;overflow:auto;overscroll-behavior:contain;background:#fff;color:#25352a;border:1px solid #dce4d6;border-radius:20px;box-shadow:0 20px 60px #14271930;padding:17px;z-index:100}
+.nx-notification-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 10px}
+.nx-notification-push{display:flex;align-items:center;gap:9px;border-radius:12px;background:#f4f9ed;padding:12px;margin:12px 0}
+.nx-notification-push>div{flex:1;min-width:0}.nx-notification-push .hint{margin:4px 0 0}.nx-notification-list{display:grid;gap:8px}
+.nx-notification-item{background:#fff;border:1px solid #e3e9df;border-radius:12px;padding:12px;text-align:left;display:grid;gap:5px;width:100%;cursor:pointer;color:inherit}
+.nx-notification-item.unread{border-left:4px solid #ed6b24;background:#fffaf5}.nx-notification-item span{font-size:13px;line-height:1.45}.nx-notification-item small{font-size:11px;opacity:.7}
