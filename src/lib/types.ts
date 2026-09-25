@@ -78,7 +78,7 @@ export type Offer = Base & {
   customer_id: string | null;
   division: Division;
   number: string;
-  status: "Entwurf" | "Gesendet" | "Angenommen" | "Abgelehnt";
+  status: "Entwurf" | "An Versandserver übergeben" | "Gesendet" | "Angenommen" | "Abgelehnt";
   valid_until: string;
   lines: OfferLine[];
   notes: string;
