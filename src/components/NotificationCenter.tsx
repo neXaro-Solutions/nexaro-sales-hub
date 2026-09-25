@@ -36,7 +36,7 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
       if(!sub)return;
       const {data:{user}}=await client.auth.getUser();
       if(!user)return;
-      const {data}=await client.from("push_subscriptions").select("endpoint").eq("user_id",user.id).eq("endpoint",sub.endpoint).maybeSingle();
+      const {data}=await client.from("nx_push_subscriptions").select("endpoint").eq("user_id",user.id).eq("endpoint",sub.endpoint).maybeSingle();
       setPushEnabled(!!data);
     }).catch(()=>{});
   },[demo,supported]);
@@ -56,7 +56,7 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
       if(!json.keys?.p256dh||!json.keys?.auth)throw Error("Geräteschlüssel nicht verfügbar.");
       const {data:{user},error:authError}=await client.auth.getUser();
       if(authError||!user)throw Error("Bitte erneut anmelden.");
-      const {error}=await client.from("push_subscriptions").upsert({user_id:user.id,endpoint:sub.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth},{onConflict:"endpoint"});
+      const {error}=await client.from("nx_push_subscriptions").upsert({user_id:user.id,endpoint:sub.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth},{onConflict:"endpoint"});
       if(error)throw Error("Gerät konnte nicht registriert werden. Bitte die Berechtigung prüfen.");
       setPushEnabled(true);setStatus("Push-Mitteilungen sind auf diesem Gerät registriert. Bitte bei iOS Mitteilungen für neXaro CRM erlauben.");
     }catch(error){setStatus(error instanceof Error?error.message:"Push-Einrichtung fehlgeschlagen.");}
@@ -68,7 +68,7 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
       const registration=await navigator.serviceWorker.getRegistration(new URL("./",document.baseURI).pathname);
       const sub=await registration?.pushManager.getSubscription();
       if(sub){
-        const {error}=await client.from("push_subscriptions").delete().eq("endpoint",sub.endpoint);
+        const {error}=await client.from("nx_push_subscriptions").delete().eq("endpoint",sub.endpoint);
         if(error)throw Error("Push-Abonnement konnte nicht entfernt werden.");
         await sub.unsubscribe();
       }
