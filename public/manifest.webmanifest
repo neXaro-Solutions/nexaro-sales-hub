@@ -1,0 +1,20 @@
+{
+  "id": "/new-nexaro-field-sales-crm/hub/",
+  "name": "neXaro CRM · Sales Hub",
+  "short_name": "neXaro CRM",
+  "description": "Außendienst, Leads und Termine",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e86b19",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
