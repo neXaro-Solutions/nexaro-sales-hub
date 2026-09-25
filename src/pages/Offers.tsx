@@ -159,7 +159,7 @@ export function OfferForm({
           <Field label="Status">
             <select name="status" defaultValue={offer?.status || "Entwurf"}
               key={offer?.id || "new"} >
-              {["Entwurf", "Gesendet", "Angenommen", "Abgelehnt"].map((s) => (
+              {["Entwurf", "An Versandserver übergeben", "Gesendet", "Angenommen", "Abgelehnt"].map((s) => (
                 <option key={s} disabled={!customerId && s !== "Entwurf"}>{s}</option>
               ))}
             </select>
