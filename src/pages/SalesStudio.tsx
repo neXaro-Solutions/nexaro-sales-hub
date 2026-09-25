@@ -110,6 +110,7 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
   const [saving,setSaving]=useState(false);
   const [sendingOffer,setSendingOffer]=useState(false);
   const [offerSent,setOfferSent]=useState(false);
+  const [sendAttempted,setSendAttempted]=useState(false);
   const [notice,setNotice]=useState("");
   const [readReview,setReadReview]=useState("");
   const [reviewedSignature,setReviewedSignature]=useState("");
@@ -237,11 +238,11 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
     if(draft)onOffer(draft);
   }
   async function sendOfferDirectly(){
-    if(sendingOffer||offerSent)return;
+    if(sendingOffer||offerSent||sendAttempted)return;
     if(!customerId){setNotice("Bitte zuerst eine Kundenakte auswählen.");return;}
     const draft=buildOffer();
     if(!draft)return;
-    setSendingOffer(true);setNotice("");
+    setSendingOffer(true);setSendAttempted(true);setNotice("");
     try{
       await onDirectSend(draft);
       setOfferSent(true);
@@ -449,8 +450,8 @@ export function SalesStudio({customerId,inquiry,photoInput,photoAvailable,photoR
           <button className="primary" disabled={!good} onClick={createOffer}>
             <FileText size={17}/> Vergleichsangebot übernehmen
           </button>
-          <button className="primary" type="button" disabled={!good||!customerId||sendingOffer||offerSent} onClick={()=>void sendOfferDirectly()}>
-            <Mail size={17}/>{sendingOffer?"Angebot wird gesendet …":offerSent?"An Versandserver übergeben":"Angebot direkt per E-Mail senden"}
+          <button className="primary" type="button" disabled={!good||!customerId||sendingOffer||sendAttempted} onClick={()=>void sendOfferDirectly()}>
+            <Mail size={17}/>{sendingOffer?"Angebot wird gesendet …":offerSent?"An Versandserver übergeben":sendAttempted?"Versandstatus prüfen":"Angebot direkt per E-Mail senden"}
           </button>
         </div>
         <p className="hint">Ein Klick speichert das Angebot mit PDF und versendet die bisherige CRM-E-Mail an die Adresse aus der Kundenakte. Keine zusätzliche Vorschau oder Versandbestätigung. Bei unklarem Versandstatus vor erneutem Versuch die Kundenhistorie prüfen.</p>
