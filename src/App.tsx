@@ -75,7 +75,7 @@ class ErrorBoundary extends Component<
 }
 function Shell({ onLogout }: { onLogout: () => void }) {
   const { data, demo, loading, error, refresh } = useStore();
-  const [page, setPage] = useState("dashboard"),
+  const [page, setPage] = useState(() => { const target=new URLSearchParams(location.search).get("nx"); return target==="inquiry"?"customers":target==="appointment"||target==="task"?"tasks":"dashboard"; }),
     [mobile, setMobile] = useState(false),
     [newCustomer, setNewCustomer] = useState(false),
     [sumupCustomer,setSumupCustomer]=useState(""),
