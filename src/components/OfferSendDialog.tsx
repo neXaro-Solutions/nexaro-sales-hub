@@ -41,8 +41,8 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
         throw Error([reason || "Versand konnte nicht bestätigt werden. Bitte vor erneutem Senden die Kundenhistorie prüfen.", phase && "Schritt: " + phase + code, diagnostic?.detail].filter(Boolean).join(" "));
       }
       setSuccess(true);
-      if (!result.logged || !result.statusUpdated) setLoggingWarning("E-Mail wurde angenommen, aber die CRM-Dokumentation konnte nicht vollständig abgeschlossen werden. Bitte Kundenhistorie prüfen.");
-      try { await onSent(); } catch { setLoggingWarning("E-Mail versendet; aktuelle CRM-Daten konnten noch nicht neu geladen werden."); }
+      if (!result.logged || !result.statusUpdated) setLoggingWarning("E-Mail wurde vom Versandserver angenommen, aber die CRM-Dokumentation konnte nicht vollständig abgeschlossen werden. Bitte Kundenhistorie prüfen.");
+      try { await onSent(); } catch { setLoggingWarning("E-Mail an Versandserver übergeben; aktuelle CRM-Daten konnten noch nicht neu geladen werden."); }
     } catch (err) { setError(err instanceof Error ? err.message : "Versand nicht möglich."); }
     finally { setSending(false); }
   }
@@ -58,16 +58,16 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
     <p className="hint"><Mail size={15}/> Betreff: Ihr Angebot {offer.number} | neXaro Solutions</p>
     <p className="hint" role="status">Anrede in der E-Mail: <strong>{greeting}</strong></p>
     <Field label="Persönliche Nachricht (nach der Anrede)"><textarea rows={6} maxLength={3000} value={message} onChange={e=>setMessage(e.target.value)} disabled={sending || success}/></Field>
-    <p className="notice">Das gespeicherte Angebot wird als PDF automatisch angehängt. Ein Versand erfolgt nur nach Klick auf „Jetzt senden“. Der Vorgang wird in der Kundenhistorie dokumentiert.</p>
+    <p className="notice">Das gespeicherte Angebot wird als PDF automatisch angehängt. Ein Versand erfolgt nur nach Klick auf „Jetzt senden“. Die Übergabe an den Versandserver wird in der Kundenhistorie dokumentiert; der Empfang beim Kunden ist damit noch nicht bestätigt.</p>
     {!offer.customer_id && <p className="error">Bitte zuerst einen Kunden zum Angebot speichern.</p>}
     {demo && <p className="notice">Demo-Modus: E-Mails werden nicht versendet.</p>}
     {error && <p className="error" role="alert">{error}</p>}
-    {success && <p className="notice" role="status">E-Mail vom Versandserver angenommen.</p>}
+    {success && <p className="notice" role="status">E-Mail an Versandserver übergeben. Die Zustellung beim Empfänger ist noch nicht bestätigt.</p>}
     {loggingWarning && <p className="error" role="alert">{loggingWarning}</p>}
     <div className="button-row">
       <button type="button" className="secondary" onClick={onClose}>{success ? "Schließen" : "Abbrechen"}</button>
       <button type="button" className="primary" disabled={sending || success || demo || !offer.customer_id || !validEmail(to) || !message.trim() || (salutation !== "neutral" && !recipientName.trim())} onClick={()=>void send()}>
-        <Send size={16}/>{sending ? "Wird gesendet …" : success ? "Versendet" : "Jetzt senden"}
+        <Send size={16}/>{sending ? "Wird gesendet …" : success ? "Übergeben" : "Jetzt senden"}
       </button>
     </div>
   </Modal>;
