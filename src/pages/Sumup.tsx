@@ -5,7 +5,8 @@ import { useStore } from "../lib/store";
 import type { PaymentInput } from "../lib/calculations";
 import { SalesStudio } from "./SalesStudio";
 import { OfferForm, type OfferDraft } from "./Offers";
-import { DocumentPreview } from "../components/BusinessDocuments";
+import { DocumentPreview, customerSnapshot } from "../components/BusinessDocuments";
+import { client } from "../lib/client";
 import type { Offer } from "../lib/types";
 import { useInboundStatements } from "../components/InboundStatementPanel";
 import { recognizeStatement } from "../lib/ocr";
@@ -17,7 +18,7 @@ const emptyStatement: PaymentInput = {
   currentPerTransaction: 0, hardware: 0, targetVolume: 0,
 };
 export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
-  const { data,downloadDocument,demo } = useStore();
+  const { data,downloadDocument,demo,save,refresh } = useStore();
   const [customer,setCustomer] = useState(initialCustomerId);
   const [step,setStep] = useState<1|2|3>(1);
   const [capture,setCapture] = useState(false);
@@ -40,6 +41,37 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
   const [preview,setPreview] = useState<Offer|null>(null);
   const chosen=data.customers.find(c=>c.id===customer);
   const {items:incomingStatements,error:statementError}=useInboundStatements(customer,demo);
+  async function sendOfferDirectly(draft:OfferDraft){
+    if(demo)throw Error("Im Demo-Modus werden keine E-Mails versendet.");
+    const recipient=data.customers.find(c=>c.id===draft.customer_id);
+    if(!recipient)throw Error("Bitte zuerst eine Kundenakte auswählen.");
+    const to=recipient.email?.trim()||"";
+    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(to))throw Error("In den Händlerdaten fehlt eine gültige E-Mail-Adresse. Bitte zuerst die Kundenakte korrigieren.");
+    const saved=await save("offers",{
+      division:"sumup",customer_id:recipient.id,status:"Entwurf",
+      valid_until:new Date(Date.now()+14*86400000).toISOString().slice(0,10),
+      lines:draft.lines||[],notes:draft.notes||"",
+      snapshot:{...draft.snapshot,customer:customerSnapshot(recipient)}
+    });
+    const message="Guten Tag,\\n\\nvielen Dank für Ihr Interesse. Anbei erhalten Sie unser Angebot "+saved.number+
+      " als PDF. Bei Fragen stehe ich Ihnen gerne persönlich zur Verfügung.";
+    try{
+      const {data:result,error}=await client.functions.invoke("nx-send-offer",{
+        body:{action:"send",offerId:saved.id,to,message}
+      });
+      if(error||!result?.sent){
+        const diagnostic=result as {error?:string;phase?:string;detail?:string}|null;
+        throw Error(diagnostic?.error||"Versand konnte nicht bestätigt werden.");
+      }
+      await refresh().catch(()=>undefined);
+      if(!result.logged||!result.statusUpdated){
+        throw Error("E-Mail an Versandserver übergeben, aber CRM-Dokumentation unvollständig. Bitte Kundenhistorie prüfen.");
+      }
+    }catch(e){
+      throw Error("Angebot "+saved.number+" wurde gespeichert. "+(e instanceof Error?e.message:"Versandstatus unklar.")+
+        " Nicht erneut aus dem Vergleich senden; zuerst dieses Angebot in der Kundenhistorie prüfen.");
+    }
+  }
   async function inspectStatement(path:string,name:string,mime:string){
     statementJob.current?.abort();
     const job=new AbortController();
@@ -125,7 +157,7 @@ export function Sumup({initialCustomerId=""}:{initialCustomerId?:string}) {
       step={step} setStep={setStep}
       photoInput={photoInput} photoReview={photoReview}
       photoAvailable={!!photoReview} onCapture={()=>{setInitialFile(null);setCapture(true)}}
-      onOffer={setDraft}/></div>
+      onOffer={setDraft} onDirectSend={sendOfferDirectly}/></div>
     {capture&&<StatementCapture autoApply initialFile={initialFile} onClose={()=>{setCapture(false);setInitialFile(null)}}
       onApply={(values,review)=>{
         setPhotoInput({...emptyStatement,...values});
