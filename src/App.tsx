@@ -21,6 +21,7 @@ import {
   LockKeyhole,
 } from "lucide-react";
 import { client } from "./lib/client";
+import { NotificationCenter } from "./components/NotificationCenter";
 import { DataProvider, useStore } from "./lib/store";
 import { Brand, Field } from "./components/UI";
 import { PageVisual } from "./components/PageVisual";
@@ -182,6 +183,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
             {page!=="dashboard"&&<><ChevronRight className="nx-breadcrumb-chevron" size={14}/><b>{nav.find((n) => n.id === page)?.label}</b></>}
           </div>
           <div className="topbar-right">
+            <NotificationCenter demo={demo} navigate={navigate}/>
             <span className={"connection " + (!online ? "offline" : "")}>
               <i />
               {demo ? "Demo" : online ? "Online" : "Offline"}
