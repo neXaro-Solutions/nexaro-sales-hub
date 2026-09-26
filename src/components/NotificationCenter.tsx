@@ -128,8 +128,7 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
       <div className="nx-notification-panel-head"><strong>Benachrichtigungen</strong><button type="button" className="icon-button" aria-label="Schließen" onClick={()=>setOpen(false)}><X size={17}/></button></div>
       <p className="hint">Neue Anfragen sofort · Termine 60 Minuten vorher · Aufgaben bei Fälligkeit · Überfälliges täglich</p>
       {!demo&&<div className="nx-notification-push"><Smartphone size={17}/><div><strong>{!serverReady?"Push-Server nicht bereit":pushEnabled?"iPhone für Push registriert":"iPhone Push einrichten"}</strong><p className="hint">{!serverReady?"Der Serverschlüssel fehlt. Keine zuverlässige Push-Zustellung möglich.":pushEnabled?"Gerät registriert · mit „Testen“ Zustellung überprüfen.":"Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen und als App öffnen."}</p></div><button type="button" className="secondary" disabled={busy||(!serverReady&&!pushEnabled)} onClick={()=>void (pushEnabled?disable():enable())}>{busy?"…":pushEnabled?"Aus":"Aktivieren"}</button></div>}
-      {!demo&&serverReady&&pushEnabled&&<button type="button" className="secondary" disabled={busy} onClick={()=>void sendTest()}>Push-Zustellung testen</button>}{/*}
-*/}
+      {!demo&&serverReady&&pushEnabled&&<button type="button" className="secondary" disabled={busy} onClick={()=>void sendTest()}>Push-Zustellung testen</button>}
       {status&&<p role="status" className="hint">{status}</p>}
       <div className="nx-notification-panel-head"><strong>{unread} ungelesen</strong><button type="button" className="text-button" disabled={!unread||demo} onClick={()=>void markAll()}><CheckCheck size={15}/> Alle gelesen</button></div>
       <div className="nx-notification-list">
