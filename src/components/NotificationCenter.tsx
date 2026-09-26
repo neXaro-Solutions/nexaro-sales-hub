@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, BellRing, CheckCheck, Smartphone, X } from "lucide-react";
 import { client } from "../lib/client";
-const VAPID = "BMY4ZImAXi6v35cNF0KhID3IXidItW0J-YEVa3xQE1Y2vZC0C7TQUr7lPgAvLO82gR_oTVwBX4Nx79pK7Tzw3Y8";
+const VAPID = "BGRlBQ13KQGvGwvwTHZnVPaVrUIMkoMgpzaB6wHcyRYRhSKjHM67WFfgLPDA6tm3elxbK8pRqd4nmzW2E72ITos";
 type Notice = { id:string; title:string; body:string; category:string; created_at:string; read_at:string|null; target_url:string };
 function applicationKey(value:string): Uint8Array {
   const input=atob(value.replace(/-/g,"+").replace(/_/g,"/")+"=".repeat((4-value.length%4)%4));
@@ -13,9 +13,16 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
   const [items,setItems]=useState<Notice[]>([]);
   const [open,setOpen]=useState(false);
   const [pushEnabled,setPushEnabled]=useState(false);
+  const [serverReady,setServerReady]=useState(false);
   const [busy,setBusy]=useState(false);
   const [status,setStatus]=useState("");
   const supported=typeof window!=="undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const checkServer=useCallback(async()=>{
+    if(demo)return;
+    const {data,error}=await client.functions.invoke("nx-push-health",{body:{action:"status"}});
+    setServerReady(!error && data?.ready===true);
+    if(error||!data?.ready)setStatus("Push-Versandserver noch nicht betriebsbereit. Dein Gerät allein reicht nicht aus; der fehlende Serverschlüssel muss eingerichtet werden.");
+  },[demo]);
   const load=useCallback(async()=>{
     if(demo)return;
     const {data,error}=await client.from("nx_notifications").select("id,title,body,category,created_at,read_at,target_url").order("created_at",{ascending:false}).limit(100);
@@ -24,11 +31,12 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
   useEffect(()=>{
     if(demo)return;
     void load();
+    void checkServer();
     const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void load();},45000);
     const visible=()=>{if(document.visibilityState==="visible")void load();};
     document.addEventListener("visibilitychange",visible);
     return()=>{clearInterval(timer);document.removeEventListener("visibilitychange",visible);};
-  },[demo,load]);
+  },[demo,load,checkServer]);
   useEffect(()=>{
     if(demo||!supported)return;
     void navigator.serviceWorker.getRegistration(new URL("./",document.baseURI).pathname).then(async registration=>{
@@ -37,12 +45,17 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
       const {data:{user}}=await client.auth.getUser();
       if(!user)return;
       const {data}=await client.from("nx_push_subscriptions").select("endpoint").eq("user_id",user.id).eq("endpoint",sub.endpoint).maybeSingle();
-      setPushEnabled(!!data);
+      const current=sub.options.applicationServerKey;
+      const expected=applicationKey(VAPID);
+      const matches=!!current && new Uint8Array(current).length===expected.length && new Uint8Array(current).every((v,i)=>v===expected[i]);
+      setPushEnabled(!!data && matches);
+      if(data&&!matches)setStatus("Der Push-Schlüssel wurde erneuert. Bitte nach Freigabe des Versandservers auf „Aktivieren“ tippen, um dein iPhone neu zu verbinden.");
     }).catch(()=>{});
   },[demo,supported]);
   async function enable(){
     if(busy||demo)return;
     if(!supported){setStatus("Dieser Browser unterstützt Web-Push nicht. Bitte Safari auf dem iPhone verwenden.");return;}
+    if(!serverReady){setStatus("Push-Versandserver noch nicht betriebsbereit. Bitte zunächst den Serverschlüssel einrichten.");return;}
     if(isiOS()&&!isStandalone()){setStatus("iPhone: In Safari „Teilen“ → „Zum Home-Bildschirm“ wählen, dann neXaro CRM über das neue App-Symbol öffnen und Push aktivieren.");return;}
     setBusy(true);setStatus("");
     try{
@@ -51,16 +64,28 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
       const registration=await navigator.serviceWorker.register(new URL("./nx-push-sw.js",document.baseURI).href,{scope:new URL("./",document.baseURI).pathname});
       await navigator.serviceWorker.ready;
       const existing=await registration.pushManager.getSubscription();
-      const sub=existing||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:applicationKey(VAPID) as BufferSource});
+      if(existing)await existing.unsubscribe();
+      const sub=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:applicationKey(VAPID) as BufferSource});
       const json=sub.toJSON();
       if(!json.keys?.p256dh||!json.keys?.auth)throw Error("Geräteschlüssel nicht verfügbar.");
       const {data:{user},error:authError}=await client.auth.getUser();
       if(authError||!user)throw Error("Bitte erneut anmelden.");
       const {error}=await client.from("nx_push_subscriptions").upsert({user_id:user.id,endpoint:sub.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth},{onConflict:"endpoint"});
       if(error)throw Error("Gerät konnte nicht registriert werden. Bitte die Berechtigung prüfen.");
+      if(existing&&existing.endpoint!==sub.endpoint)await client.from("nx_push_subscriptions").delete().eq("endpoint",existing.endpoint);
       setPushEnabled(true);setStatus("Push-Mitteilungen sind auf diesem Gerät registriert. Bitte bei iOS Mitteilungen für neXaro CRM erlauben.");
     }catch(error){setStatus(error instanceof Error?error.message:"Push-Einrichtung fehlgeschlagen.");}
     finally{setBusy(false);}
+  }
+  async function sendTest(){
+    if(busy||demo||!pushEnabled||!serverReady)return;
+    setBusy(true);setStatus("");
+    try{
+      const {data,error}=await client.functions.invoke("nx-push-health",{body:{action:"test"}});
+      if(error||!data?.ok)throw Error("Push-Test fehlgeschlagen. Bitte den Versandserver prüfen und dein Gerät erneut registrieren.");
+      setStatus("Test an den Apple-Push-Dienst übergeben. Bitte prüfen, ob eine iPhone-Mitteilung erscheint.");
+    }catch(e){setStatus(e instanceof Error?e.message:"Push-Test fehlgeschlagen.");}
+    finally{setBusy(false)}
   }
   async function disable(){
     setBusy(true);setStatus("");
@@ -102,7 +127,9 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
     {open&&<div className="nx-notification-panel" role="region" aria-label="neXaro Benachrichtigungszentrale">
       <div className="nx-notification-panel-head"><strong>Benachrichtigungen</strong><button type="button" className="icon-button" aria-label="Schließen" onClick={()=>setOpen(false)}><X size={17}/></button></div>
       <p className="hint">Neue Anfragen sofort · Termine 60 Minuten vorher · Aufgaben bei Fälligkeit · Überfälliges täglich</p>
-      {!demo&&<div className="nx-notification-push"><Smartphone size={17}/><div><strong>{pushEnabled?"iPhone Push aktiviert":"iPhone Push einrichten"}</strong><p className="hint">{pushEnabled?"Dieses Gerät empfängt Web-Push.":"Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen und als App öffnen."}</p></div><button type="button" className="secondary" disabled={busy} onClick={()=>void (pushEnabled?disable():enable())}>{busy?"…":pushEnabled?"Aus":"Aktivieren"}</button></div>}
+      {!demo&&<div className="nx-notification-push"><Smartphone size={17}/><div><strong>{!serverReady?"Push-Server nicht bereit":pushEnabled?"iPhone für Push registriert":"iPhone Push einrichten"}</strong><p className="hint">{!serverReady?"Der Serverschlüssel fehlt. Keine zuverlässige Push-Zustellung möglich.":pushEnabled?"Gerät registriert · mit „Testen“ Zustellung überprüfen.":"Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen und als App öffnen."}</p></div><button type="button" className="secondary" disabled={busy||(!serverReady&&!pushEnabled)} onClick={()=>void (pushEnabled?disable():enable())}>{busy?"…":pushEnabled?"Aus":"Aktivieren"}</button></div>}
+      {!demo&&serverReady&&pushEnabled&&<button type="button" className="secondary" disabled={busy} onClick={()=>void sendTest()}>Push-Zustellung testen</button>}{/*}
+*/}
       {status&&<p role="status" className="hint">{status}</p>}
       <div className="nx-notification-panel-head"><strong>{unread} ungelesen</strong><button type="button" className="text-button" disabled={!unread||demo} onClick={()=>void markAll()}><CheckCheck size={15}/> Alle gelesen</button></div>
       <div className="nx-notification-list">
