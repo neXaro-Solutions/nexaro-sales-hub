@@ -2971,3 +2971,16 @@ progress {
 .nx-notification-push>div{flex:1;min-width:0}.nx-notification-push .hint{margin:4px 0 0}.nx-notification-list{display:grid;gap:8px}
 .nx-notification-item{background:#fff;border:1px solid #e3e9df;border-radius:12px;padding:12px;text-align:left;display:grid;gap:5px;width:100%;cursor:pointer;color:inherit}
 .nx-notification-item.unread{border-left:4px solid #ed6b24;background:#fffaf5}.nx-notification-item span{font-size:13px;line-height:1.45}.nx-notification-item small{font-size:11px;opacity:.7}
+
+/* iPhone notification drawer: viewport-bound, never anchored beyond the screen. */
+.nx-notifications{position:static;z-index:100}
+.nx-notification-panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 80px);right:max(12px,env(safe-area-inset-right,0px));left:auto;width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - env(safe-area-inset-top,0px) - 102px);overflow-x:hidden;overflow-y:auto;box-sizing:border-box;z-index:300;overflow-wrap:anywhere}
+.nx-notification-panel *{box-sizing:border-box;min-width:0}
+.nx-notification-push{flex-wrap:wrap;align-items:center}
+.nx-notification-push>div{flex:1 1 175px}
+.nx-notification-push>button{flex:0 0 auto;max-width:100%}
+.nx-notification-item{overflow-wrap:anywhere}
+@media(max-width:900px){
+ .nx-notification-panel{top:calc(env(safe-area-inset-top,0px) + 77px);left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;max-width:none;border-radius:17px;padding:14px;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 95px)}
+ .nx-notification-panel .hint{line-height:1.45}
+}
