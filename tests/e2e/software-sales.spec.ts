@@ -1,0 +1,16 @@
+import {test,expect} from '@playwright/test';
+test('software requests can be edited and invitation created/revoked',async({page})=>{
+ const user={id:'11111111-1111-4111-8111-111111111111',aud:'authenticated',role:'authenticated',email:'demo@example.invalid',app_metadata:{},user_metadata:{},created_at:new Date().toISOString()};
+ await page.addInitScript(({user})=>{sessionStorage.setItem('sb-hbuqzdmjqvgybwohfnqy-auth-token',JSON.stringify({access_token:'test-session',refresh_token:'test-refresh',expires_at:Math.floor(Date.now()/1000)+3600,expires_in:3600,token_type:'bearer',user}))},{user});
+ let row={id:'22222222-2222-4222-8222-222222222222',company:'Pilotfirma Test',contact:'Alex Test',email:'demo@example.invalid',phone:'',city:'Berlin',industry:'Handel',users_count:'5',request_kind:'demo',message:'Individuelles CRM',status:'new',notes:'',next_contact:null,source:'website',created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+ let invitations:any[]=[];
+ await page.route('**/*',async route=>{const url=route.request().url();if(!url.includes('.supabase.co'))return route.continue();const reply=(data:unknown)=>route.fulfill({status:200,headers:{'access-control-allow-origin':'*'},contentType:'application/json',body:JSON.stringify(data)});
+ if(url.includes('/auth/v1/user'))return reply(user);if(url.includes('/nx_owner'))return reply({user_id:user.id});
+ if(url.includes('/functions/v1/nx-software-sales')){const b=route.request().postDataJSON();if(b.action==='list')return reply({rows:[row],invitations});if(b.action==='save'){row={...row,...b.payload,updated_at:new Date().toISOString()};return reply({row})}if(b.action==='invite'){const invitation={id:'33333333-3333-4333-8333-333333333333',request_id:row.id,label:row.company,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+7*86400000).toISOString(),revoked_at:null};invitations=[invitation];return reply({code:'NX00000000000000000000000000000000',invitation})}if(b.action==='revoke'){invitations=invitations.map(i=>({...i,revoked_at:new Date().toISOString()}));return reply({ok:true})}}
+ return reply([])});
+ await page.goto('/?nx=software');await expect(page.getByRole('heading',{name:'Software-Vertrieb',exact:true})).toBeVisible();await page.getByRole('button',{name:/Pilotfirma Test/}).click();
+ await page.getByLabel('Interne Notizen & nächster Schritt').fill('Anforderungen am Dienstag besprechen');await page.getByLabel(/Status/).last().selectOption('contacted');await page.getByRole('button',{name:'Anfrage speichern',exact:true}).click();await expect(page.getByText('Anfrage gespeichert.')).toBeVisible();expect(row.notes).toContain('Dienstag');
+ await page.getByRole('button',{name:'Einladungscode erstellen',exact:true}).click();await expect(page.getByRole('heading',{name:'Einladung erstellt'})).toBeVisible();await expect(page.getByLabel('Einladungscode',{exact:true})).toHaveValue('NX00000000000000000000000000000000');
+ page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Sperren',exact:true}).first().click();await expect(page.getByText('Gesperrt · gültig bis',{exact:false}).first()).toBeVisible();await expect(page.getByRole('heading',{name:'Einladung erstellt'})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});

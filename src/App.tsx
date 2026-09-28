@@ -36,6 +36,7 @@ import { Tasks } from "./pages/Tasks";
 import { Offers } from "./pages/Offers";
 import { KnowledgeBase } from "./pages/KnowledgeBase";
 import { Settings } from "./pages/Settings";
+import { SoftwareSales } from "./pages/SoftwareSales";
 const nav = [
   { id: "dashboard", label: "Übersicht", icon: LayoutDashboard },
   { id: "customers", label: "Kunden & Leads", icon: Users },
@@ -43,6 +44,7 @@ const nav = [
   { id: "calendar", label: "Kalender", icon: CalendarDays },
   { id: "sumup", label: "SumUp", icon: CreditCard },
   { id: "vape", label: "Vape", icon: Package },
+  { id: "software", label: "Software-Vertrieb", icon: Users },
   { id: "offers", label: "Angebote & Rechnungen", icon: FileText },
   { id: "knowledge", label: "Vertriebswissen", icon: BookOpen },
   { id: "tasks", label: "Aufgaben", icon: CheckSquare },
@@ -75,7 +77,7 @@ class ErrorBoundary extends Component<
 }
 function Shell({ onLogout }: { onLogout: () => void }) {
   const { data, demo, loading, error, refresh } = useStore();
-  const [page, setPage] = useState(() => { const target=new URLSearchParams(location.search).get("nx"); return target==="inquiry"?"customers":target==="appointment"||target==="task"?"tasks":"dashboard"; }),
+  const [page, setPage] = useState(() => { const target=new URLSearchParams(location.search).get("nx"); return target==="software"?"software":target==="inquiry"?"customers":target==="appointment"||target==="task"?"tasks":"dashboard"; }),
     [mobile, setMobile] = useState(false),
     [newCustomer, setNewCustomer] = useState(false),
     [sumupCustomer,setSumupCustomer]=useState(""),
@@ -241,6 +243,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
               {page === "customers" && <Customers onOpenSumup={id=>navigate("sumup",id)}/>}
               {page === "sumup" && <Sumup key={sumupCustomer||"general"} initialCustomerId={sumupCustomer}/>}
               {page === "vape" && <Dealers />}
+              {page === "software" && <SoftwareSales />}
               {page === "tasks" && <Tasks />}
               {page === "calendar" && <DashboardCalendar newTask={() => setNewTask(true)} navigate={navigate} />}
               {page === "hunter" && <Hunter key={hunterStart} initialTab={hunterStart}/>}

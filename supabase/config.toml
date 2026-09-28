@@ -7,3 +7,6 @@ verify_jwt = false
 # Scheduled calls authenticated inside the function using Vault-backed cron secret.
 [functions.nx-email-appointments]
 verify_jwt = false
+[functions.nx-software-sales]
+# Public intake uses signed challenges; management validates the user and nx_owner.
+verify_jwt = false
