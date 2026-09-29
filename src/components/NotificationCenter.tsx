@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, BellRing, CheckCheck, Smartphone, X } from "lucide-react";
 import { client } from "../lib/client";
+import { notificationTarget } from "../lib/notificationTarget";
 const VAPID = "BGRlBQ13KQGvGwvwTHZnVPaVrUIMkoMgpzaB6wHcyRYRhSKjHM67WFfgLPDA6tm3elxbK8pRqd4nmzW2E72ITos";
 type Notice = { id:string; title:string; body:string; category:string; created_at:string; read_at:string|null; target_url:string };
 function applicationKey(value:string): Uint8Array {
@@ -107,8 +108,7 @@ export function NotificationCenter({demo,navigate}:{demo:boolean;navigate:(page:
       if(!error)setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:new Date().toISOString()}:x));
     }
     setOpen(false);
-    if(item.category==="inquiry")navigate("customers");
-    else navigate("tasks");
+    navigate(notificationTarget(item));
   }
   async function markAll(){
     const ids=items.filter(n=>!n.read_at).map(n=>n.id);
