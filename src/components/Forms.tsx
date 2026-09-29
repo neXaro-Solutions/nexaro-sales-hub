@@ -98,7 +98,7 @@ export function CustomerForm({
   }
   return (
     <Modal title={customer?"Kundenakte bearbeiten":"Neuen Kunden zentral erfassen"} onClose={onClose}>
-      <p className="hint">Eine gemeinsame Kundenakte für SumUp und Vape. Eine Bereichsauswahl ist nicht erforderlich.</p>
+      <p className="hint">Eine gemeinsame Kundenakte für SumUp, Vape und CRM Software. Eine bestehende Software-Kennzeichnung bleibt beim Bearbeiten erhalten.</p>
       {!customer&&<GeoCustomerCapture onSelect={useGeoLocation}/>}
       {geo&&<p className="notice" role="status">📍 <strong>{geo.company}</strong> aus öffentlichen Standortdaten übernommen. GPS-Koordinaten gehören zum ausgewählten Geschäft, nicht zu deinem eigenen Standort. Bitte Namen und Adresse kontrollieren.</p>}
       {geoWarning&&<p className="error" role="alert">{geoWarning}</p>}

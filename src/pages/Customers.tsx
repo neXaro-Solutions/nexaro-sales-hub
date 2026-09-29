@@ -52,7 +52,7 @@ const segmentLabels:Record<CustomerSegment,string>={inbound:"Neue Anfrage",lead:
 export function Customers({ division, onOpenSumup }: { division?: Division; onOpenSumup?:(customerId:string)=>void }) {
   const { data, save, refresh, listDocuments, demo } = useStore();
   const [search, setSearch] = useState(""),
-    [selected, setSelected] = useState<string | null>(null),
+    [selected, setSelected] = useState<string | null>(()=>{const id=new URLSearchParams(window.location.search).get('customer');return id&&/^[0-9a-f-]{36}$/i.test(id)?id:null}),
     [edit, setEdit] = useState<Customer | true | null>(null),
     [task, setTask] = useState<Task | true | null>(null),
     [error, setError] = useState("");
@@ -100,7 +100,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
   const counts={all:data.customers.length,inbound:0,lead:0,customer:0};
   for(const c of data.customers)counts[segmentOf(c,data.tasks,data.events,data.opportunities)]++;
   const rows=sorted.filter(c=>(segment==="all"||segmentOf(c,data.tasks,data.events,data.opportunities)===segment)&&
-    [c.company,c.contact,c.city,c.zip,c.street,c.source].join(" ").toLowerCase().includes(search.toLowerCase().trim())
+    [c.company,c.contact,c.city,c.zip,c.street,c.source,c.crm_software?'CRM Software':''].join(" ").toLowerCase().includes(search.toLowerCase().trim())
   );
   const feeText=customer?feeRequestText(customer,data.events):"";
   const fee=feeFields(feeText);
@@ -116,7 +116,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
                 : "Alle Kunden & Leads"}
           </h1>
           <p>
-            Einmal zentral anlegen – SumUp und Vape greifen auf denselben Kunden, dieselben Notizen und Dokumente zu.
+            Einmal zentral anlegen – gemeinsame Kundenakten für SumUp, Vape und CRM Software, mit Notizen und Dokumenten.
           </p>
         </div>
         <button className="primary" onClick={() => setEdit(true)}>
@@ -179,6 +179,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
                       </td>
                       <td>
                         <div className="stack">
+                          {c.crm_software&&<span className="nx-customer-segment-badge">CRM Software</span>}
                           {data.opportunities
                             .filter(
                               (o) =>
@@ -231,7 +232,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
                 <small>{c.contact||c.industry||"Kontakt ergänzen"}</small>
                 {segmentOf(c,data.tasks,data.events,data.opportunities)==="inbound"&&<small>Eingang: {new Date(c.created_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})}</small>}
                 <p><MapPin size={15}/> {[c.zip,c.city].filter(Boolean).join(" ")||"Standort ergänzen"}</p>
-                <div className="nx-customer-mobile-divisions">{data.opportunities.filter(o=>o.customer_id===c.id).map(o=>
+                <div className="nx-customer-mobile-divisions">{c.crm_software&&<span className="nx-customer-segment-badge">CRM Software</span>}{data.opportunities.filter(o=>o.customer_id===c.id).map(o=>
                   <span key={o.id}><DivisionBadge division={o.division}/> <small>{o.stage}</small></span>
                 )}</div>
                 <p className="nx-customer-mobile-next">{next?"Nächster Schritt: "+next.title+" · "+appointmentLabel(next.due_at):"Noch keine Wiedervorlage"}</p>
@@ -258,6 +259,7 @@ export function Customers({ division, onOpenSumup }: { division?: Division; onOp
           }}
         >
           <div className="nx-customer-detail-head">
+            {customer.crm_software&&<span className="nx-customer-segment-badge">CRM Software</span>}
             <span className="nx-customer-segment-badge">{segmentLabels[segmentOf(customer,data.tasks,data.events,data.opportunities)]}</span>
             <span>Herkunft: {customer.source||"Nicht erfasst"}</span>
             <span>Erfasst: {new Date(customer.created_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})}</span>

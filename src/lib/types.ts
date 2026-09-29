@@ -15,6 +15,7 @@ export type Base = {
   version: number;
 };
 export type Customer = Base & {
+  crm_software?: boolean;
   interests?: Division[];
   company: string;
   contact: string;
