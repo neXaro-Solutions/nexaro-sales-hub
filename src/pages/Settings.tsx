@@ -3,7 +3,6 @@ import { client } from "../lib/client";
 import {
   CalendarDays,
   Download,
-  ExternalLink,
   ShieldCheck,
   Database,
   RefreshCw,
@@ -13,6 +12,7 @@ import { Card, External, Badge } from "../components/UI";
 import { today, dateLabel } from "../lib/calculations";
 import { checkedAt, pricingSource } from "../lib/sumup";
 import { MarketingSuppressions } from "../components/ContactCompliance";
+import { TeamAccess } from "../components/TeamAccess";
 export function Settings() {
   const { data, demo, refresh } = useStore();
   const [icloud, setIcloud] = useState("unverified");
@@ -83,20 +83,20 @@ export function Settings() {
       <div className="section-intro">
         <div>
           <h1>Dein System</h1>
-          <p>Verbindungen, Datenstand und Sicherung im Überblick.</p>
+          <p>Organisation, Zugriffe, Verbindungen, Datenstand und Sicherung im Überblick.</p>
         </div>
-        <Badge>Einzelnutzer-Betrieb</Badge>
+        <Badge>Organisation & Team</Badge>
       </div>
       <MarketingSuppressions demo={demo}/>
       <div className="analysis-grid">
-        <Card title="Daten & Zugriff" eyebrow="ZENTRAL GESPEICHERT">
+        <TeamAccess demo={demo}/>
+        <Card title="Daten & Zugriff" eyebrow="ORGANISATIONSGESCHÜTZT">
           <div className="settings-item">
             <ShieldCheck />
             <div>
-              <strong>Persönlicher Zugang</strong>
+              <strong>Rollenbasierter Zugang</strong>
               <p>
-                Nur das freigeschaltete Administratorkonto kann CRM-Daten lesen
-                und bearbeiten. Die Prüfung erfolgt auch in der Datenbank.
+                CRM-Daten werden einer Organisation zugeordnet. Aktive Teammitglieder sehen ausschließlich Daten ihrer Organisation; Bearbeiten und Löschen richten sich nach der vergebenen Rolle.
               </p>
             </div>
           </div>
@@ -111,7 +111,7 @@ export function Settings() {
               <p>
                 {demo
                   ? "Änderungen verschwinden beim Neuladen. Es werden keine Demo-Daten übertragen."
-                  : "Kunden, Aufgaben, Routen und Angebote werden zentral gespeichert. Nicht gespeicherte Eingaben bleiben lokal im geöffneten Formular."}
+                  : "Kunden, Aufgaben, Routen und Angebote werden zentral gespeichert und serverseitig der Organisation zugeordnet. Nicht gespeicherte Eingaben bleiben lokal im geöffneten Formular."}
               </p>
             </div>
           </div>
