@@ -1,9 +1,25 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+const origins = new Set([
+  "https://nexaro-solutions.github.io",
+  "https://www.nexaro-solutions.de",
+  "https://nexaro-solutions.de",
+  "http://localhost:5173",
+  "http://127.0.0.1:4173",
+]);
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("origin") || "";
+  const cors = {
+    "Access-Control-Allow-Origin": origins.has(origin) ? origin : "https://nexaro-solutions.github.io",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (!origins.has(origin)) return json({ error: "Origin not allowed" }, 403);
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return json({ error: "Unauthorized" }, 401);
