@@ -1,11 +1,16 @@
 -- Authorized diagnostic only. All synthetic rows are rolled back. No storage bytes are uploaded.
 begin;
 select set_config('nx.test_owner',(select user_id::text from public.nx_owner),true);
+select set_config('nx.test_org',(select id::text from public.nx_organizations where owner_user_id=(select user_id from public.nx_owner) limit 1),true);
 select set_config('nx.test_customer',gen_random_uuid()::text,true);
 select set_config('request.jwt.claim.sub',current_setting('nx.test_owner'),true);
 set local role authenticated;
-insert into public.nx_customers(id,company,city,interests) values(current_setting('nx.test_customer')::uuid,'NX transactional access test','Test',array['vape']);
-insert into public.nx_tasks(customer_id,division,title,due_at,kind,notes) values(current_setting('nx.test_customer')::uuid,'vape','Testtermin',now(),'Termin','Synthetic test only');
+do $$ begin
+ if current_setting('nx.test_org',true) is null or current_setting('nx.test_org',true)='' then raise exception 'Owner organization missing'; end if;
+ if not exists(select 1 from public.nx_organization_members where organization_id=current_setting('nx.test_org')::uuid and user_id=current_setting('nx.test_owner')::uuid and role='owner' and status='active') then raise exception 'Owner membership missing'; end if;
+end $$;
+insert into public.nx_customers(id,company,city,interests,organization_id) values(current_setting('nx.test_customer')::uuid,'NX transactional access test','Test',array['vape'],current_setting('nx.test_org')::uuid);
+insert into public.nx_tasks(customer_id,division,title,due_at,kind,notes,organization_id) values(current_setting('nx.test_customer')::uuid,'vape','Testtermin',now(),'Termin','Synthetic test only',current_setting('nx.test_org')::uuid);
 insert into storage.objects(bucket_id,name,owner_id,metadata) values('nx-client-documents',current_setting('nx.test_customer')||'/'||gen_random_uuid()::text||'--test.txt',current_setting('nx.test_owner'),'{"size":4,"mimetype":"text/plain"}');
 do $$ begin
  if (select count(*) from storage.objects where bucket_id='nx-client-documents' and name like current_setting('nx.test_customer')||'/%') <> 1 then raise exception 'Owner cannot read document'; end if;
@@ -16,6 +21,12 @@ do $$ begin
  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+do $$ begin
+ if exists(select 1 from public.nx_customers where organization_id is null) then raise exception 'Customer without organization link'; end if;
+ if exists(select 1 from public.nx_tasks where organization_id is null) then raise exception 'Task without organization link'; end if;
+ if exists(select 1 from public.nx_opportunities where organization_id is null) then raise exception 'Opportunity without organization link'; end if;
+ if exists(select 1 from public.nx_hunter_prospects where organization_id is null) then raise exception 'Hunter prospect without organization link'; end if;
+end $$;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000099',true);
 select set_config('request.jwt.claims',jsonb_build_object('sub','00000000-0000-4000-8000-000000000099','email',(select email from public.staff_users where active limit 1))::text,true);
 set local role authenticated;
@@ -45,4 +56,4 @@ do $$ begin
  if has_function_privilege('anon','public.place_dealer_order(jsonb,text)','execute') or has_function_privilege('authenticated','public.dispatch_admin_push()','execute') then raise exception 'Unnecessary legacy RPC permission remains'; end if;
 end $$;
 rollback;
-select 'PASS: owner access; foreign/anonymous denial; unknown customer denial; staff ID binding; revoked RPCs; test rows rolled back' as verification;
+select 'PASS: owner access; organization membership; tenant links; foreign/anonymous denial; unknown customer denial; staff ID binding; revoked RPCs; test rows rolled back' as verification;
