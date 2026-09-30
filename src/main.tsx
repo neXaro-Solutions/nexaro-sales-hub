@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./styles.css";
 import "./light.css";
+import "./access.css";
 import { installSelectOnFocus } from "./lib/focusInputs";
 installSelectOnFocus();
 createRoot(document.getElementById("root")!).render(
