@@ -11,6 +11,7 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
 }) {
   const { data, demo } = useStore();
   const customer = data.customers.find(c => c.id === offer.customer_id);
+  const isSumUp = offer.division === "sumup";
   const [to, setTo] = useState(customer?.email || "");
   const [salutation, setSalutation] = useState<"neutral" | "herr" | "frau">("neutral");
   const [recipientName, setRecipientName] = useState(customer?.contact?.trim().split(/\s+/).at(-1) || "");
@@ -58,11 +59,12 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
     <p className="hint"><Mail size={15}/> Betreff: Ihr Angebot {offer.number} | neXaro Solutions</p>
     <p className="hint" role="status">Anrede in der E-Mail: <strong>{greeting}</strong></p>
     <Field label="Persönliche Nachricht (nach der Anrede)"><textarea rows={6} maxLength={3000} value={message} onChange={e=>setMessage(e.target.value)} disabled={sending || success}/></Field>
+    {isSumUp ? <p className="notice"><strong>SumUp-Angebot:</strong> Die E-Mail enthält automatisch den persönlichen Button „Angebot annehmen &amp; SumUp-Einrichtung starten“. Vor der Annahme bestätigt der Kunde seinen geschäftlichen Bezug und die Freigabe zur Übermittlung der erforderlichen Unternehmens- und Kontaktdaten an SumUp. neXaro bleibt Vermittler; der eigentliche SumUp-Vertrag wird anschließend mit SumUp geschlossen.</p> : null}
     <p className="notice">Das gespeicherte Angebot wird als PDF automatisch angehängt. Ein Versand erfolgt nur nach Klick auf „Jetzt senden“. Die Übergabe an den Versandserver wird in der Kundenhistorie dokumentiert; der Empfang beim Kunden ist damit noch nicht bestätigt.</p>
     {!offer.customer_id && <p className="error">Bitte zuerst einen Kunden zum Angebot speichern.</p>}
     {demo && <p className="notice">Demo-Modus: E-Mails werden nicht versendet.</p>}
     {error && <p className="error" role="alert">{error}</p>}
-    {success && <p className="notice" role="status">E-Mail an Versandserver übergeben. Die Zustellung beim Empfänger ist noch nicht bestätigt.</p>}
+    {success && <p className="notice" role="status">{isSumUp ? "E-Mail inklusive persönlichem Annahmelink an den Versandserver übergeben. Nach Kundenannahme wird der SumUp-Onboardingstatus automatisch aktualisiert." : "E-Mail an Versandserver übergeben. Die Zustellung beim Empfänger ist noch nicht bestätigt."}</p>}
     {loggingWarning && <p className="error" role="alert">{loggingWarning}</p>}
     <div className="button-row">
       <button type="button" className="secondary" onClick={onClose}>{success ? "Schließen" : "Abbrechen"}</button>
