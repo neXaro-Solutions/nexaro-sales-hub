@@ -112,14 +112,15 @@ test("manual offer converts into branded invoice with independent number",async 
   await expect(page.locator(".print-sheet")).toContainText("Zahlungsterminal");
 });
 
-test("route can include existing shared customers",async ({page})=>{
+test("unified Hunter exposes the integrated tour workspace",async ({page})=>{
   await page.goto("/?demo=1");
-  await navigate(page,"Tagesroute");
-  await page.getByRole("button",{name:"Café Morgenrot einplanen"}).click();
-  await page.getByRole("button",{name:"Späti am Park einplanen"}).click();
-  await page.getByRole("button",{name:"Tagesroute speichern",exact:true}).click();
-  await expect(page.getByRole("status")).toContainText("gespeichert");
-  await expect(page.getByRole("link",{name:"In Google Maps navigieren"})).toHaveAttribute("href",/waypoints=/);
+  await navigate(page,"Außendienst · HUNTER");
+  const tabs=page.getByRole("tablist",{name:"Außendienst-Arbeitsbereich"});
+  await expect(tabs.getByRole("tab",{name:/1 · Geschäfte finden/})).toBeVisible();
+  await expect(tabs.getByRole("tab",{name:/2 · Merkliste/})).toBeVisible();
+  await tabs.getByRole("tab",{name:/3 · Touren/}).click();
+  await expect(page.getByRole("heading",{name:"Deine Touren & Besuche"})).toBeVisible();
+  await expect(page.getByRole("region",{name:"Gespeicherte Touren"})).toBeVisible();
 });
 test("authenticated data is unavailable on public landing", async ({
   page,
@@ -172,6 +173,7 @@ test("weather handles failure and retry with mocked responses", async ({
     );
   });
   await page.goto("/?demo=1");
+  await page.getByText("Auswertungen, Wetter & weitere Bereiche",{exact:true}).click();
   await page.getByLabel("Wetterstandort").fill("Berlin");
   await page.getByRole("button", { name: "Anzeigen", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(
@@ -185,9 +187,9 @@ test("weather handles failure and retry with mocked responses", async ({
 });
 
 
-
-test("dashboard calendar navigates months, selects days and opens CRM tasks", async ({ page }) => {
+test("calendar navigates months, selects days and opens CRM tasks", async ({ page }) => {
   await page.goto("/?demo=1");
+  await navigate(page,"Kalender");
   const calendar = page.locator(".nx-calendar-card");
   await expect(calendar.getByRole("heading", { name: "Dein Außendienst-Kalender" })).toBeVisible();
   expect(await calendar.getByRole("group", { name: /Kalender/ }).getByRole("button").count()).toBeGreaterThanOrEqual(28);
@@ -200,8 +202,9 @@ test("dashboard calendar navigates months, selects days and opens CRM tasks", as
 });
 
 
-test("dashboard appointment opens and saves the existing CRM record directly", async ({ page }) => {
+test("calendar appointment opens and saves the existing CRM record directly", async ({ page }) => {
   await page.goto("/?demo=1");
+  await navigate(page,"Kalender");
   const calendar = page.locator(".nx-calendar-card");
   const first = calendar.getByRole("button", { name: "Kartenzahlungsanalyse besprechen bearbeiten" });
   await expect(first).toBeVisible();
@@ -221,8 +224,9 @@ test("dashboard appointment opens and saves the existing CRM record directly", a
 });
 
 
-test("delete existing appointment from dashboard with cancel and confirmation", async ({ page }) => {
+test("delete existing appointment from calendar with cancel and confirmation", async ({ page }) => {
   await page.goto("/?demo=1");
+  await navigate(page,"Kalender");
   const calendar = page.locator(".nx-calendar-card");
   await calendar.getByRole("button", { name: "Termin", exact: true }).click();
   const dialog = page.locator("dialog");
