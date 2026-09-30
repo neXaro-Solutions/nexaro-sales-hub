@@ -151,7 +151,7 @@ function Shell({ onLogout }: { onLogout: () => void }) {
             <div>
               <strong>neXaro Solutions</strong>
               <small>
-                {demo ? "Demo-Modus" : "Persönlicher Arbeitsbereich"}
+                {demo ? "Demo-Modus" : "Geschützter Arbeitsbereich"}
               </small>
             </div>
             <button
@@ -284,25 +284,40 @@ export default function App() {
       const run = ++attempt;
       const {
         data: { user },
-        error,
+        error: userError,
       } = await client.auth.getUser();
       if (!active || run !== attempt) return;
-      if (error || !user) {
+      if (userError || !user) {
         setAuthorized(false);
         setChecking(false);
         return;
       }
-      const result = await client
-        .from("nx_owner")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+
+      const [ownerResult, memberResult] = await Promise.all([
+        client.from("nx_owner").select("user_id").eq("user_id", user.id).maybeSingle(),
+        client.from("nx_organization_members").select("organization_id,role,status").eq("user_id", user.id).maybeSingle(),
+      ]);
       if (!active || run !== attempt) return;
-      setAuthorized(!!result.data && !result.error);
-      if (!result.data)
-        setError(
-          "Dieses Konto ist nicht für den Sales Hub freigeschaltet. Bitte dein bestehendes Administratorkonto verwenden.",
-        );
+
+      if (ownerResult.data && !ownerResult.error) {
+        setAuthorized(true);
+        setError("");
+        setChecking(false);
+        return;
+      }
+
+      let membership = memberResult.data;
+      if (membership?.status === "invited") {
+        const activation = await client.functions.invoke("nx-team-admin", { body: { action: "activate-self" } });
+        if (!activation.error && activation.data?.ok) membership = { ...membership, status: "active" };
+      }
+      if (!active || run !== attempt) return;
+
+      const allowed = membership?.status === "active";
+      setAuthorized(!!allowed);
+      if (allowed) setError("");
+      else if (membership?.status === "disabled") setError("Dieser Teamzugang wurde deaktiviert. Bitte wende dich an den Owner deiner Organisation.");
+      else setError("Dieses Konto ist keiner aktiven neXaro Organisation zugeordnet. Bitte verwende deinen persönlichen Teamzugang oder wende dich an den Administrator.");
       setChecking(false);
     }
     void authorize();
@@ -370,10 +385,10 @@ export default function App() {
           <div className="lock-mark">
             <LockKeyhole size={24} />
           </div>
-          <span className="eyebrow">PERSÖNLICHER ARBEITSBEREICH</span>
-          <small className="badge positive">neXaro CRM · Stand 20.09.2026</small>
+          <span className="eyebrow">GESCHÜTZTER ARBEITSBEREICH</span>
+          <small className="badge positive">neXaro CRM · Organisation & Team</small>
           <h2>Bereit für deinen nächsten Abschluss?</h2>
-          <p>Melde dich mit deinem bestehenden Administratorkonto an.</p>
+          <p>Melde dich mit deinem persönlichen neXaro Zugang an.</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -431,8 +446,7 @@ export default function App() {
             Mit Beispieldaten ansehen <ArrowRight size={15} />
           </button>
           <p className="login-security">
-            <ShieldCheck size={15} /> Persönlicher Login · Geschützte
-            Kundendaten
+            <ShieldCheck size={15} /> Persönlicher Login · Organisationsgeschützte Kundendaten
           </p>
         </div>
       </div>
