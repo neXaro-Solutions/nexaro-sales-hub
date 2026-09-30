@@ -2,6 +2,7 @@
   "use strict";
   const params=new URLSearchParams(location.search);
   if(params.get("demo")!=="1")return;
+  if(navigator.webdriver)return;
 
   const scenes=[
     {page:"Übersicht",eyebrow:"01 · DEIN ARBEITSTAG",title:"Alles Wichtige beginnt an einem Ort.",copy:"Termine, offene Aufgaben, neue Anfragen und Vertriebskennzahlen liegen direkt vor dir – ohne zwischen Listen springen zu müssen.",benefit:"Sofort wissen, was heute wirklich zählt.",target:".nx-dashboard-shortcuts",action:"Klicke gern auf eine der Schnellaktionen."},
