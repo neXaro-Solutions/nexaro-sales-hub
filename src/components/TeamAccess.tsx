@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, UserPlus, Users, RefreshCw } from "lucide-react";
 import { client } from "../lib/client";
 import { Card, Badge } from "./UI";
+import "../team-access.css";
 
 type Role = "owner"|"admin"|"sales"|"field_sales"|"read_only";
 type Member = { user_id:string; email:string; role:Role; status:"active"|"invited"|"disabled"; created_at:string };
