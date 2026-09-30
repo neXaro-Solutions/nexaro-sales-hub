@@ -126,14 +126,35 @@ export function Modal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-head">
+      <div
+        className="modal-head"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          background: "var(--panel, #fff)",
+          paddingTop: "max(10px, env(safe-area-inset-top))",
+          paddingBottom: 10,
+        }}
+      >
         <h2>{title}</h2>
         <button
+          type="button"
           className="icon-button"
           onClick={onClose}
           aria-label="Schließen"
+          style={{
+            flexShrink: 0,
+            minWidth: 44,
+            minHeight: 44,
+            borderRadius: 999,
+            background: "rgba(255,255,255,.96)",
+            color: "#202421",
+            border: "1px solid rgba(32,36,33,.14)",
+            boxShadow: "0 4px 16px rgba(0,0,0,.12)",
+          }}
         >
-          <X />
+          <X size={22} />
         </button>
       </div>
       {children}
