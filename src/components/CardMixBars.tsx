@@ -12,12 +12,15 @@ const whole=(value:number)=>Math.max(0,Math.round(Number.isFinite(value)?value:0
 export function CardMixBars({debitShare,debitRate,creditRate,onDebitShare,onDebitRate,onCreditRate}:Props){
   const [transactions,setTransactions]=useState(()=>getMonthlyTransactions());
   const previousTransactions=useRef(transactions);
-  useEffect(()=>subscribeMonthlyTransactions((value,source)=>{
-    const previous=previousTransactions.current;
-    previousTransactions.current=value;
-    setTransactions(value);
-    if(source==="user"&&previous<=0&&value>0)onDebitShare(90);
-  }),[onDebitShare]);
+  useEffect(()=>{
+    const unsubscribe=subscribeMonthlyTransactions((value,source)=>{
+      const previous=previousTransactions.current;
+      previousTransactions.current=value;
+      setTransactions(value);
+      if(source==="user"&&previous<=0&&value>0)onDebitShare(90);
+    });
+    return ()=>{unsubscribe();};
+  },[onDebitShare]);
 
   const debit=Math.max(0,Math.min(100,Number.isFinite(debitShare)?debitShare:90));
   const credit=100-debit;
