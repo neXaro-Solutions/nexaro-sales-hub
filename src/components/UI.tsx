@@ -111,7 +111,9 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    ref.current?.showModal();
+    const dialog = ref.current;
+    dialog?.showModal();
+    if (dialog) dialog.scrollTop = 0;
     const old = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -125,16 +127,24 @@ export function Modal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      style={{
+        maxHeight: "calc(100dvh - 16px)",
+        overflowY: "auto",
+        overscrollBehavior: "contain",
+        WebkitOverflowScrolling: "touch",
+        scrollPaddingTop: 76,
+      }}
     >
       <div
         className="modal-head"
         style={{
           position: "sticky",
           top: 0,
-          zIndex: 20,
+          zIndex: 100,
           background: "var(--panel, #fff)",
           paddingTop: "max(10px, env(safe-area-inset-top))",
           paddingBottom: 10,
+          boxShadow: "0 1px 0 rgba(32,36,33,.10)",
         }}
       >
         <h2>{title}</h2>
@@ -143,18 +153,20 @@ export function Modal({
           className="icon-button"
           onClick={onClose}
           aria-label="Schließen"
+          title="Schließen"
           style={{
             flexShrink: 0,
-            minWidth: 44,
-            minHeight: 44,
+            minWidth: 48,
+            minHeight: 48,
             borderRadius: 999,
-            background: "rgba(255,255,255,.96)",
+            background: "rgba(255,255,255,.98)",
             color: "#202421",
-            border: "1px solid rgba(32,36,33,.14)",
-            boxShadow: "0 4px 16px rgba(0,0,0,.12)",
+            border: "1px solid rgba(32,36,33,.18)",
+            boxShadow: "0 4px 16px rgba(0,0,0,.14)",
+            touchAction: "manipulation",
           }}
         >
-          <X size={22} />
+          <X size={24} strokeWidth={2.5} />
         </button>
       </div>
       {children}
