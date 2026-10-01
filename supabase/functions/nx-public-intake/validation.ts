@@ -34,5 +34,12 @@ export function validatePayload(input: unknown) {
     message: text("message", 3000),
     consent: true,
     interest: p.interest,
+    utm_source: text("utm_source", 100),
+    utm_medium: text("utm_medium", 100),
+    utm_campaign: text("utm_campaign", 200),
+    utm_term: text("utm_term", 200),
+    utm_content: text("utm_content", 200),
+    gclid: text("gclid", 255),
+    landing_page: text("landing_page", 500),
   };
 }
