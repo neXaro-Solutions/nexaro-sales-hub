@@ -30,6 +30,15 @@ export type Customer = Base & {
   notes: string;
   lat: number | null;
   lng: number | null;
+  acquisition_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+  gclid?: string;
+  landing_page?: string;
+  lead_status?: Stage;
+  conversion_value?: number;
 };
 export type Opportunity = Base & {
   customer_id: string;
