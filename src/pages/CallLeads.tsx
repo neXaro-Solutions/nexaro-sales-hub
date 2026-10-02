@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Building2, CalendarClock, CheckCircle2, Globe2, Mail, Maximize2, Minimize2, Phone, RefreshCw, Shuffle, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, Globe2, Mail, Maximize2, Minimize2, Phone, RefreshCw, Shuffle, XCircle } from "lucide-react";
 import { client } from "../lib/client";
+import { useStore } from "../lib/store";
 
 type CallLead = {
   id: string;
@@ -33,6 +34,9 @@ type SalesAutomation = {
   stop_reason: string | null;
 };
 
+type ScheduleMode = "callback" | "appointment";
+type ScheduleDraft = { mode: ScheduleMode; lead: CallLead };
+
 const openers = [
   "Hallo, Sebastian Pötschke von neXaro Solutions. Wissen Sie aktuell genau, was Sie Ihre Kartenzahlungen im Monat kosten?",
   "Hallo, Sebastian Pötschke von neXaro Solutions. Ich melde mich kurz zum Thema Kartenzahlung – wann haben Sie Ihre aktuellen Kosten zuletzt wirklich verglichen?",
@@ -64,17 +68,26 @@ function websiteHref(value: string | null) {
   if (!value) return "";
   try { return new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`).toString(); } catch { return ""; }
 }
-function companyVisual(lead: CallLead) {
-  const site = websiteHref(lead.website);
-  if (!site) return "";
-  try { return new URL("/favicon.ico", site).toString(); } catch { return ""; }
-}
 function openerFor(lead: CallLead, offset = 0) {
   const seed = Array.from(lead.id).reduce((sum, char) => sum + char.charCodeAt(0), 0);
   return openers[(seed + offset) % openers.length];
 }
+function localDateTimeValue(offsetMinutes = 60) {
+  const date = new Date(Date.now() + offsetMinutes * 60000);
+  const parts = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(date);
+  return parts.replace(" ", "T");
+}
+function addressParts(lead: CallLead) {
+  const raw = (lead.address || "").trim();
+  const match = raw.match(/^(.+?),\s*(\d{5})\s+(.+)$/);
+  if (match) return { street: match[1].trim(), zip: match[2], city: match[3].trim() };
+  return { street: raw, zip: "", city: (lead.city || "").trim() };
+}
 
 export function CallLeads() {
+  const { data: crmData, save } = useStore();
   const [rows, setRows] = useState<CallLead[]>([]);
   const [queueTotal, setQueueTotal] = useState(0);
   const [automations, setAutomations] = useState<Record<string, SalesAutomation>>({});
@@ -89,6 +102,8 @@ export function CallLeads() {
   const [dragX, setDragX] = useState(0);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [schedule, setSchedule] = useState<ScheduleDraft | null>(null);
+  const [scheduleAt, setScheduleAt] = useState("");
   const pointerStart = useRef<{x:number;y:number}|null>(null);
   const modeRef = useRef<HTMLDivElement>(null);
   const today = berlinDate();
@@ -119,9 +134,9 @@ export function CallLeads() {
 
   useEffect(() => { void load(); }, []);
   useEffect(() => {
-    const onFullscreen = () => { if (!document.fullscreenElement && callMode) setCallMode(false); };
+    const onFullscreen = () => { if (!document.fullscreenElement && callMode && !schedule) setCallMode(false); };
     document.addEventListener("fullscreenchange", onFullscreen); return () => document.removeEventListener("fullscreenchange", onFullscreen);
-  }, [callMode]);
+  }, [callMode, schedule]);
 
   async function setStatus(lead: CallLead, status: CallLead["status"], note?: string) {
     if (busy) return false;
@@ -170,14 +185,109 @@ export function CallLeads() {
     resetSwipe();
     setCurrentIndex(index => rows.length ? (index - 1 + rows.length) % rows.length : 0);
   }
-  async function actionAndAdvance(action: "info" | "callback" | "appointment" | "lost") {
+  async function actionAndAdvance(action: "info" | "lost") {
     const lead = rows[currentIndex]; if (!lead || busy) return;
     let ok = false;
     if (action === "info") ok = await startInfoFunnel(lead);
-    if (action === "callback") ok = await setStatus(lead, "kontaktiert", "Rückruf vereinbart / erforderlich.");
-    if (action === "appointment") ok = await setStatus(lead, "termin", "Termin aus Telefongespräch vorgemerkt; Terminangaben anschließend im Kalender erfassen.");
     if (action === "lost") ok = await setStatus(lead, "verloren", "Kein Interesse im Telefongespräch dokumentiert.");
     if (ok) nextCard();
+  }
+  function openSchedule(mode: ScheduleMode) {
+    const lead = rows[currentIndex];
+    if (!lead || busy) return;
+    setError(""); setNotice("");
+    setSchedule({ mode, lead });
+    setScheduleAt(localDateTimeValue(mode === "callback" ? 60 : 24 * 60));
+  }
+  async function ensureCustomer(lead: CallLead) {
+    if (lead.customer_id) return lead.customer_id;
+    const email = (draftEmails[lead.id] || lead.email || "").trim().toLowerCase();
+    const phone = (lead.phone || "").trim();
+    const existing = crmData.customers.find(customer =>
+      (email && customer.email.trim().toLowerCase() === email) ||
+      (phone && customer.phone.trim() === phone) ||
+      customer.company.trim().toLowerCase() === lead.company.trim().toLowerCase()
+    );
+    if (existing) return existing.id;
+    const addr = addressParts(lead);
+    const customer = await save("customers", {
+      company: lead.company,
+      contact: "",
+      email,
+      phone,
+      website: lead.website || "",
+      street: addr.street,
+      zip: addr.zip,
+      city: addr.city || lead.city || "",
+      industry: lead.industry || "",
+      source: "Telefonlead",
+      acquisition_source: "Telefonakquise",
+      notes: "Automatisch aus dem neXaro Call Hunter übernommen.",
+      lat: null,
+      lng: null,
+      interests: ["sumup"],
+      lead_status: "Kontaktiert",
+      utm_medium: "",
+      utm_campaign: "",
+      utm_term: "",
+      utm_content: "",
+      gclid: "",
+      landing_page: "",
+      conversion_value: 0,
+    });
+    return customer.id;
+  }
+  async function saveSchedule() {
+    if (!schedule || busy || !scheduleAt) return;
+    const { lead, mode } = schedule;
+    setBusy(lead.id); setError(""); setNotice("");
+    try {
+      const customerId = await ensureCustomer(lead);
+      const email = (draftEmails[lead.id] || lead.email || "").trim().toLowerCase();
+      const due = new Date(scheduleAt);
+      if (Number.isNaN(due.getTime())) throw new Error("Bitte Datum und Uhrzeit prüfen.");
+      const dueAt = due.toISOString();
+      const address = place(lead);
+      const task = await save("tasks", {
+        customer_id: customerId,
+        division: "sumup",
+        due_at: dueAt,
+        kind: mode === "appointment" ? "Termin" : "Wiedervorlage",
+        title: `${mode === "appointment" ? "Kundentermin" : "Rückruf"} · ${lead.company}`,
+        notes: [
+          `Terminart: ${mode === "appointment" ? "Kundentermin vor Ort" : "Rückruf"}`,
+          `Telefon: ${lead.phone}`,
+          email ? `E-Mail: ${email}` : "",
+          address ? `Adresse: ${address}` : "",
+          `Quelle: neXaro Call Hunter · Telefonlead ${lead.id}`,
+        ].filter(Boolean).join("\n"),
+        done: false,
+      });
+      const now = new Date().toISOString();
+      const stamp = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(new Date());
+      const notes = [lead.notes?.trim(), `${stamp}: ${mode === "appointment" ? "Kundentermin" : "Rückruf"} im CRM-Kalender angelegt.`].filter(Boolean).join("\n").slice(0, 5000) || null;
+      const update = await client.from("nx_daily_call_leads").update({
+        status: mode === "appointment" ? "termin" : "kontaktiert",
+        customer_id: customerId,
+        email: email || lead.email,
+        callback_at: mode === "callback" ? dueAt : lead.callback_at,
+        last_contact_at: now,
+        notes,
+      }).eq("id", lead.id).select("id,created_at,batch_date,company,phone,email,website,city,industry,address,source,status,notes,customer_id,info_permission_at,info_permission_source,last_contact_at,callback_at").single();
+      if (update.error) throw update.error;
+      setRows(currentRows => currentRows.map(row => row.id === lead.id ? update.data as CallLead : row));
+      setSchedule(null);
+      setNotice(`${mode === "appointment" ? "Termin" : "Rückruf"} gespeichert: ${task.title}.`);
+      setCallMode(false);
+      if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch { /* ignore */ } }
+      window.setTimeout(() => {
+        const calendarButton = Array.from(document.querySelectorAll<HTMLButtonElement>("aside nav button"))
+          .find(button => button.textContent?.includes("Kalender"));
+        calendarButton?.click();
+      }, 0);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Kalendereintrag konnte nicht angelegt werden.");
+    } finally { setBusy(""); }
   }
   async function openMetric(kind: "all" | "open" | "contacted" | "backlog") {
     if (!rows.length) return;
@@ -195,10 +305,10 @@ export function CallLeads() {
     try { await modeRef.current?.requestFullscreen?.(); } catch { /* iOS/PWA may use CSS fullscreen instead */ }
   }
   async function stopCallMode() {
-    setCallMode(false); if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch { /* ignore */ } }
+    setSchedule(null); setCallMode(false); if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch { /* ignore */ } }
   }
   function onPointerDown(event: React.PointerEvent) {
-    if (busy) return; pointerStart.current = { x: event.clientX, y: event.clientY }; setDragging(true); event.currentTarget.setPointerCapture?.(event.pointerId);
+    if (busy || schedule) return; pointerStart.current = { x: event.clientX, y: event.clientY }; setDragging(true); event.currentTarget.setPointerCapture?.(event.pointerId);
   }
   function onPointerMove(event: React.PointerEvent) {
     if (!pointerStart.current || !dragging) return; setDragX(event.clientX - pointerStart.current.x); setDragY(event.clientY - pointerStart.current.y);
@@ -214,7 +324,6 @@ export function CallLeads() {
   const stats = useMemo(() => ({ total: rows.length, open: rows.filter(row => row.status === "neu").length, contacted: rows.filter(row => row.status === "kontaktiert" || automations[row.id]?.status === "active").length, done: rows.filter(row => ["termin", "angebot", "gewonnen", "verloren"].includes(row.status)).length }), [rows, automations]);
   const current = rows[currentIndex] || rows[0];
   const currentAutomation = current ? automations[current.id] : undefined;
-  const currentImage = current ? companyVisual(current) : "";
   const currentWebsite = current ? websiteHref(current.website) : "";
   const isCarryover = current ? current.batch_date < today && current.status === "neu" : false;
   const rotation = Math.max(-9, Math.min(9, dragX / 18));
@@ -245,7 +354,6 @@ export function CallLeads() {
           <article className={"nx-swipe-card " + (dragging ? "is-dragging" : "")} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { pointerStart.current = null; setDragging(false); setDragX(0); setDragY(0); }} style={{ transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${rotation}deg)` }}>
             {dragX > 45 && <div className="nx-swipe-stamp nx-swipe-stamp-right">WEITER</div>}{dragX < -45 && <div className="nx-swipe-stamp nx-swipe-stamp-left">ZURÜCK</div>}
             <div className="nx-company-visual">
-              {currentImage ? <img src={currentImage} alt="" onError={event => { event.currentTarget.style.display = "none"; event.currentTarget.parentElement?.classList.add("fallback"); }} /> : <Building2 size={68}/>} 
               <div className="nx-company-overlay"><span>{current.industry || "Gewerbe"}</span><h1>{current.company}</h1><p>{place(current) || current.city || "Region Brandenburg"}</p></div>
             </div>
             <div className="nx-swipe-content">
@@ -258,9 +366,26 @@ export function CallLeads() {
           </article>
         </main>
         <div className="nx-swipe-actions"><button className="lost" disabled={!!busy} onClick={() => void actionAndAdvance("lost")}><XCircle/><span>Kein Interesse</span></button><a className="call" href={`tel:${current.phone}`}><Phone/><span>Anrufen</span></a><button className="info" disabled={!!busy || currentAutomation?.status === "active"} onClick={() => void actionAndAdvance("info")}><Mail/><span>Infos senden</span></button></div>
-        <div className="nx-swipe-secondary"><button disabled={!!busy} onClick={() => void actionAndAdvance("callback")}><CalendarClock size={17}/> Rückruf</button><button disabled={!!busy} onClick={() => void actionAndAdvance("appointment")}><CheckCircle2 size={17}/> Termin</button></div>
+        <div className="nx-swipe-secondary"><button disabled={!!busy} onClick={() => openSchedule("callback")}><CalendarClock size={17}/> Rückruf</button><button disabled={!!busy} onClick={() => openSchedule("appointment")}><CheckCircle2 size={17}/> Termin</button></div>
         <footer className="nx-swipe-hints"><span>← Vorheriger Kontakt</span><span>Aktion per Button</span><span>Nächster Kontakt →</span></footer>
         {(notice || error) && <div className={"nx-call-mode-toast " + (error ? "error" : "")}>{error || notice}</div>}
+        {schedule && <div className="nx-call-schedule-backdrop" onPointerDown={event => event.stopPropagation()}>
+          <section className="nx-call-schedule" role="dialog" aria-modal="true" aria-label={schedule.mode === "callback" ? "Rückruf planen" : "Kundentermin planen"}>
+            <span className="eyebrow">{schedule.mode === "callback" ? "RÜCKRUF" : "KUNDENTERMIN"}</span>
+            <h2>{schedule.lead.company}</h2>
+            <p>{schedule.mode === "callback" ? "Telefonischer Rückruf mit vollständigem Kundenbezug." : "Termin vor Ort mit vollständiger Firmenadresse."}</p>
+            <div className="nx-call-schedule-contact">
+              <span>☎ {schedule.lead.phone}</span>
+              {(draftEmails[schedule.lead.id] || schedule.lead.email) && <span>✉ {draftEmails[schedule.lead.id] || schedule.lead.email}</span>}
+              {place(schedule.lead) && <span>⌖ {place(schedule.lead)}</span>}
+            </div>
+            <label>Datum & Uhrzeit<input type="datetime-local" value={scheduleAt} onChange={event => setScheduleAt(event.target.value)} /></label>
+            <div className="nx-call-schedule-actions">
+              <button type="button" className="secondary" disabled={!!busy} onClick={() => setSchedule(null)}>Abbrechen</button>
+              <button type="button" className="primary" disabled={!!busy || !scheduleAt} onClick={() => void saveSchedule()}>{busy ? "Wird angelegt …" : "Im Kalender anlegen"}</button>
+            </div>
+          </section>
+        </div>}
       </>}
     </div>
   </>;
