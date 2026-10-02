@@ -1,8 +1,58 @@
-/* Final Call Hunter email placement override.
-   Loaded last so the email field stays visible before the sales opener on iPhone/Safari. */
+/* Final Call Hunter mobile layout override.
+   Loaded last so iPhone/Safari keeps email before the opener and the useful
+   sales content remains visible above the fixed action bar. */
 .nx-swipe-content{display:flex!important;flex-direction:column!important}
 .nx-company-meta{order:1!important}
 .nx-carryover-pill{order:2!important}
-.nx-call-email-mode{order:3!important;margin-top:14px!important;margin-bottom:2px!important;padding:12px 14px!important;background:#fffdf9!important;border:1px solid #d8e4be!important;border-radius:14px!important}
+.nx-call-email-mode{order:3!important;margin-top:10px!important;margin-bottom:0!important;padding:10px 12px!important;background:#fffdf9!important;border:1px solid #d8e4be!important;border-radius:14px!important}
 .nx-opener-box{order:4!important}
 .nx-call-funnel-state{order:5!important}
+
+@media(max-width:760px){
+  .nx-swipe-card:not(.nx-swipe-card-back){scroll-padding-bottom:180px!important}
+  .nx-company-visual{height:180px!important;min-height:180px!important;max-height:180px!important;display:block!important;position:relative!important}
+  .nx-company-visual img{position:absolute!important;right:18px!important;top:22px!important;width:72px!important;height:72px!important;border-radius:18px!important;padding:10px!important;opacity:.88!important}
+  .nx-company-overlay{padding:18px 112px 16px 16px!important;background:linear-gradient(90deg,rgba(255,253,249,.98) 0%,rgba(255,253,249,.94) 72%,rgba(255,253,249,.38) 100%)!important;top:0!important;bottom:0!important;display:flex!important;flex-direction:column!important;justify-content:flex-end!important}
+  .nx-company-overlay span{align-self:flex-start!important;font-size:.64rem!important;padding:4px 8px!important;margin-bottom:5px!important}
+  .nx-company-overlay h1{font-size:1.42rem!important;line-height:1.02!important;margin:4px 0 4px!important;letter-spacing:-.035em!important}
+  .nx-company-overlay p{font-size:.78rem!important;line-height:1.25!important;margin:0!important}
+
+  .nx-swipe-content{padding:10px 12px 16px!important}
+  .nx-company-meta{gap:6px!important}
+  .nx-company-meta a{padding:7px 9px!important;border-radius:9px!important;font-size:.82rem!important}
+  .nx-carryover-pill{margin-top:7px!important;padding:5px 8px!important;font-size:.7rem!important}
+
+  .nx-call-email-mode{margin-top:8px!important;padding:8px 10px!important;border-radius:12px!important}
+  .nx-call-email-field{gap:4px!important;margin-top:0!important}
+  .nx-call-email-field>span{font-size:.72rem!important;line-height:1.2!important;font-weight:800!important}
+  .nx-call-email-field input{min-height:36px!important;height:36px!important;padding:6px 9px!important;font-size:.88rem!important;border-radius:9px!important}
+
+  .nx-opener-box{margin-top:8px!important;padding:10px 11px!important;border-radius:14px!important}
+  .nx-opener-box>div{gap:8px!important}
+  .nx-opener-box .eyebrow{font-size:.66rem!important;letter-spacing:.14em!important}
+  .nx-opener-box button{font-size:.78rem!important;padding:3px!important}
+  .nx-opener-box>p{margin-top:7px!important;font-size:.9rem!important;line-height:1.34!important}
+  .nx-opener-box>p::after{margin-top:8px!important;padding:8px 9px!important;font-size:.72rem!important;line-height:1.38!important;border-radius:10px!important}
+  .nx-opener-box details{margin-top:8px!important;padding-top:7px!important}
+  .nx-opener-box summary{font-size:.78rem!important}
+  .nx-opener-box details p{font-size:.78rem!important;line-height:1.35!important}
+
+  .nx-call-funnel-state{margin-top:8px!important;padding:8px 10px!important;border-radius:10px!important}
+  .nx-call-funnel-state strong{font-size:.8rem!important}
+  .nx-call-funnel-state span{font-size:.72rem!important}
+}
+
+@media(max-width:430px){
+  .nx-call-mode-header{padding-top:max(12px,env(safe-area-inset-top))!important;padding-bottom:9px!important}
+  .nx-call-mode-header strong{font-size:1.35rem!important}
+  .nx-company-visual{height:165px!important;min-height:165px!important;max-height:165px!important}
+  .nx-company-visual img{width:64px!important;height:64px!important;right:14px!important;top:18px!important}
+  .nx-company-overlay{padding:14px 92px 13px 14px!important}
+  .nx-company-overlay h1{font-size:1.28rem!important}
+  .nx-company-overlay p{font-size:.72rem!important}
+  .nx-swipe-content{padding:8px 10px 14px!important}
+  .nx-call-email-mode{margin-top:7px!important;padding:7px 9px!important}
+  .nx-opener-box{margin-top:7px!important;padding:9px 10px!important}
+  .nx-opener-box>p{font-size:.85rem!important;line-height:1.3!important}
+  .nx-opener-box>p::after{font-size:.69rem!important;padding:7px 8px!important;line-height:1.34!important}
+}
