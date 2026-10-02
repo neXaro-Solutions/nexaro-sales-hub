@@ -61,6 +61,21 @@
 .nx-opener-box .eyebrow{color:#4d620c}
 .nx-opener-box button{color:#4d620c}
 .nx-opener-box details{border-top-color:#cfe68b}
+.nx-opener-box>p::after{
+  content:"BEDARF KLÄREN\A• Welchen Anbieter nutzen Sie aktuell?\A• Gibt es Grund- oder Mietgebühren?\A• Kennen Sie ungefähr Ihren monatlichen Kartenumsatz?";
+  white-space:pre-line;
+  display:block;
+  margin-top:14px;
+  padding:12px 13px;
+  border-radius:12px;
+  background:#fffdf9;
+  border:1px solid #d7e4ad;
+  color:#3f4d38;
+  font-size:.86rem;
+  line-height:1.55;
+  font-weight:700;
+}
+.nx-opener-box summary{color:#263021}
 .nx-call-email-field>span{color:#4b5643}
 .nx-call-email-field input{background:#fffdf9;border-color:#d8e4be;color:var(--nx-ink)}
 .nx-call-email-field input:focus{outline:3px solid #ff6b0030;border-color:#ad4a00}
@@ -81,3 +96,14 @@
 .nx-swipe-stamp-up{color:#4d620c;border-color:var(--nx-lime);background:#f4ffdf}
 .nx-call-mode-toast{background:#252724;color:#fffdf9;border-bottom:4px solid var(--nx-lime)}
 .nx-call-mode-toast.error{background:#8f2c22;border-bottom-color:var(--nx-orange)}
+
+@media(max-width:760px){
+  .nx-company-visual{height:25vh;min-height:185px;max-height:265px}
+  .nx-swipe-content{padding-top:12px}
+  .nx-call-email-mode{margin-top:10px;padding:10px 12px}
+  .nx-call-email-field>span{font-size:.82rem}
+  .nx-call-email-field input{min-height:40px;padding:8px 10px}
+  .nx-opener-box{margin-top:11px;padding:13px}
+  .nx-opener-box>p{line-height:1.42}
+  .nx-opener-box>p::after{font-size:.8rem;padding:10px 11px;margin-top:11px}
+}
