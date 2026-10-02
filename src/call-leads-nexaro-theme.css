@@ -107,3 +107,34 @@
   .nx-opener-box>p{line-height:1.42}
   .nx-opener-box>p::after{font-size:.8rem;padding:10px 11px;margin-top:11px}
 }
+
+/* iPhone call-first density: keep opener and qualification visible above fixed actions */
+@media(max-width:430px){
+  .nx-call-mode-header{padding-top:max(10px,env(safe-area-inset-top));padding-bottom:8px}
+  .nx-call-mode-header strong{font-size:1.35rem}
+  .nx-company-visual{height:148px!important;min-height:148px!important;max-height:148px!important;display:block!important}
+  .nx-company-visual img{width:64px!important;height:64px!important;padding:8px!important;border-radius:16px!important;position:absolute;right:18px;top:18px}
+  .nx-company-overlay{padding:40px 14px 12px!important;background:linear-gradient(transparent 0%,rgba(255,253,249,.86) 24%,#fffdf9 58%)!important}
+  .nx-company-overlay span{padding:4px 8px;font-size:.61rem}
+  .nx-company-overlay h1{margin:6px 0 2px!important;font-size:1.42rem!important;line-height:1.02!important;max-width:82%}
+  .nx-company-overlay p{font-size:.76rem!important;line-height:1.2!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nx-swipe-content{padding:8px 11px 12px!important}
+  .nx-company-meta{gap:6px!important}
+  .nx-company-meta a{padding:6px 9px!important;border-radius:9px!important;font-size:.77rem!important}
+  .nx-company-meta a svg{width:16px!important;height:16px!important}
+  .nx-call-email-mode{margin-top:6px!important;padding:7px 9px!important;border-radius:11px!important}
+  .nx-call-email-field{gap:4px!important;margin-top:0!important}
+  .nx-call-email-field>span{font-size:.68rem!important;line-height:1.18!important}
+  .nx-call-email-field>span svg{width:15px!important;height:15px!important}
+  .nx-call-email-field input{min-height:34px!important;height:34px!important;padding:5px 8px!important;border-radius:9px!important;font-size:.81rem!important}
+  .nx-opener-box{margin-top:7px!important;padding:9px 10px!important;border-radius:13px!important}
+  .nx-opener-box>div{gap:6px!important}
+  .nx-opener-box .eyebrow{font-size:.62rem!important;letter-spacing:.12em}
+  .nx-opener-box button{font-size:.73rem!important;padding:2px 3px!important}
+  .nx-opener-box>p{margin-top:6px!important;font-size:.84rem!important;line-height:1.31!important}
+  .nx-opener-box>p::after{content:"BEDARF KLÄREN\A• Anbieter aktuell?  • Grund-/Mietgebühr?\A• Monatlicher Kartenumsatz ungefähr?"!important;margin-top:7px!important;padding:7px 8px!important;border-radius:9px!important;font-size:.68rem!important;line-height:1.35!important}
+  .nx-opener-box details{margin-top:6px!important;padding-top:6px!important}
+  .nx-opener-box summary{font-size:.74rem!important}
+  .nx-opener-box details p{font-size:.72rem!important;line-height:1.3!important;margin-top:4px!important}
+  .nx-call-funnel-state{margin-top:7px!important;padding:7px 9px!important}
+}
