@@ -14,9 +14,9 @@ type PageId = (typeof allPages)[number];
 
 const pagesByRole: Record<OrganizationRole, readonly PageId[]> = {
   owner: allPages,
-  admin: ["dashboard","customers","hunter","calendar","sumup","vape","software","offers","knowledge","tasks","settings"],
-  sales: ["dashboard","customers","calendar","sumup","vape","software","offers","knowledge","tasks"],
-  field_sales: ["dashboard","customers","hunter","calendar","sumup","knowledge","tasks"],
+  admin: ["dashboard","customers","hunter","call_leads","calendar","sumup","vape","software","offers","knowledge","tasks","settings"],
+  sales: ["dashboard","customers","call_leads","calendar","sumup","vape","software","offers","knowledge","tasks"],
+  field_sales: ["dashboard","customers","hunter","call_leads","calendar","sumup","knowledge","tasks"],
   read_only: ["dashboard","customers","hunter","calendar","sumup","vape","software","offers","knowledge","tasks"],
 };
 
