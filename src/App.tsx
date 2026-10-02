@@ -2,7 +2,7 @@ import { useEffect, useState, Component, type ReactNode } from "react";
 import {
   LayoutDashboard, House, ChevronRight, Users, CreditCard, Package, Crosshair,
   CheckSquare, CalendarDays, FileText, BookOpen, Settings as SettingsIcon,
-  LogOut, Menu, X, ShieldCheck, ArrowRight, RefreshCw, LockKeyhole,
+  LogOut, Menu, X, ShieldCheck, ArrowRight, RefreshCw, LockKeyhole, Phone,
 } from "lucide-react";
 import { client } from "./lib/client";
 import { NotificationCenter } from "./components/NotificationCenter";
@@ -16,6 +16,7 @@ import { Customers } from "./pages/Customers";
 import { Sumup } from "./pages/Sumup";
 import { Dealers } from "./pages/Dealers";
 import { Hunter } from "./pages/Hunter";
+import { CallLeads } from "./pages/CallLeads";
 import { Tasks } from "./pages/Tasks";
 import { Offers } from "./pages/Offers";
 import { KnowledgeBase } from "./pages/KnowledgeBase";
@@ -27,6 +28,7 @@ const nav = [
   { id: "dashboard", label: "Übersicht", icon: LayoutDashboard },
   { id: "customers", label: "Kunden & Leads", icon: Users },
   { id: "hunter", label: "Außendienst · HUNTER", icon: Crosshair },
+  { id: "call_leads", label: "Telefonleads", icon: Phone, subnav: true },
   { id: "calendar", label: "Kalender", icon: CalendarDays },
   { id: "sumup", label: "SumUp", icon: CreditCard },
   { id: "vape", label: "Vape", icon: Package },
@@ -102,7 +104,7 @@ function Shell({ onLogout, role }: { onLogout: () => void; role: OrganizationRol
         {visibleNav.map(n => <div key={n.id}>
           {n.id === "sumup" && <span className="nav-section">VERTRIEBSBEREICHE</span>}
           {n.id === "knowledge" && <span className="nav-section">ORGANISATION</span>}
-          <button className={page === n.id ? "active" : ""} onClick={() => navigate(n.id)}>
+          <button className={(page === n.id ? "active " : "") + (n.subnav ? "nav-subitem" : "")} onClick={() => navigate(n.id)}>
             <n.icon size={19} />{n.label}
             {n.id === "tasks" && data.tasks.some(t => !t.done) && <span className="nav-count">{data.tasks.filter(t => !t.done).length}</span>}
           </button>
@@ -145,6 +147,7 @@ function Shell({ onLogout, role }: { onLogout: () => void; role: OrganizationRol
           {page === "tasks" && <Tasks />} 
           {page === "calendar" && <DashboardCalendar newTask={openNewTask} navigate={navigate} />} 
           {page === "hunter" && <Hunter key={hunterStart} initialTab={hunterStart}/>} 
+          {page === "call_leads" && <CallLeads />} 
           {page === "offers" && <Offers />} 
           {page === "knowledge" && <KnowledgeBase />} 
           {page === "settings" && <Settings />}
