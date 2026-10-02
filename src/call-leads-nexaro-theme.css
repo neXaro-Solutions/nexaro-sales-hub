@@ -51,6 +51,12 @@
 .nx-company-meta a{background:#f3f8e8;color:#263021;border:1px solid #d6e3bc}
 .nx-carryover-pill{background:#fff0e5;color:#944016;border-color:#ffd0b0}
 
+.nx-swipe-content{display:flex;flex-direction:column}
+.nx-company-meta{order:1}
+.nx-carryover-pill{order:2}
+.nx-call-email-mode{order:3;margin-top:14px;margin-bottom:2px;padding:12px 14px;background:#fffdf9;border:1px solid #d8e4be;border-radius:14px}
+.nx-opener-box{order:4}
+.nx-call-funnel-state{order:5}
 .nx-opener-box{background:var(--nx-lime-pale);border:1px solid #cfe68b;border-left:5px solid var(--nx-lime)}
 .nx-opener-box .eyebrow{color:#4d620c}
 .nx-opener-box button{color:#4d620c}
