@@ -52,6 +52,24 @@
   }
 }
 
+.nx-call-metric-card {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.nx-call-metric-card:hover,
+.nx-call-metric-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: #ff9c63;
+  box-shadow: 0 8px 22px rgba(32,36,33,.08);
+  outline: none;
+}
+.nx-call-metric-card:active { transform: scale(.985); }
+
 @media (max-width: 430px) {
   @supports (-webkit-touch-callout: none) {
     .nx-swipe-card:not(.nx-swipe-card-back) {
