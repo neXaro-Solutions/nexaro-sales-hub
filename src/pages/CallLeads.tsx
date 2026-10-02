@@ -146,7 +146,7 @@ export function CallLeads() {
       if (email !== (lead.email || "").trim().toLowerCase()) {
         const saved = await client.from("nx_daily_call_leads").update({ email }).eq("id", lead.id).select("id").single(); if (saved.error) throw saved.error;
       }
-      const { data, error } = await client.functions.invoke("nx-sales-funnel", { body: { action: "start", leadId: lead.id, consentConfirmed: true } });
+      const { data, error } = await client.functions.invoke("nx-sales-funnel-web", { body: { action: "start", leadId: lead.id, consentConfirmed: true } });
       if (error || !data?.ok) {
         let detail = data?.error || "Der neXaro-Mailfunnel konnte nicht gestartet werden.";
         try { if (!data?.error && error && "context" in error) detail = (await (error as any).context.json())?.error || detail; } catch { /* fallback */ }
