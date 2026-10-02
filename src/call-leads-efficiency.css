@@ -151,3 +151,52 @@ html body .nx-call-mode .nx-swipe-card .nx-company-visual > img {
   pointer-events:none!important;
   overflow:hidden!important;
 }
+
+/* Call Hunter -> CRM calendar bridge. */
+.nx-call-schedule-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:10040;
+  display:grid;
+  place-items:end center;
+  padding:16px;
+  padding-bottom:max(16px,env(safe-area-inset-bottom));
+  background:rgba(20,27,22,.42);
+  backdrop-filter:blur(5px);
+}
+.nx-call-schedule{
+  width:min(100%,520px);
+  background:#fffdf9;
+  border:1px solid #dce7c8;
+  border-radius:22px;
+  box-shadow:0 22px 70px rgba(21,28,23,.22);
+  padding:18px;
+  color:#202421;
+}
+.nx-call-schedule h2{margin:5px 0 4px;font-size:1.35rem;line-height:1.05}
+.nx-call-schedule>p{margin:0 0 12px;color:#64705f;font-weight:650}
+.nx-call-schedule-contact{
+  display:grid;
+  gap:6px;
+  margin:0 0 14px;
+  padding:11px 12px;
+  background:#f7ffe8;
+  border:1px solid #d7e7b8;
+  border-radius:12px;
+  font-size:.82rem;
+  font-weight:750;
+  overflow-wrap:anywhere;
+}
+.nx-call-schedule label{display:grid;gap:7px;font-weight:850;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+.nx-call-schedule input[type="datetime-local"]{
+  width:100%;
+  min-height:48px;
+  border:1px solid #cad9ad;
+  border-radius:12px;
+  background:#fff;
+  padding:9px 11px;
+  font-size:16px;
+  color:#202421;
+}
+.nx-call-schedule-actions{display:grid;grid-template-columns:1fr 1.45fr;gap:8px;margin-top:14px}
+.nx-call-schedule-actions button{min-height:46px;border-radius:12px;font-weight:850}
