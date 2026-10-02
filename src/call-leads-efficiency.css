@@ -60,7 +60,7 @@
   }
   .nx-carryover-pill{margin-top:0!important;padding:5px 8px!important;font-size:.68rem!important}
 
-  /* Email becomes a compact control. 16px prevents Safari auto-zoom on focus. */
+  /* Email becomes a compact control. 18px plus viewport guard prevents Safari focus zoom. */
   .nx-call-email-mode{
     margin:0!important;
     padding:8px 10px!important;
@@ -73,16 +73,17 @@
   .nx-call-email-field:before{content:"✉";grid-area:icon!important;align-self:center!important;font-size:1rem!important;opacity:.72}
   .nx-call-email-field input{
     grid-area:input!important;
-    min-height:34px!important;
-    height:34px!important;
+    min-height:38px!important;
+    height:38px!important;
     padding:4px 6px!important;
     border:0!important;
     border-radius:6px!important;
     background:#fff!important;
-    font-size:16px!important;
+    font-size:18px!important;
     line-height:1.2!important;
     font-weight:800!important;
     -webkit-text-size-adjust:100%!important;
+    text-size-adjust:100%!important;
     touch-action:manipulation!important;
   }
 
@@ -133,7 +134,7 @@
   .nx-company-overlay h1{font-size:1.16rem!important}
   .nx-swipe-content{padding:8px 10px 12px!important;gap:7px!important}
   .nx-opener-box>p{font-size:.86rem!important}
-  .nx-call-email-field input{font-size:16px!important}
+  .nx-call-email-field input{font-size:18px!important}
 }
 
 /* Final hard guard: company media must never render in Call Hunter. */
