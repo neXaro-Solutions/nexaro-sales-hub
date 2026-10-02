@@ -4,7 +4,7 @@
   .nx-swipe-stage{padding-top:4px!important;padding-bottom:4px!important}
   .nx-swipe-card:not(.nx-swipe-card-back){border-radius:18px!important}
 
-  /* Company summary: no company photo/logo; only compact identity information. */
+  /* Company summary: no company photo/logo/icon; only compact identity information. */
   .nx-company-visual{
     height:104px!important;
     min-height:104px!important;
@@ -13,7 +13,8 @@
     padding:0!important;
     background:linear-gradient(135deg,#f7ffe8 0%,#fff7ef 100%)!important;
   }
-  .nx-company-visual img{display:none!important}
+  .nx-company-visual img,
+  .nx-company-visual>svg{display:none!important}
   .nx-company-overlay{
     inset:0!important;
     padding:12px 14px!important;
