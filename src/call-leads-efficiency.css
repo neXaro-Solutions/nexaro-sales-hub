@@ -135,3 +135,18 @@
   .nx-opener-box>p{font-size:.86rem!important}
   .nx-call-email-field input{font-size:16px!important}
 }
+
+/* Final hard guard: company media must never render in Call Hunter. */
+html body .nx-call-mode .nx-swipe-card .nx-company-visual > svg,
+html body .nx-call-mode .nx-swipe-card .nx-company-visual > img {
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  width:0!important;
+  height:0!important;
+  max-width:0!important;
+  max-height:0!important;
+  position:absolute!important;
+  pointer-events:none!important;
+  overflow:hidden!important;
+}
