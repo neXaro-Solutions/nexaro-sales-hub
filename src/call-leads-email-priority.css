@@ -1,0 +1,8 @@
+/* Final Call Hunter email placement override.
+   Loaded last so the email field stays visible before the sales opener on iPhone/Safari. */
+.nx-swipe-content{display:flex!important;flex-direction:column!important}
+.nx-company-meta{order:1!important}
+.nx-carryover-pill{order:2!important}
+.nx-call-email-mode{order:3!important;margin-top:14px!important;margin-bottom:2px!important;padding:12px 14px!important;background:#fffdf9!important;border:1px solid #d8e4be!important;border-radius:14px!important}
+.nx-opener-box{order:4!important}
+.nx-call-funnel-state{order:5!important}
