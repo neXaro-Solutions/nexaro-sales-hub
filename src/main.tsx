@@ -6,6 +6,7 @@ import "./light.css";
 import "./access.css";
 import "./call-leads.css";
 import "./call-leads-ios-fix.css";
+import "./call-leads-nexaro-theme.css";
 import { installSelectOnFocus } from "./lib/focusInputs";
 installSelectOnFocus();
 createRoot(document.getElementById("root")!).render(
