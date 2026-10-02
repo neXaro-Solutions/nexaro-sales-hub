@@ -8,13 +8,13 @@ export const roleLabels: Record<OrganizationRole, string> = {
   read_only: "Nur Lesen",
 };
 
-const allPages = ["dashboard","customers","hunter","calendar","sumup","vape","software","offers","knowledge","tasks","settings"] as const;
+const allPages = ["dashboard","customers","hunter","call_leads","calendar","sumup","vape","software","offers","knowledge","tasks","settings"] as const;
 
 type PageId = (typeof allPages)[number];
 
 const pagesByRole: Record<OrganizationRole, readonly PageId[]> = {
   owner: allPages,
-  admin: allPages,
+  admin: ["dashboard","customers","hunter","calendar","sumup","vape","software","offers","knowledge","tasks","settings"],
   sales: ["dashboard","customers","calendar","sumup","vape","software","offers","knowledge","tasks"],
   field_sales: ["dashboard","customers","hunter","calendar","sumup","knowledge","tasks"],
   read_only: ["dashboard","customers","hunter","calendar","sumup","vape","software","offers","knowledge","tasks"],
