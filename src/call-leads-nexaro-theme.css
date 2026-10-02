@@ -1,0 +1,77 @@
+/* neXaro Call Hunter theme aligned to www.nexaro-solutions.de */
+:root{
+  --nx-ink:#252724;
+  --nx-ink-soft:#4b5643;
+  --nx-orange:#ff6b00;
+  --nx-lime:#baff00;
+  --nx-paper:#fffdf9;
+  --nx-paper-soft:#fffaf3;
+  --nx-lime-soft:#edffbd;
+  --nx-lime-pale:#f4ffdf;
+  --nx-line:#d8e4be;
+}
+
+.nx-call-leads{color:var(--nx-ink)}
+.nx-call-leads .section-intro .eyebrow{color:#a44000}
+.nx-call-leads .section-intro h1{color:var(--nx-ink)}
+.nx-call-leads .section-intro p{color:var(--nx-ink-soft)}
+.nx-call-leads .primary{background:var(--nx-orange);color:#172015;border-color:var(--nx-orange);box-shadow:0 8px 28px #ff6b002c}
+.nx-call-leads .secondary{background:#fcfff3;color:var(--nx-ink);border:2px solid var(--nx-lime)}
+
+.nx-call-metrics .card{background:#fff;border:1px solid var(--nx-line);box-shadow:0 12px 30px #6473310a;position:relative;overflow:hidden}
+.nx-call-metrics .card:nth-child(1){border-top:4px solid var(--nx-orange)}
+.nx-call-metrics .card:nth-child(2){border-top:4px solid var(--nx-lime);background:linear-gradient(180deg,#fff 0%,#fbfff1 100%)}
+.nx-call-metrics .card:nth-child(3){border-top:4px solid var(--nx-orange);background:linear-gradient(180deg,#fff 0%,#fff8f0 100%)}
+.nx-call-metrics .card:nth-child(4){border-top:4px solid var(--nx-lime);background:linear-gradient(180deg,#fff 0%,#f7ffe8 100%)}
+.nx-call-metrics strong{color:var(--nx-ink)}
+.nx-call-metrics p{color:#59634e}
+.nx-call-metrics button.card{cursor:pointer;text-align:left;font:inherit;color:inherit;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.nx-call-metrics button.card:active{transform:scale(.985)}
+.nx-call-metrics button.card:focus-visible{outline:3px solid var(--nx-orange);outline-offset:3px}
+
+.nx-call-preview{background:radial-gradient(circle at 100% 0,#ff6b0018,transparent 44%),radial-gradient(circle at 0 100%,#baff0025,transparent 48%),#fff;border:1px solid var(--nx-line);box-shadow:0 15px 40px #4e66200d}
+.nx-call-preview .eyebrow{color:#a44000}
+
+.nx-call-mode.is-open{background:linear-gradient(180deg,#fffdf9 0%,#fffaf3 42%,#f7fbeF 42%,#f7fbef 100%);color:var(--nx-ink)}
+.nx-call-mode-header{color:var(--nx-ink);background:#fffdf9;border-bottom:3px solid var(--nx-lime)}
+.nx-call-mode-header strong{color:var(--nx-ink)}
+.nx-call-mode-header strong span{color:var(--nx-orange)}
+.nx-call-mode-header small{color:#59634e}
+.nx-call-progress span{color:#7a8371}
+.nx-call-mode-header button{border:1px solid #ccd8b5;background:#fff;color:var(--nx-ink)}
+
+.nx-swipe-card{background:#fff;border:1px solid #d8e4be;box-shadow:0 22px 60px #4355151c}
+.nx-swipe-card-back{background:#eaf8c8;border-color:#c7dd8d;opacity:.65}
+.nx-company-visual{background:radial-gradient(circle at 82% 16%,#ff6b0024,transparent 36%),radial-gradient(circle at 18% 78%,#baff0035,transparent 46%),linear-gradient(135deg,#fbfff0,#fff7ef);color:var(--nx-ink)}
+.nx-company-visual img{background:#fffdf9;border:1px solid #dce7c5;box-shadow:0 12px 30px #64733118}
+.nx-company-overlay{background:linear-gradient(transparent,rgba(255,253,249,.95) 48%,#fffdf9);color:var(--nx-ink)}
+.nx-company-overlay span{background:var(--nx-lime);border-color:#9ed900;color:#263021}
+.nx-company-overlay h1{color:var(--nx-ink)}
+.nx-company-overlay p{color:#59634e}
+.nx-company-meta a{background:#f3f8e8;color:#263021;border:1px solid #d6e3bc}
+.nx-carryover-pill{background:#fff0e5;color:#944016;border-color:#ffd0b0}
+
+.nx-opener-box{background:var(--nx-lime-pale);border:1px solid #cfe68b;border-left:5px solid var(--nx-lime)}
+.nx-opener-box .eyebrow{color:#4d620c}
+.nx-opener-box button{color:#4d620c}
+.nx-opener-box details{border-top-color:#cfe68b}
+.nx-call-email-field>span{color:#4b5643}
+.nx-call-email-field input{background:#fffdf9;border-color:#d8e4be;color:var(--nx-ink)}
+.nx-call-email-field input:focus{outline:3px solid #ff6b0030;border-color:#ad4a00}
+.nx-call-funnel-state{background:var(--nx-lime-soft);border-color:#b7d76d}
+.nx-call-funnel-state strong{color:#263021}
+.nx-call-funnel-state span{color:#4b5643}
+
+.nx-swipe-actions,.nx-swipe-secondary,.nx-swipe-hints{background:#f7fbef}
+.nx-swipe-actions .lost{background:#fff1eb;color:#a83f13;border:1px solid #ffd1ba}
+.nx-swipe-actions .call{background:#252724;color:#fffdf9;box-shadow:0 8px 20px #25272424}
+.nx-swipe-actions .info{background:var(--nx-orange);color:#172015;box-shadow:0 8px 22px #ff6b0028}
+.nx-swipe-secondary button{background:#fffdf9;border-color:#cfdcb5;color:#263021}
+.nx-swipe-secondary button:first-child{border-left:4px solid var(--nx-lime)}
+.nx-swipe-secondary button:last-child{border-left:4px solid var(--nx-orange)}
+.nx-swipe-hints{color:#69745f;border-top:1px solid #e0e8d1}
+.nx-swipe-stamp-right{color:#4d620c;border-color:#8fbd18;background:#f4ffdf}
+.nx-swipe-stamp-left{color:#a44000;border-color:var(--nx-orange);background:#fff5eb}
+.nx-swipe-stamp-up{color:#4d620c;border-color:var(--nx-lime);background:#f4ffdf}
+.nx-call-mode-toast{background:#252724;color:#fffdf9;border-bottom:4px solid var(--nx-lime)}
+.nx-call-mode-toast.error{background:#8f2c22;border-bottom-color:var(--nx-orange)}
