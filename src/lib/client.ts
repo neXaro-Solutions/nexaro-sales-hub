@@ -9,8 +9,23 @@ export const client = createClient(supabaseUrl, publishableKey, {
   global: {
     fetch: (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
-      const timeout = url.includes("/storage/v1/") ? 120000 : url.includes("/functions/v1/nx-send-offer") ? 60000 : 15000;
-      return fetch(input, {
+      const routedUrl = url.includes("/functions/v1/nx-sales-funnel-web")
+        ? url
+        : url.replace("/functions/v1/nx-sales-funnel", "/functions/v1/nx-sales-funnel-web");
+      const routedInput =
+        routedUrl !== url && input instanceof Request
+          ? new Request(routedUrl, input)
+          : routedUrl !== url
+            ? routedUrl
+            : input;
+      const timeout = routedUrl.includes("/storage/v1/")
+        ? 120000
+        : routedUrl.includes("/functions/v1/nx-send-offer")
+          ? 60000
+          : routedUrl.includes("/functions/v1/nx-sales-funnel-web")
+            ? 30000
+            : 15000;
+      return fetch(routedInput, {
         ...init,
         signal: init?.signal
           ? AbortSignal.any([init.signal, AbortSignal.timeout(timeout)])
