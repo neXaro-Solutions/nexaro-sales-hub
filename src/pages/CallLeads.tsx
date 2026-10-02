@@ -161,9 +161,14 @@ export function CallLeads() {
     finally { setBusy(""); }
   }
 
+  function resetSwipe() { setDragX(0); setDragY(0); setOpenerOffset(0); }
   function nextCard() {
-    setDragX(0); setDragY(0); setOpenerOffset(0);
+    resetSwipe();
     setCurrentIndex(index => rows.length ? (index + 1) % rows.length : 0);
+  }
+  function previousCard() {
+    resetSwipe();
+    setCurrentIndex(index => rows.length ? (index - 1 + rows.length) % rows.length : 0);
   }
   async function actionAndAdvance(action: "info" | "callback" | "appointment" | "lost") {
     const lead = rows[currentIndex]; if (!lead || busy) return;
@@ -174,8 +179,19 @@ export function CallLeads() {
     if (action === "lost") ok = await setStatus(lead, "verloren", "Kein Interesse im Telefongespräch dokumentiert.");
     if (ok) nextCard();
   }
+  async function openMetric(kind: "all" | "open" | "contacted" | "backlog") {
+    if (!rows.length) return;
+    let index = 0;
+    if (kind === "open") index = rows.findIndex(row => row.status === "neu");
+    if (kind === "contacted") index = rows.findIndex(row => row.status === "kontaktiert" || automations[row.id]?.status === "active");
+    if (kind === "backlog") index = rows.findIndex(row => row.status === "neu" && row.batch_date < today);
+    if (index < 0) { setNotice("In diesem Bereich gibt es aktuell keinen passenden Lead."); return; }
+    setCallMode(true); setCurrentIndex(index); resetSwipe();
+    try { await modeRef.current?.requestFullscreen?.(); } catch { /* iOS/PWA uses CSS fullscreen */ }
+  }
   async function startCallMode() {
-    setCallMode(true); setCurrentIndex(Math.max(0, rows.findIndex(row => row.status === "neu"))); setOpenerOffset(0);
+    const firstOpen = rows.findIndex(row => row.status === "neu");
+    setCallMode(true); setCurrentIndex(firstOpen >= 0 ? firstOpen : 0); resetSwipe();
     try { await modeRef.current?.requestFullscreen?.(); } catch { /* iOS/PWA may use CSS fullscreen instead */ }
   }
   async function stopCallMode() {
@@ -187,14 +203,15 @@ export function CallLeads() {
   function onPointerMove(event: React.PointerEvent) {
     if (!pointerStart.current || !dragging) return; setDragX(event.clientX - pointerStart.current.x); setDragY(event.clientY - pointerStart.current.y);
   }
-  async function onPointerUp() {
+  function onPointerUp() {
     if (!pointerStart.current) return;
     const x = dragX, y = dragY; pointerStart.current = null; setDragging(false); setDragX(0); setDragY(0);
-    if (Math.abs(x) > 95 && Math.abs(x) > Math.abs(y)) await actionAndAdvance(x > 0 ? "info" : "lost");
-    else if (y < -95 && Math.abs(y) > Math.abs(x)) await actionAndAdvance("callback");
+    if (Math.abs(x) > 95 && Math.abs(x) > Math.abs(y)) {
+      if (x > 0) nextCard(); else previousCard();
+    }
   }
 
-  const stats = useMemo(() => ({ total: rows.length, open: rows.filter(row => row.status === "neu").length, contacted: rows.filter(row => row.status === "kontaktiert").length, done: rows.filter(row => ["termin", "angebot", "gewonnen", "verloren"].includes(row.status)).length }), [rows]);
+  const stats = useMemo(() => ({ total: rows.length, open: rows.filter(row => row.status === "neu").length, contacted: rows.filter(row => row.status === "kontaktiert" || automations[row.id]?.status === "active").length, done: rows.filter(row => ["termin", "angebot", "gewonnen", "verloren"].includes(row.status)).length }), [rows, automations]);
   const current = rows[currentIndex] || rows[0];
   const currentAutomation = current ? automations[current.id] : undefined;
   const currentImage = current ? companyVisual(current) : "";
@@ -208,7 +225,12 @@ export function CallLeads() {
         <div><span className="eyebrow">AUSSENDIENST · TELEFONAKQUISE</span><h1>📞 Telefonleads</h1><p>10er-Arbeitsliste mit Vollbild-Call-Modus. Offene Anrufe bleiben erhalten, bis du sie bearbeitet hast.</p></div>
         <div className="nx-call-top-actions"><button className="secondary" type="button" disabled={loading || !!busy} onClick={() => void load()}><RefreshCw size={16}/> Aktualisieren</button><button className="primary" type="button" disabled={loading || !rows.length} onClick={() => void startCallMode()}><Maximize2 size={17}/> Call-Modus starten</button></div>
       </div>
-      <div className="metrics nx-call-metrics"><div className="card"><strong>{stats.total}</strong><p>Arbeitsliste</p></div><div className="card"><strong>{stats.open}</strong><p>Noch offen</p></div><div className="card"><strong>{stats.contacted}</strong><p>Funnel / Kontakt</p></div><div className="card"><strong>{queueTotal}</strong><p>Rückstand gesamt</p></div></div>
+      <div className="metrics nx-call-metrics">
+        <button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("all")}><strong>{stats.total}</strong><p>Arbeitsliste</p></button>
+        <button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("open")}><strong>{stats.open}</strong><p>Noch offen</p></button>
+        <button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("contacted")}><strong>{stats.contacted}</strong><p>Funnel / Kontakt</p></button>
+        <button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("backlog")}><strong>{queueTotal}</strong><p>Rückstand gesamt</p></button>
+      </div>
       {notice && <p className="notice" role="status">{notice}</p>}{error && <p className="error" role="alert">{error}</p>}
       {!loading && rows.length > 0 && <div className="card nx-call-preview"><div><span className="eyebrow">MOBILE CALL EXPERIENCE</span><h2>Ein Lead. Ein Gespräch. Eine Entscheidung.</h2><p>Im Call-Modus bekommst du jede Firma einzeln als Swipe-Karte – ohne CRM-Ablenkung.</p></div><button className="primary" onClick={() => void startCallMode()}><Phone size={18}/> Jetzt starten</button></div>}
       {loading && <div className="loading">Telefonleads werden geladen …</div>}
@@ -220,8 +242,8 @@ export function CallLeads() {
         <header className="nx-call-mode-header"><div><strong>ne<span>X</span>aro</strong><small>CALL HUNTER</small></div><div className="nx-call-progress"><b>{Math.min(currentIndex + 1, rows.length)}</b><span>/ {rows.length}</span></div><button onClick={() => void stopCallMode()} aria-label="Call-Modus schließen"><Minimize2 size={21}/></button></header>
         <main className="nx-swipe-stage">
           <div className="nx-swipe-card nx-swipe-card-back" aria-hidden="true" />
-          <article className={"nx-swipe-card " + (dragging ? "is-dragging" : "")} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={() => void onPointerUp()} onPointerCancel={() => { pointerStart.current = null; setDragging(false); setDragX(0); setDragY(0); }} style={{ transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${rotation}deg)` }}>
-            {dragX > 45 && <div className="nx-swipe-stamp nx-swipe-stamp-right">INFOS</div>}{dragX < -45 && <div className="nx-swipe-stamp nx-swipe-stamp-left">NEIN</div>}{dragY < -45 && <div className="nx-swipe-stamp nx-swipe-stamp-up">RÜCKRUF</div>}
+          <article className={"nx-swipe-card " + (dragging ? "is-dragging" : "")} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { pointerStart.current = null; setDragging(false); setDragX(0); setDragY(0); }} style={{ transform: `translate3d(${dragX}px, ${dragY}px, 0) rotate(${rotation}deg)` }}>
+            {dragX > 45 && <div className="nx-swipe-stamp nx-swipe-stamp-right">WEITER</div>}{dragX < -45 && <div className="nx-swipe-stamp nx-swipe-stamp-left">ZURÜCK</div>}
             <div className="nx-company-visual">
               {currentImage ? <img src={currentImage} alt="" onError={event => { event.currentTarget.style.display = "none"; event.currentTarget.parentElement?.classList.add("fallback"); }} /> : <Building2 size={68}/>} 
               <div className="nx-company-overlay"><span>{current.industry || "Gewerbe"}</span><h1>{current.company}</h1><p>{place(current) || current.city || "Region Brandenburg"}</p></div>
@@ -237,7 +259,7 @@ export function CallLeads() {
         </main>
         <div className="nx-swipe-actions"><button className="lost" disabled={!!busy} onClick={() => void actionAndAdvance("lost")}><XCircle/><span>Kein Interesse</span></button><a className="call" href={`tel:${current.phone}`}><Phone/><span>Anrufen</span></a><button className="info" disabled={!!busy || currentAutomation?.status === "active"} onClick={() => void actionAndAdvance("info")}><Mail/><span>Infos senden</span></button></div>
         <div className="nx-swipe-secondary"><button disabled={!!busy} onClick={() => void actionAndAdvance("callback")}><CalendarClock size={17}/> Rückruf</button><button disabled={!!busy} onClick={() => void actionAndAdvance("appointment")}><CheckCircle2 size={17}/> Termin</button></div>
-        <footer className="nx-swipe-hints"><span>← Kein Interesse</span><span>↑ Rückruf</span><span>Infos senden →</span></footer>
+        <footer className="nx-swipe-hints"><span>← Vorheriger Kontakt</span><span>Aktion per Button</span><span>Nächster Kontakt →</span></footer>
         {(notice || error) && <div className={"nx-call-mode-toast " + (error ? "error" : "")}>{error || notice}</div>}
       </>}
     </div>
