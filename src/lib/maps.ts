@@ -19,7 +19,7 @@ const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v7-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v8-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -63,7 +63,7 @@ export async function geocode(query: string) {
   if (endpoint.protocol !== "https:" && endpoint.origin !== location.origin) throw Error("Ungültige Konfiguration der Ortssuche.");
 
   const raw=query.trim();
-  const cacheKey="v2:"+raw.toLowerCase();
+  const cacheKey="v3:"+raw.toLowerCase();
   if(cache.has(cacheKey))return cache.get(cacheKey)!;
   if(raw.length<3)throw Error("Bitte einen Ort oder eine vollständige Adresse eingeben.");
 
@@ -71,31 +71,43 @@ export async function geocode(query: string) {
   if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
   lastGeocode=Date.now();
 
-  const response=await fetch(endpoint.href+"?"+new URLSearchParams({
-    q:raw,
-    format:"jsonv2",
-    limit:"8",
-    countrycodes:"de",
-    addressdetails:"1",
-  }),{signal:AbortSignal.timeout(12000),headers:{Accept:"application/json"}});
-  if(!response.ok)throw Error("Die öffentliche Ortssuche ist gerade nicht verfügbar. Bitte später erneut versuchen.");
-
-  const rows=await response.json();
-  if(!Array.isArray(rows)||!rows.length)throw Error("Ort nicht gefunden. Bitte PLZ und Ortsname eingeben.");
-
   const requestedZip=(raw.match(/\b\d{5}\b/)||[])[0]||"";
-  const requestedPlace=norm(raw.replace(/\b\d{5}\b/g,"").replace(/,?\s*brandenburg\b/ig,"").replace(/,?\s*germany\b/ig,"").replace(/,/g," ").replace(/\s+/g," "));
+  const requestedPlace=raw.replace(/\b\d{5}\b/g,"").replace(/,?\s*brandenburg\b/ig,"").replace(/,?\s*germany\b/ig,"").replace(/,/g," ").replace(/\s+/g," ").trim();
+
+  async function fetchRows(params:Record<string,string>){
+    const response=await fetch(endpoint.href+"?"+new URLSearchParams({
+      format:"jsonv2",
+      limit:"8",
+      countrycodes:"de",
+      addressdetails:"1",
+      ...params,
+    }),{signal:AbortSignal.timeout(12000),headers:{Accept:"application/json"}});
+    if(!response.ok)throw Error("Die öffentliche Ortssuche ist gerade nicht verfügbar. Bitte später erneut versuchen.");
+    const rows=await response.json();
+    return Array.isArray(rows)?rows:[];
+  }
+
+  let rows:any[]=[];
+  if(requestedZip&&requestedPlace){
+    rows=await fetchRows({city:requestedPlace,postalcode:requestedZip});
+    if(!rows.length)rows=await fetchRows({town:requestedPlace,postalcode:requestedZip});
+    if(!rows.length)rows=await fetchRows({village:requestedPlace,postalcode:requestedZip});
+  }
+  if(!rows.length)rows=await fetchRows({q:raw});
+  if(!rows.length)throw Error("Ort nicht gefunden. Bitte PLZ und Ortsname eingeben.");
+
+  const wantedPlace=norm(requestedPlace);
   const scored=rows.map((r:any)=>{
     const a=r?.address||{};
     const place=String(a.city||a.town||a.village||a.municipality||a.hamlet||"");
     const postcode=String(a.postcode||"");
     const type=String(r.type||"");
     let score=0;
-    if(requestedPlace&&norm(place)===requestedPlace)score+=120;
-    else if(requestedPlace&&norm(String(r.display_name||"")).includes(requestedPlace))score+=40;
-    if(requestedZip&&postcode===requestedZip)score+=30;
-    if(["city","town","village","municipality"].includes(type))score+=25;
-    if(type==="postcode")score-=60;
+    if(wantedPlace&&norm(place)===wantedPlace)score+=160;
+    else if(wantedPlace&&norm(String(r.display_name||"")).includes(wantedPlace))score+=50;
+    if(requestedZip&&postcode===requestedZip)score+=60;
+    if(["city","town","village","municipality","hamlet"].includes(type))score+=35;
+    if(type==="postcode")score-=100;
     return {r,score};
   }).sort((a:any,b:any)=>b.score-a.score);
 
@@ -107,6 +119,7 @@ export async function geocode(query: string) {
     label:String(r.display_name),
     city:String(r.address?.city||r.address?.town||r.address?.village||r.address?.municipality||query),
   };
+  console.info("Hunter geocode",{query:raw,label:found.label,lat:found.lat,lng:found.lng});
   cache.set(cacheKey,found);
   return found;
 }
