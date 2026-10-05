@@ -20,7 +20,7 @@ let searchCooldownUntil = 0;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v5-resilient",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v6-bounded",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -49,7 +49,7 @@ const overpassEndpoints=[
 async function overpassRequest(url:string,query:string){
  const response=await fetch(url,{
   method:"POST",body:new URLSearchParams({data:query}),headers:{Accept:"application/json"},
-  referrerPolicy:"strict-origin-when-cross-origin",signal:AbortSignal.timeout(32000)
+  referrerPolicy:"strict-origin-when-cross-origin",signal:AbortSignal.timeout(12000)
  });
  if(response.status===429||response.status===406){
   searchCooldownUntil=Date.now()+30000;
@@ -66,16 +66,11 @@ async function overpassRequest(url:string,query:string){
   throw Object.assign(Error("Der Suchserver lieferte keine gültigen Geschäftsdaten."),{code:"INVALID"});
  return json as {elements:unknown[]};
 }
-async function resilientOverpass(query:string){
- let lastError:unknown;
- for(const endpoint of overpassEndpoints){
-  try{return await overpassRequest(endpoint,query)}catch(e){
-   lastError=e;
-   const code=(e as SearchError)?.code;
-   if(code==="LIMIT"||code==="HTTP"||code==="INVALID")throw e;
-  }
- }
- throw lastError instanceof Error?lastError:Error("Die öffentliche Geschäftssuche ist derzeit nicht erreichbar.");
+async function boundedOverpass(query:string,index:number){
+ // Teilabfragen laufen parallel und jeweils nur gegen einen Endpunkt. So bleibt
+ // die Gesamtdauer vorhersehbar und ein langsamer Server blockiert nicht alle Treffer.
+ const endpoint=overpassEndpoints[index%overpassEndpoints.length];
+ return overpassRequest(endpoint,query);
 }
 
 let lastGeocode = 0;
@@ -158,14 +153,14 @@ const selectors:Record<string,string[]>={
 };
 function queryFor(center:{lat:number;lng:number},radiusMeters:number,group:string[]){
  const union=group.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
- return `[out:json][timeout:28];(${union});out center tags 900;`;
+ return `[out:json][timeout:10];(${union});out center tags 900;`;
 }
-function groupsFor(category:string,radius:number){
+function groupsFor(category:string){
  const chosen=selectors[category]||selectors.all;
- if(category!=="all"&&radius<=15)return [chosen];
- const size=radius>=25?1:2;
+ if(category!=="all")return [chosen];
+ // Maximal drei parallele Abfragen für "alle Geschäftsarten" statt vieler serieller Requests.
  const groups:string[][]=[];
- for(let i=0;i<chosen.length;i+=size)groups.push(chosen.slice(i,i+size));
+ for(let i=0;i<chosen.length;i+=3)groups.push(chosen.slice(i,i+3));
  return groups;
 }
 function toProspect(entry:unknown):Prospect|null{
@@ -201,25 +196,20 @@ export async function findProspects(
    throw Error("Der öffentliche Suchdienst hat kurzzeitig eine Anfragesperre gemeldet. Bitte in etwa 30 Sekunden erneut versuchen.");
   }
   const radiusMeters=Math.round(radius*1000);
+  const groups=groupsFor(category);
+  const attempts=await Promise.allSettled(groups.map((group,index)=>boundedOverpass(queryFor(center,radiusMeters,group),index)));
   const raw:unknown[]=[];
-  let successfulGroups=0;
   let lastError:unknown;
-  for(const group of groupsFor(category,radius)){
-   try{
-    const json=await resilientOverpass(queryFor(center,radiusMeters,group));
-    raw.push(...json.elements);successfulGroups++;
-   }catch(e){
-    lastError=e;
-    const code=(e as SearchError)?.code;
-    if(code==="LIMIT")break;
-   }
-  }
-  if(!successfulGroups){
+  attempts.forEach(result=>{
+   if(result.status==="fulfilled")raw.push(...result.value.elements);
+   else lastError=result.reason;
+  });
+  if(!raw.length){
    if(cached){lastSearchCached=true;return cached.items;}
    const networkFailure=lastError instanceof TypeError ||
     (lastError instanceof Error&&(/fetch|network|timeout|abort|server/i.test(lastError.message)||lastError.name==="AbortError"||lastError.name==="TimeoutError"));
    throw networkFailure
-    ?Error("Die Geschäftssuche konnte diesmal keine stabile Verbindung herstellen. Bitte die Suche erneut starten; Ort, Radius und Auswahl bleiben erhalten.")
+    ?Error("Die Geschäftssuche hat innerhalb von 12 Sekunden keine stabilen Treffer erhalten. Bitte erneut starten oder den Radius verkleinern.")
     :lastError instanceof Error?lastError:Error("Die Geschäftssuche konnte nicht abgeschlossen werden.");
   }
   const unique=new Map<string,Prospect>();
