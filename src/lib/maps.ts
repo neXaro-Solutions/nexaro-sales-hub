@@ -20,7 +20,7 @@ let searchCooldownUntil = 0;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v6-bounded",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v7-hard-timeout",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -46,11 +46,32 @@ const overpassEndpoints=[
  "https://overpass.private.coffee/api/interpreter",
  "https://overpass-api.de/api/interpreter",
 ];
-async function overpassRequest(url:string,query:string){
- const response=await fetch(url,{
-  method:"POST",body:new URLSearchParams({data:query}),headers:{Accept:"application/json"},
-  referrerPolicy:"strict-origin-when-cross-origin",signal:AbortSignal.timeout(12000)
+function timeoutError(message:string,code="TIMEOUT"){
+ return Object.assign(Error(message),{name:"TimeoutError",code});
+}
+async function fetchWithHardTimeout(url:string,init:RequestInit,ms:number){
+ const controller=new AbortController();
+ let timer:ReturnType<typeof setTimeout>|undefined;
+ const timeout=new Promise<Response>((_,reject)=>{
+  timer=setTimeout(()=>{
+   controller.abort();
+   reject(timeoutError("Zeitlimit für die öffentliche Suche erreicht."));
+  },ms);
  });
+ try{
+  return await Promise.race([
+   fetch(url,{...init,signal:controller.signal}),
+   timeout,
+  ]);
+ }finally{
+  if(timer)clearTimeout(timer);
+ }
+}
+async function overpassRequest(url:string,query:string){
+ const response=await fetchWithHardTimeout(url,{
+  method:"POST",body:new URLSearchParams({data:query}),headers:{Accept:"application/json"},
+  referrerPolicy:"strict-origin-when-cross-origin"
+ },8000);
  if(response.status===429||response.status===406){
   searchCooldownUntil=Date.now()+30000;
   throw Object.assign(Error("Der öffentliche Suchdienst begrenzt gerade Anfragen. Vorhandene Ergebnisse werden weiter genutzt; bitte in etwa 30 Sekunden erneut versuchen."),{code:"LIMIT"});
@@ -67,8 +88,6 @@ async function overpassRequest(url:string,query:string){
  return json as {elements:unknown[]};
 }
 async function boundedOverpass(query:string,index:number){
- // Teilabfragen laufen parallel und jeweils nur gegen einen Endpunkt. So bleibt
- // die Gesamtdauer vorhersehbar und ein langsamer Server blockiert nicht alle Treffer.
  const endpoint=overpassEndpoints[index%overpassEndpoints.length];
  return overpassRequest(endpoint,query);
 }
@@ -79,12 +98,10 @@ const cache = new Map<
   { lat: number; lng: number; label: string; city: string }
 >();
 export async function geocode(query: string) {
-  const configResponse = await fetch(
+  const configResponse = await fetchWithHardTimeout(
     import.meta.env.BASE_URL + "maps-config.json",
-    {
-      cache: "no-store",
-      signal: AbortSignal.timeout(5000),
-    },
+    {cache:"no-store"},
+    4000,
   );
   if (!configResponse.ok)
     throw Error("Die Ortssuche ist derzeit nicht konfiguriert.");
@@ -103,7 +120,7 @@ export async function geocode(query: string) {
   const wait = Math.max(0, 1100 - (Date.now() - lastGeocode));
   if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
   lastGeocode = Date.now();
-  const response = await fetch(
+  const response = await fetchWithHardTimeout(
     endpoint.href +
       "?" +
       new URLSearchParams({
@@ -113,10 +130,8 @@ export async function geocode(query: string) {
         countrycodes: "de",
         addressdetails: "1",
       }),
-    {
-      signal: AbortSignal.timeout(12000),
-      headers: { Accept: "application/json" },
-    },
+    {headers:{Accept:"application/json"}},
+    8000,
   );
   if (!response.ok)
     throw Error(
@@ -153,12 +168,11 @@ const selectors:Record<string,string[]>={
 };
 function queryFor(center:{lat:number;lng:number},radiusMeters:number,group:string[]){
  const union=group.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
- return `[out:json][timeout:10];(${union});out center tags 900;`;
+ return `[out:json][timeout:7];(${union});out center tags 900;`;
 }
 function groupsFor(category:string){
  const chosen=selectors[category]||selectors.all;
  if(category!=="all")return [chosen];
- // Maximal drei parallele Abfragen für "alle Geschäftsarten" statt vieler serieller Requests.
  const groups:string[][]=[];
  for(let i=0;i<chosen.length;i+=3)groups.push(chosen.slice(i,i+3));
  return groups;
@@ -179,6 +193,17 @@ function toProspect(entry:unknown):Prospect|null{
  };
  return p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)?p:null;
 }
+async function runProspectGroups(center:{lat:number;lng:number},radiusMeters:number,category:string){
+ const groups=groupsFor(category);
+ const attempts=await Promise.allSettled(groups.map((group,index)=>boundedOverpass(queryFor(center,radiusMeters,group),index)));
+ const raw:unknown[]=[];
+ let lastError:unknown;
+ attempts.forEach(result=>{
+  if(result.status==="fulfilled")raw.push(...result.value.elements);
+  else lastError=result.reason;
+ });
+ return {raw,lastError};
+}
 
 export async function findProspects(
   center: { lat: number; lng: number },
@@ -196,20 +221,23 @@ export async function findProspects(
    throw Error("Der öffentliche Suchdienst hat kurzzeitig eine Anfragesperre gemeldet. Bitte in etwa 30 Sekunden erneut versuchen.");
   }
   const radiusMeters=Math.round(radius*1000);
-  const groups=groupsFor(category);
-  const attempts=await Promise.allSettled(groups.map((group,index)=>boundedOverpass(queryFor(center,radiusMeters,group),index)));
-  const raw:unknown[]=[];
-  let lastError:unknown;
-  attempts.forEach(result=>{
-   if(result.status==="fulfilled")raw.push(...result.value.elements);
-   else lastError=result.reason;
-  });
+  let result:{raw:unknown[];lastError:unknown};
+  try{
+   result=await Promise.race([
+    runProspectGroups(center,radiusMeters,category),
+    new Promise<never>((_,reject)=>setTimeout(()=>reject(timeoutError("Die Geschäftssuche wurde nach 10 Sekunden beendet.","TOTAL_TIMEOUT")),10000)),
+   ]);
+  }catch(e){
+   if(cached){lastSearchCached=true;return cached.items;}
+   throw Error("Die Geschäftssuche wurde nach spätestens 10 Sekunden beendet. Bitte erneut starten; die Eingaben bleiben erhalten.");
+  }
+  const {raw,lastError}=result;
   if(!raw.length){
    if(cached){lastSearchCached=true;return cached.items;}
    const networkFailure=lastError instanceof TypeError ||
-    (lastError instanceof Error&&(/fetch|network|timeout|abort|server/i.test(lastError.message)||lastError.name==="AbortError"||lastError.name==="TimeoutError"));
+    (lastError instanceof Error&&(/fetch|network|timeout|abort|server|zeitlimit/i.test(lastError.message)||lastError.name==="AbortError"||lastError.name==="TimeoutError"));
    throw networkFailure
-    ?Error("Die Geschäftssuche hat innerhalb von 12 Sekunden keine stabilen Treffer erhalten. Bitte erneut starten oder den Radius verkleinern.")
+    ?Error("Die Geschäftssuche hat innerhalb weniger Sekunden keine stabilen Treffer erhalten. Bitte erneut starten oder den Radius verkleinern.")
     :lastError instanceof Error?lastError:Error("Die Geschäftssuche konnte nicht abgeschlossen werden.");
   }
   const unique=new Map<string,Prospect>();
