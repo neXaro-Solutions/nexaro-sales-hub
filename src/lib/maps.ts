@@ -15,18 +15,18 @@ export type Prospect = {
 };
 
 const searchCache = new Map<string,{at:number;items:Prospect[]}>();
-const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
+const searchCacheFresh = 30*60*1000, searchCacheMax = 7*24*60*60*1000;
 let searchCooldownUntil = 0;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v4-public-exclusions",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v5-resilient",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
  if(hit&&hit.at>Date.now()-searchCacheMax)return hit;
  try {
-  const value=sessionStorage.getItem(key);
+  const value=localStorage.getItem(key) || sessionStorage.getItem(key);
   if(!value)return null;
   const data=JSON.parse(value) as {at:number;items:Prospect[]};
   if(!Number.isFinite(data.at)||data.at<Date.now()-searchCacheMax||!Array.isArray(data.items))return null;
@@ -36,16 +36,24 @@ function readSearchCache(key:string){
 }
 function writeSearchCache(key:string,items:Prospect[]){
  const data={at:Date.now(),items};searchCache.set(key,data);
- try{sessionStorage.setItem(key,JSON.stringify(data));}catch{/* private browsing */}
+ try{localStorage.setItem(key,JSON.stringify(data));}catch{
+  try{sessionStorage.setItem(key,JSON.stringify(data));}catch{/* private browsing */}
+ }
 }
+
+type SearchError = Error & {code?:string};
+const overpassEndpoints=[
+ "https://overpass.private.coffee/api/interpreter",
+ "https://overpass-api.de/api/interpreter",
+];
 async function overpassRequest(url:string,query:string){
  const response=await fetch(url,{
   method:"POST",body:new URLSearchParams({data:query}),headers:{Accept:"application/json"},
-  referrerPolicy:"strict-origin-when-cross-origin",signal:AbortSignal.timeout(45000)
+  referrerPolicy:"strict-origin-when-cross-origin",signal:AbortSignal.timeout(32000)
  });
  if(response.status===429||response.status===406){
   searchCooldownUntil=Date.now()+30000;
-  throw Object.assign(Error("Der öffentliche Suchdienst begrenzt gerade Anfragen. Bitte etwa 30 Sekunden warten, Branche auswählen oder Radius verkleinern."),{code:"LIMIT"});
+  throw Object.assign(Error("Der öffentliche Suchdienst begrenzt gerade Anfragen. Vorhandene Ergebnisse werden weiter genutzt; bitte in etwa 30 Sekunden erneut versuchen."),{code:"LIMIT"});
  }
  if([500,502,503,504].includes(response.status))
   throw Object.assign(Error("Der Suchserver ist vorübergehend nicht erreichbar."),{code:"SERVER"});
@@ -53,10 +61,21 @@ async function overpassRequest(url:string,query:string){
   throw Object.assign(Error("Unternehmenssuche: HTTP "+response.status+". Bitte erneut versuchen."),{code:"HTTP"});
  const json=await response.json();
  if(json.remark)
-  throw Object.assign(Error("Die Abfrage war zu groß. Bitte Branche auswählen oder Radius verkleinern."),{code:"TOO_BROAD"});
+  throw Object.assign(Error("Die Abfrage war für den Suchserver zu groß."),{code:"TOO_BROAD"});
  if(!Array.isArray(json.elements))
   throw Object.assign(Error("Der Suchserver lieferte keine gültigen Geschäftsdaten."),{code:"INVALID"});
  return json as {elements:unknown[]};
+}
+async function resilientOverpass(query:string){
+ let lastError:unknown;
+ for(const endpoint of overpassEndpoints){
+  try{return await overpassRequest(endpoint,query)}catch(e){
+   lastError=e;
+   const code=(e as SearchError)?.code;
+   if(code==="LIMIT"||code==="HTTP"||code==="INVALID")throw e;
+  }
+ }
+ throw lastError instanceof Error?lastError:Error("Die öffentliche Geschäftssuche ist derzeit nicht erreichbar.");
 }
 
 let lastGeocode = 0;
@@ -127,100 +146,90 @@ export async function geocode(query: string) {
   cache.set(cacheKey, found);
   return found;
 }
+
+const selectors:Record<string,string[]>={
+ all:['["shop"]','["amenity"~"^(restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|dentist|doctors|veterinary|fuel|car_wash|car_rental|marketplace|biergarten|nightclub)$"]','["craft"]','["office"]','["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]','["healthcare"]','["leisure"~"^(fitness_centre|sports_centre|bowling_alley)$"]'],
+ shops:['["shop"]'],food:['["amenity"~"^(cafe|restaurant|fast_food|bar|pub|biergarten)$"]'],
+ vape:['["shop"~"^(kiosk|tobacco|convenience|e-cigarette)$"]'],
+ services:['["craft"]','["shop"~"^(hairdresser|beauty|car_repair|laundry|dry_cleaning|copyshop|mobile_phone|computer)$"]','["amenity"~"^(car_wash|car_rental)$"]'],
+ health:['["shop"~"^(beauty|hairdresser|optician|medical_supply)$"]','["amenity"~"^(pharmacy|clinic|dentist|doctors|veterinary)$"]','["healthcare"]'],
+ lodging:['["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]'],
+ office:['["office"]']
+};
+function queryFor(center:{lat:number;lng:number},radiusMeters:number,group:string[]){
+ const union=group.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
+ return `[out:json][timeout:28];(${union});out center tags 900;`;
+}
+function groupsFor(category:string,radius:number){
+ const chosen=selectors[category]||selectors.all;
+ if(category!=="all"&&radius<=15)return [chosen];
+ const size=radius>=25?1:2;
+ const groups:string[][]=[];
+ for(let i=0;i<chosen.length;i+=size)groups.push(chosen.slice(i,i+size));
+ return groups;
+}
+function toProspect(entry:unknown):Prospect|null{
+ const e = entry as {
+  id: number;type: string;lat?: number;lon?: number;center?: { lat: number; lon: number };tags?: Record<string, string>;
+ };
+ const t=e.tags||{};
+ if(isExcludedChain(t)||isExcludedPublicFacility(t))return null;
+ const p={
+  id:`${e.type}/${e.id}`,
+  name:t.name||"",
+  street:[t["addr:street"],t["addr:housenumber"]].filter(Boolean).join(" "),
+  zip:t["addr:postcode"]||"",city:t["addr:city"]||"",phone:t.phone||t["contact:phone"]||"",
+  website:t.website||t["contact:website"]||"",email:t.email||t["contact:email"]||"",
+  lat:e.lat??e.center?.lat??NaN,lng:e.lon??e.center?.lon??NaN,category:t.shop||t.amenity||t.craft||t.office||t.tourism||""
+ };
+ return p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)?p:null;
+}
+
 export async function findProspects(
   center: { lat: number; lng: number },
   radius: number,
   category: string,
 ): Promise<Prospect[]> {
-  if (
-    !Number.isFinite(center.lat) ||
-    !Number.isFinite(center.lng) ||
-    radius < 1 ||
-    radius > 30
-  )
+  if (!Number.isFinite(center.lat)||!Number.isFinite(center.lng)||radius<1||radius>35)
     throw Error("Ungültiger Suchbereich.");
   const key=searchKey(center,radius,category);
   const cached=readSearchCache(key);
   lastSearchCached=false;
-  if(cached&&Date.now()-cached.at<searchCacheFresh){
-   lastSearchCached=true;
-   return cached.items;
-  }
+  if(cached&&Date.now()-cached.at<searchCacheFresh){lastSearchCached=true;return cached.items;}
   if(Date.now()<searchCooldownUntil){
    if(cached){lastSearchCached=true;return cached.items;}
-   throw Error("Bitte etwa 30 Sekunden warten: Der öffentliche Suchserver hat eine Anfragesperre gemeldet.");
+   throw Error("Der öffentliche Suchdienst hat kurzzeitig eine Anfragesperre gemeldet. Bitte in etwa 30 Sekunden erneut versuchen.");
   }
   const radiusMeters=Math.round(radius*1000);
-  const selectors:Record<string,string[]>={
-    all:['["shop"]','["amenity"~"^(restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|dentist|doctors|veterinary|fuel|car_wash|car_rental|marketplace|biergarten|nightclub)$"]','["craft"]','["office"]','["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]','["healthcare"]','["leisure"~"^(fitness_centre|sports_centre|bowling_alley)$"]'],
-    shops:['["shop"]'],food:['["amenity"~"^(cafe|restaurant|fast_food|bar|pub|biergarten)$"]'],
-    vape:['["shop"~"^(kiosk|tobacco|convenience|e-cigarette)$"]'],
-    services:['["craft"]','["shop"~"^(hairdresser|beauty|car_repair|laundry|dry_cleaning|copyshop|mobile_phone|computer)$"]','["amenity"~"^(car_wash|car_rental)$"]'],
-    health:['["shop"~"^(beauty|hairdresser|optician|medical_supply)$"]','["amenity"~"^(pharmacy|clinic|dentist|doctors|veterinary)$"]','["healthcare"]'],
-    lodging:['["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]'],
-    office:['["office"]']
-  };
-  const chosen=selectors[category]||selectors.all;
-  const union=chosen.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
-  const q=`[out:json][timeout:40];(${union});out center tags 1200;`;
-  let json:{elements:unknown[]};
-  try {
-    try {
-      json=await overpassRequest("https://overpass-api.de/api/interpreter",q);
-    } catch(e) {
-      const code=(e as {code?:string})?.code;
-      // Do not evade public API 429/406 quotas or re-run queries rejected as too broad.
-      if(code&&code!=="SERVER")throw e;
-      json=await overpassRequest("https://overpass.private.coffee/api/interpreter",q);
-    }
-  }catch(e){
-    if(cached){lastSearchCached=true;return cached.items;}
-    // Network/CSP/timeouts must be distinguished from a legitimate empty result.
-    // Deliberate quota/rate-limit responses remain blocked, not bypassed.
-    const networkFailure=e instanceof TypeError ||
-      (e instanceof Error && (/fetch|network|timeout|abort/i.test(e.message)||e.name==="AbortError"||e.name==="TimeoutError"));
-    throw networkFailure
-      ? Error("Die öffentliche Geschäftssuche antwortet derzeit nicht. Dein GPS kann trotzdem funktionieren: bitte Ort/PLZ erneut suchen, Branche wählen oder Radius verkleinern. Bei erneuter Störung später versuchen.")
-      :e;
+  const raw:unknown[]=[];
+  let successfulGroups=0;
+  let lastError:unknown;
+  for(const group of groupsFor(category,radius)){
+   try{
+    const json=await resilientOverpass(queryFor(center,radiusMeters,group));
+    raw.push(...json.elements);successfulGroups++;
+   }catch(e){
+    lastError=e;
+    const code=(e as SearchError)?.code;
+    if(code==="LIMIT")break;
+   }
   }
-  const found=(json.elements || [])
-    .map(
-      (entry: unknown) => {
-        const e = entry as {
-        id: number;
-        type: string;
-        lat?: number;
-        lon?: number;
-        center?: { lat: number; lon: number };
-        tags?: Record<string, string>;
-        };
-        const t = e.tags || {};
-        if(isExcludedChain(t)||isExcludedPublicFacility(t))return null;
-        return {
-          id: `${e.type}/${e.id}`,
-          name: t.name || "",
-          street: [t["addr:street"], t["addr:housenumber"]]
-            .filter(Boolean)
-            .join(" "),
-          zip: t["addr:postcode"] || "",
-          city: t["addr:city"] || "",
-          phone: t.phone || t["contact:phone"] || "",
-          website: t.website || t["contact:website"] || "",
-          email: t.email || t["contact:email"] || "",
-          lat: e.lat ?? e.center?.lat ?? NaN,
-          lng: e.lon ?? e.center?.lon ?? NaN,
-          category: t.shop || t.amenity || "",
-        };
-      },
-    )
-    .filter((p:Prospect|null):p is Prospect=>!!p&&!!p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng))
-    .sort((a:Prospect,b:Prospect)=>{
-      const lat1=Math.PI/180*center.lat;
-      const dx=(a.lng-center.lng)*Math.cos(lat1),dy=a.lat-center.lat;
-      const ex=(b.lng-center.lng)*Math.cos(lat1),ey=b.lat-center.lat;
-      return dx*dx+dy*dy-ex*ex-ey*ey;
-    })
-    .slice(0,150);
-  writeSearchCache(key,found);
-  return found;
+  if(!successfulGroups){
+   if(cached){lastSearchCached=true;return cached.items;}
+   const networkFailure=lastError instanceof TypeError ||
+    (lastError instanceof Error&&(/fetch|network|timeout|abort|server/i.test(lastError.message)||lastError.name==="AbortError"||lastError.name==="TimeoutError"));
+   throw networkFailure
+    ?Error("Die Geschäftssuche konnte diesmal keine stabile Verbindung herstellen. Bitte die Suche erneut starten; Ort, Radius und Auswahl bleiben erhalten.")
+    :lastError instanceof Error?lastError:Error("Die Geschäftssuche konnte nicht abgeschlossen werden.");
+  }
+  const unique=new Map<string,Prospect>();
+  raw.forEach(entry=>{const p=toProspect(entry);if(p&&!unique.has(p.id))unique.set(p.id,p);});
+  const found=[...unique.values()].sort((a,b)=>{
+   const lat1=Math.PI/180*center.lat;
+   const dx=(a.lng-center.lng)*Math.cos(lat1),dy=a.lat-center.lat;
+   const ex=(b.lng-center.lng)*Math.cos(lat1),ey=b.lat-center.lat;
+   return dx*dx+dy*dy-ex*ex-ey*ey;
+  }).slice(0,200);
+  if(found.length||!cached)writeSearchCache(key,found);
+  return found.length?found:(cached?(lastSearchCached=true,cached.items):found);
 }
