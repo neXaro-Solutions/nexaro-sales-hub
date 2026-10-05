@@ -1,5 +1,5 @@
-import { isExcludedChain } from "./business-search";
-import { isExcludedPublicFacility } from "./public-facilities";
+import { client } from "./client";
+
 export type Prospect = {
   id: string;
   name: string;
@@ -16,11 +16,10 @@ export type Prospect = {
 
 const searchCache = new Map<string,{at:number;items:Prospect[]}>();
 const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
-let searchCooldownUntil = 0;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v4-public-exclusions",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v5-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -37,26 +36,6 @@ function readSearchCache(key:string){
 function writeSearchCache(key:string,items:Prospect[]){
  const data={at:Date.now(),items};searchCache.set(key,data);
  try{sessionStorage.setItem(key,JSON.stringify(data));}catch{/* private browsing */}
-}
-async function overpassRequest(url:string,query:string){
- const response=await fetch(url,{
-  method:"POST",body:new URLSearchParams({data:query}),headers:{Accept:"application/json"},
-  referrerPolicy:"strict-origin-when-cross-origin",signal:AbortSignal.timeout(45000)
- });
- if(response.status===429||response.status===406){
-  searchCooldownUntil=Date.now()+30000;
-  throw Object.assign(Error("Der öffentliche Suchdienst begrenzt gerade Anfragen. Bitte etwa 30 Sekunden warten, Branche auswählen oder Radius verkleinern."),{code:"LIMIT"});
- }
- if([500,502,503,504].includes(response.status))
-  throw Object.assign(Error("Der Suchserver ist vorübergehend nicht erreichbar."),{code:"SERVER"});
- if(!response.ok)
-  throw Object.assign(Error("Unternehmenssuche: HTTP "+response.status+". Bitte erneut versuchen."),{code:"HTTP"});
- const json=await response.json();
- if(json.remark)
-  throw Object.assign(Error("Die Abfrage war zu groß. Bitte Branche auswählen oder Radius verkleinern."),{code:"TOO_BROAD"});
- if(!Array.isArray(json.elements))
-  throw Object.assign(Error("Der Suchserver lieferte keine gültigen Geschäftsdaten."),{code:"INVALID"});
- return json as {elements:unknown[]};
 }
 
 let lastGeocode = 0;
@@ -127,6 +106,7 @@ export async function geocode(query: string) {
   cache.set(cacheKey, found);
   return found;
 }
+
 export async function findProspects(
   center: { lat: number; lng: number },
   radius: number,
@@ -139,6 +119,7 @@ export async function findProspects(
     radius > 35
   )
     throw Error("Ungültiger Suchbereich.");
+
   const key=searchKey(center,radius,category);
   const cached=readSearchCache(key);
   lastSearchCached=false;
@@ -146,78 +127,28 @@ export async function findProspects(
    lastSearchCached=true;
    return cached.items;
   }
-  if(Date.now()<searchCooldownUntil){
-   if(cached){lastSearchCached=true;return cached.items;}
-   throw Error("Bitte etwa 30 Sekunden warten: Der öffentliche Suchserver hat eine Anfragesperre gemeldet.");
-  }
-  const radiusMeters=Math.round(radius*1000);
-  const selectors:Record<string,string[]>={
-    all:['["shop"]','["amenity"~"^(restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|dentist|doctors|veterinary|fuel|car_wash|car_rental|marketplace|biergarten|nightclub)$"]','["craft"]','["office"]','["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]','["healthcare"]','["leisure"~"^(fitness_centre|sports_centre|bowling_alley)$"]'],
-    shops:['["shop"]'],food:['["amenity"~"^(cafe|restaurant|fast_food|bar|pub|biergarten)$"]'],
-    vape:['["shop"~"^(kiosk|tobacco|convenience|e-cigarette)$"]'],
-    services:['["craft"]','["shop"~"^(hairdresser|beauty|car_repair|laundry|dry_cleaning|copyshop|mobile_phone|computer)$"]','["amenity"~"^(car_wash|car_rental)$"]'],
-    health:['["shop"~"^(beauty|hairdresser|optician|medical_supply)$"]','["amenity"~"^(pharmacy|clinic|dentist|doctors|veterinary)$"]','["healthcare"]'],
-    lodging:['["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]'],
-    office:['["office"]']
-  };
-  const chosen=selectors[category]||selectors.all;
-  const union=chosen.map(selector=>`nwr["name"]${selector}(around:${radiusMeters},${center.lat},${center.lng});`).join("");
-  const q=`[out:json][timeout:40];(${union});out center tags 1200;`;
-  let json:{elements:unknown[]};
+
   try {
-    try {
-      json=await overpassRequest("https://overpass-api.de/api/interpreter",q);
-    } catch(e) {
-      const code=(e as {code?:string})?.code;
-      if(code&&code!=="SERVER")throw e;
-      json=await overpassRequest("https://overpass.private.coffee/api/interpreter",q);
-    }
+    const { data, error } = await client.functions.invoke("nx-hunter-search", {
+      body: { center, radius, category },
+    });
+
+    if (error) throw error;
+    if (!data || !Array.isArray(data.items))
+      throw Error("Der neXaro-Suchdienst lieferte keine gültigen Geschäftsdaten.");
+
+    const found=(data.items as Prospect[])
+      .filter(p=>!!p&&!!p.name&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng)))
+      .map(p=>({...p,lat:Number(p.lat),lng:Number(p.lng)}))
+      .slice(0,200);
+
+    writeSearchCache(key,found);
+    return found;
   }catch(e){
     if(cached){lastSearchCached=true;return cached.items;}
-    const networkFailure=e instanceof TypeError ||
-      (e instanceof Error && (/fetch|network|timeout|abort/i.test(e.message)||e.name==="AbortError"||e.name==="TimeoutError"));
-    throw networkFailure
-      ? Error("Die öffentliche Geschäftssuche antwortet derzeit nicht. Dein GPS kann trotzdem funktionieren: bitte Ort/PLZ erneut suchen, Branche wählen oder Radius verkleinern. Bei erneuter Störung später versuchen.")
-      :e;
+    const message=e instanceof Error?e.message:String(e);
+    if(/401|403|jwt|session|unauthorized/i.test(message))
+      throw Error("Die Geschäftssuche benötigt eine gültige CRM-Anmeldung. Bitte einmal neu anmelden und erneut suchen.");
+    throw Error("Der neXaro-Suchdienst konnte die Geschäftsdaten nicht laden. Bitte Suche erneut starten oder Radius/Branche anpassen.");
   }
-  const found=(json.elements || [])
-    .map(
-      (entry: unknown) => {
-        const e = entry as {
-        id: number;
-        type: string;
-        lat?: number;
-        lon?: number;
-        center?: { lat: number; lon: number };
-        tags?: Record<string, string>;
-        };
-        const t = e.tags || {};
-        if(isExcludedChain(t)||isExcludedPublicFacility(t))return null;
-        return {
-          id: `${e.type}/${e.id}`,
-          name: t.name || "",
-          street: [t["addr:street"], t["addr:housenumber"]]
-            .filter(Boolean)
-            .join(" "),
-          zip: t["addr:postcode"] || "",
-          city: t["addr:city"] || "",
-          phone: t.phone || t["contact:phone"] || "",
-          website: t.website || t["contact:website"] || "",
-          email: t.email || t["contact:email"] || "",
-          lat: e.lat ?? e.center?.lat ?? NaN,
-          lng: e.lon ?? e.center?.lon ?? NaN,
-          category: t.shop || t.amenity || "",
-        };
-      },
-    )
-    .filter((p:Prospect|null):p is Prospect=>!!p&&!!p.name&&Number.isFinite(p.lat)&&Number.isFinite(p.lng))
-    .sort((a:Prospect,b:Prospect)=>{
-      const lat1=Math.PI/180*center.lat;
-      const dx=(a.lng-center.lng)*Math.cos(lat1),dy=a.lat-center.lat;
-      const ex=(b.lng-center.lng)*Math.cos(lat1),ey=b.lat-center.lat;
-      return dx*dx+dy*dy-ex*ex-ey*ey;
-    })
-    .slice(0,150);
-  writeSearchCache(key,found);
-  return found;
 }
