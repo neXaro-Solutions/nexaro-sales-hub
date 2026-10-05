@@ -28,7 +28,6 @@ export function hunterDuplicate(p:Pick<Prospect,"id"|"name"|"street"|"zip"|"city
    )));
 }
 function inRegion(p:{lat:number;lng:number}){
- // Coarse geographic guard, including Berlin. A bounding box is not an administrative boundary.
  return p.lat>=51.32&&p.lat<=53.57&&p.lng>=11.25&&p.lng<=14.85;
 }
 const leadFrom=(p:Prospect):Omit<HunterLead,"id"|"updated_at">=>({
@@ -39,7 +38,7 @@ const leadFrom=(p:Prospect):Omit<HunterLead,"id"|"updated_at">=>({
 const addressOf=(p:{street:string;zip:string;city:string})=>[p.street,[p.zip,p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"}){
  const {data,save,remove,refresh,demo}=useStore();
- const [place,setPlace]=useState("15757 Halbe"),[radius,setRadius]=useState(2),[category,setCategory]=useState("food");
+ const [place,setPlace]=useState("15757 Halbe"),[radius,setRadius]=useState(10),[category,setCategory]=useState("all");
  const [center,setCenter]=useState<{lat:number;lng:number}|null>(null);
  const [results,setResults]=useState<Prospect[]>([]);
  const [leads,setLeads]=useState<HunterLead[]>([]);
@@ -214,13 +213,6 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
     <button type="button" role="tab" aria-selected={workspaceTab==="leads"} className={workspaceTab==="leads"?"active":""} onClick={()=>setWorkspaceTab("leads")}><Check size={17}/> 2 · Merkliste <b>{leads.length}</b></button>
     <button type="button" role="tab" aria-selected={workspaceTab==="tour"} className={workspaceTab==="tour"?"active":""} onClick={()=>setWorkspaceTab("tour")}><RouteIcon size={17}/> 3 · Touren <b>{selectedIds.length||data.routes.length}</b></button>
   </div>
-  {workspaceTab==="search"&&  <section className="card" style={{padding:20,marginBottom:16,border:"1px solid #d9e4d6",background:"#f8fbf6"}}>
-   <span className="badge positive">HUNTER AUTO · EINGEHENDE ANFRAGEN</span>
-   <h2>SumUp-Beratung – optional mit Abrechnung</h2>
-   <p>Das kurze Formular erfasst Beratungsanfragen. Auf Wunsch kann der Interessent eine geschwärzte Händlerabrechnung für eine konkretere Angebotsvorbereitung privat hochladen. Im CRM entsteht eine Bearbeitungsaufgabe – keine Werbeeinwilligung.</p>
-   <a className="primary" href="https://nexaro-solutions.github.io/new-nexaro-field-sales-crm/sumup-gebuehrencheck.html" target="_blank" rel="noopener noreferrer"><ExternalLink size={16}/> SumUp-Beratungsformular öffnen</a>
-   <p className="hint">Teile diesen Link nur über zulässige Kanäle, z. B. deine Website, bestehende Unterlagen oder nach einem persönlichen Gespräch. Nicht als unaufgeforderte Werbe-E-Mail versenden.</p>
-  </section>}
   {workspaceTab==="tour"&&  <section className="card nx-hunter-tour" aria-label="Hunter Tour und Routenplanung">
     <span className="badge positive">HUNTER ROUTE · IM CRM</span>
     <h2>Deine Touren & Besuche</h2>
@@ -317,10 +309,10 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
    {workspaceTab==="search"&&<div>
     <section className="card" style={{padding:20,marginBottom:16}}>
      <h2>Geschäfte vor Ort finden</h2>
-     <p className="hint">Manuelle Einzelsuche mit vorhandener OSM-Standortsuche und deren Filtern für Behörden, Krankenhäuser und bekannte Ketten. Keine automatisierte Massensuche.</p>
+     <p className="hint">Ort oder PLZ eingeben, Radius wählen und suchen. Alle Geschäftsarten sind standardmäßig aktiv; bekannte Ketten und öffentliche Einrichtungen werden weiter herausgefiltert.</p>
      <div className="form-grid">
       <label>PLZ / Ort / Straße<input value={place} onChange={e=>setPlace(e.target.value)} placeholder="15757 Halbe"/></label>
-      <label>Umkreis<select value={radius} onChange={e=>setRadius(Number(e.target.value))}>{[1,2,5,10].map(k=><option key={k} value={k}>{k} km</option>)}</select></label>
+      <label>Umkreis<select value={radius} onChange={e=>setRadius(Number(e.target.value))}>{[1,2,5,10,15,20,25,30,35].map(k=><option key={k} value={k}>{k} km</option>)}</select></label>
       <label>Branche<select value={category} onChange={e=>setCategory(e.target.value)}>{businessCategories.filter(b=>!["vape","health","office"].includes(b.id)).map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>
      </div>
      <div className="button-row">
@@ -328,7 +320,7 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
       <button className="secondary" disabled={busy} onClick={()=>void lookup(true)}><Navigation size={16}/> Mein Standort</button>
      </div>
      {center&&<iframe title="Hunter Suchgebiet" loading="lazy" referrerPolicy="no-referrer" src={osmEmbed(center,radius,focused||undefined)} style={{width:"100%",height:280,border:"1px solid #dce5d5",borderRadius:12,marginTop:14}}/>}
-     {cached&&<p className="hint">Zwischengespeicherte Suchergebnisse – öffentliche Schnittstelle wurde geschont.</p>}
+     {cached&&<p className="hint">Zwischengespeicherte Suchergebnisse – die öffentliche Schnittstelle musste nicht erneut belastet werden.</p>}
      <small>© OpenStreetMap-Mitwirkende (ODbL). Treffer sind Recherchehinweise, keine vollständig verifizierten Unternehmens- oder Kontaktdaten.</small>
     </section>
     <section className="card" style={{padding:20}}>
@@ -370,7 +362,6 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
        <button className="primary" disabled={busy||!!l.customer_id} onClick={()=>void promote(l)}>Ins CRM übernehmen</button>
        {l.status!=="Kein Interesse"&&l.status!=="Übernommen"&&<button type="button" className="secondary" disabled={busy} onClick={()=>setRejectLead(l)}><X size={15}/> Ablehnen</button>}
        {l.customer_id&&data.customers.find(c=>c.id===l.customer_id)&&<button className="secondary" onClick={()=>setEditCustomer(data.customers.find(c=>c.id===l.customer_id)!)}>Kundenakte bearbeiten</button>}
-
       </div>
       {l.customer_id&&<p className="hint">✓ Zentraler Kunde verknüpft – weitere Bearbeitung direkt hier im Außendienst.</p>}
       </details>
