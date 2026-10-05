@@ -19,7 +19,7 @@ const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v9-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v10-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -47,20 +47,14 @@ function writeSearchCache(key:string,items:Prospect[]){
  try{sessionStorage.setItem(key,JSON.stringify(data));}catch{/* private browsing */}
 }
 
-const geocodeCache = new Map<string,{lat:number;lng:number;label:string;city:string}>();
 export async function geocode(query:string){
   const raw=query.trim();
   if(raw.length<3)throw Error("Bitte einen Ort oder eine vollständige Adresse eingeben.");
-  const key="geoapify-v1:"+raw.toLowerCase();
-  const cached=geocodeCache.get(key);
-  if(cached)return cached;
   const {data,error}=await client.functions.invoke("nx-hunter-geocode",{body:{query:raw}});
   if(error)throw Error("Die Ortssuche konnte den Standort nicht bestimmen. Bitte PLZ und Ort prüfen.");
   const lat=Number(data?.lat),lng=Number(data?.lng);
   if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Die Ortssuche lieferte keine gültigen Koordinaten.");
-  const found={lat,lng,label:String(data?.label||raw),city:String(data?.city||raw)};
-  geocodeCache.set(key,found);
-  return found;
+  return {lat,lng,label:String(data?.label||raw),city:String(data?.city||raw)};
 }
 
 export async function findProspects(
