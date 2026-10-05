@@ -19,7 +19,7 @@ const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v8-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v9-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -47,80 +47,19 @@ function writeSearchCache(key:string,items:Prospect[]){
  try{sessionStorage.setItem(key,JSON.stringify(data));}catch{/* private browsing */}
 }
 
-let lastGeocode = 0;
-const cache = new Map<string,{ lat:number; lng:number; label:string; city:string }>();
-const norm=(v:string)=>v.toLocaleLowerCase("de-DE").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").trim();
-
-export async function geocode(query: string) {
-  const configResponse = await fetch(import.meta.env.BASE_URL + "maps-config.json", {
-    cache: "no-store",
-    signal: AbortSignal.timeout(5000),
-  });
-  if (!configResponse.ok) throw Error("Die Ortssuche ist derzeit nicht konfiguriert.");
-  const config = await configResponse.json();
-  if (!config.enabled) throw Error("Die öffentliche Ortssuche ist deaktiviert. Google-Maps-Links stehen weiter bereit.");
-  const endpoint = new URL(config.geocoder, location.href);
-  if (endpoint.protocol !== "https:" && endpoint.origin !== location.origin) throw Error("Ungültige Konfiguration der Ortssuche.");
-
+const geocodeCache = new Map<string,{lat:number;lng:number;label:string;city:string}>();
+export async function geocode(query:string){
   const raw=query.trim();
-  const cacheKey="v3:"+raw.toLowerCase();
-  if(cache.has(cacheKey))return cache.get(cacheKey)!;
   if(raw.length<3)throw Error("Bitte einen Ort oder eine vollständige Adresse eingeben.");
-
-  const wait=Math.max(0,1100-(Date.now()-lastGeocode));
-  if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
-  lastGeocode=Date.now();
-
-  const requestedZip=(raw.match(/\b\d{5}\b/)||[])[0]||"";
-  const requestedPlace=raw.replace(/\b\d{5}\b/g,"").replace(/,?\s*brandenburg\b/ig,"").replace(/,?\s*germany\b/ig,"").replace(/,/g," ").replace(/\s+/g," ").trim();
-
-  async function fetchRows(params:Record<string,string>){
-    const response=await fetch(endpoint.href+"?"+new URLSearchParams({
-      format:"jsonv2",
-      limit:"8",
-      countrycodes:"de",
-      addressdetails:"1",
-      ...params,
-    }),{signal:AbortSignal.timeout(12000),headers:{Accept:"application/json"}});
-    if(!response.ok)throw Error("Die öffentliche Ortssuche ist gerade nicht verfügbar. Bitte später erneut versuchen.");
-    const rows=await response.json();
-    return Array.isArray(rows)?rows:[];
-  }
-
-  let rows:any[]=[];
-  if(requestedZip&&requestedPlace){
-    rows=await fetchRows({city:requestedPlace,postalcode:requestedZip});
-    if(!rows.length)rows=await fetchRows({town:requestedPlace,postalcode:requestedZip});
-    if(!rows.length)rows=await fetchRows({village:requestedPlace,postalcode:requestedZip});
-  }
-  if(!rows.length)rows=await fetchRows({q:raw});
-  if(!rows.length)throw Error("Ort nicht gefunden. Bitte PLZ und Ortsname eingeben.");
-
-  const wantedPlace=norm(requestedPlace);
-  const scored=rows.map((r:any)=>{
-    const a=r?.address||{};
-    const place=String(a.city||a.town||a.village||a.municipality||a.hamlet||"");
-    const postcode=String(a.postcode||"");
-    const type=String(r.type||"");
-    let score=0;
-    if(wantedPlace&&norm(place)===wantedPlace)score+=160;
-    else if(wantedPlace&&norm(String(r.display_name||"")).includes(wantedPlace))score+=50;
-    if(requestedZip&&postcode===requestedZip)score+=60;
-    if(["city","town","village","municipality","hamlet"].includes(type))score+=35;
-    if(type==="postcode")score-=100;
-    return {r,score};
-  }).sort((a:any,b:any)=>b.score-a.score);
-
-  const r=scored[0].r;
-  const lat=Number(r.lat),lng=Number(r.lon);
-  if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Keine gültigen Koordinaten erhalten.");
-  const found={
-    lat,lng,
-    label:String(r.display_name),
-    city:String(r.address?.city||r.address?.town||r.address?.village||r.address?.municipality||query),
-  };
-  console.info("Hunter geocode",{query:raw,label:found.label,lat:found.lat,lng:found.lng});
-  cache.set(cacheKey,found);
+  const key="geoapify-v1:"+raw.toLowerCase();
+  const cached=geocodeCache.get(key);
+  if(cached)return cached;
+  const {data,error}=await client.functions.invoke("nx-hunter-geocode",{body:{query:raw}});
+  if(error)throw Error("Die Ortssuche konnte den Standort nicht bestimmen. Bitte PLZ und Ort prüfen.");
+  const lat=Number(data?.lat),lng=Number(data?.lng);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Die Ortssuche lieferte keine gültigen Koordinaten.");
+  const found={lat,lng,label:String(data?.label||raw),city:String(data?.city||raw)};
+  geocodeCache.set(key,found);
   return found;
 }
 
