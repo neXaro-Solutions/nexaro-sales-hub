@@ -19,21 +19,30 @@ const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
 let lastSearchCached = false;
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v6-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v7-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
- if(hit&&hit.at>Date.now()-searchCacheMax)return hit;
+ if(hit&&hit.at>Date.now()-searchCacheMax&&hit.items.length>0)return hit;
+ if(hit&&hit.items.length===0)searchCache.delete(key);
  try {
   const value=sessionStorage.getItem(key);
   if(!value)return null;
   const data=JSON.parse(value) as {at:number;items:Prospect[]};
-  if(!Number.isFinite(data.at)||data.at<Date.now()-searchCacheMax||!Array.isArray(data.items))return null;
+  if(!Number.isFinite(data.at)||data.at<Date.now()-searchCacheMax||!Array.isArray(data.items)||data.items.length===0){
+   sessionStorage.removeItem(key);
+   return null;
+  }
   searchCache.set(key,data);
   return data;
  }catch{return null;}
 }
 function writeSearchCache(key:string,items:Prospect[]){
+ if(items.length===0){
+  searchCache.delete(key);
+  try{sessionStorage.removeItem(key);}catch{/* private browsing */}
+  return;
+ }
  const data={at:Date.now(),items};searchCache.set(key,data);
  try{sessionStorage.setItem(key,JSON.stringify(data));}catch{/* private browsing */}
 }
@@ -54,7 +63,7 @@ export async function geocode(query: string) {
   if (endpoint.protocol !== "https:" && endpoint.origin !== location.origin) throw Error("Ungültige Konfiguration der Ortssuche.");
 
   const raw=query.trim();
-  const cacheKey=raw.toLowerCase();
+  const cacheKey="v2:"+raw.toLowerCase();
   if(cache.has(cacheKey))return cache.get(cacheKey)!;
   if(raw.length<3)throw Error("Bitte einen Ort oder eine vollständige Adresse eingeben.");
 
@@ -65,7 +74,7 @@ export async function geocode(query: string) {
   const response=await fetch(endpoint.href+"?"+new URLSearchParams({
     q:raw,
     format:"jsonv2",
-    limit:"6",
+    limit:"8",
     countrycodes:"de",
     addressdetails:"1",
   }),{signal:AbortSignal.timeout(12000),headers:{Accept:"application/json"}});
@@ -82,12 +91,12 @@ export async function geocode(query: string) {
     const postcode=String(a.postcode||"");
     const type=String(r.type||"");
     let score=0;
-    if(requestedPlace&&norm(place)===requestedPlace)score+=100;
-    else if(requestedPlace&&norm(String(r.display_name||"")).includes(requestedPlace))score+=35;
-    if(requestedZip&&postcode===requestedZip)score+=25;
-    if(["city","town","village","municipality"].includes(type))score+=20;
-    if(type==="postcode")score-=40;
-    return {r,score,place};
+    if(requestedPlace&&norm(place)===requestedPlace)score+=120;
+    else if(requestedPlace&&norm(String(r.display_name||"")).includes(requestedPlace))score+=40;
+    if(requestedZip&&postcode===requestedZip)score+=30;
+    if(["city","town","village","municipality"].includes(type))score+=25;
+    if(type==="postcode")score-=60;
+    return {r,score};
   }).sort((a:any,b:any)=>b.score-a.score);
 
   const r=scored[0].r;
