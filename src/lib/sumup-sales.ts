@@ -12,12 +12,12 @@ export const hardwareCatalog = [
     price: 0,
     source: "https://www.sumup.com/de-de/tap-to-pay/",
   },
-  { id: "lite", name: "Solo Lite", price: 22, source: catalogHardwareSource },
-  { id: "solo", name: "Solo", price: 59, source: catalogHardwareSource },
+  { id: "lite", name: "Solo Lite", price: 34, source: catalogHardwareSource },
+  { id: "solo", name: "Solo", price: 79, source: catalogHardwareSource },
   {
     id: "terminal",
     name: "Terminal",
-    price: 139,
+    price: 169,
     source: catalogHardwareSource,
   },
   {
