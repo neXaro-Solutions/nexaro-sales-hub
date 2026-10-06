@@ -12,6 +12,22 @@ type Article = {
 
 const articles: Article[] = [
   {
+    group: "Gesprächseinstieg", title: "Direktansprache · der perfekte Einstieg",
+    summary: "In wenigen Sekunden Relevanz schaffen, eine echte Gesprächsöffnung erhalten und natürlich zum Payment-Vergleich überleiten.",
+    points: [
+      "Grundhaltung: Nicht mit Produktdetails starten. Ziel der ersten 20–30 Sekunden ist nur, Interesse und Gesprächsbereitschaft zu gewinnen.",
+      "Empfohlener Einstieg: „Guten Tag, ich bin Sebastian von neXaro Solutions. Ich bin gerade bei Gewerbekunden in der Umgebung unterwegs und schaue mir an, wie Kartenzahlungen aktuell gelöst sind. Eine kurze Frage: Welche Payment-Lösung nutzen Sie momentan?“",
+      "Wenn der Kunde antwortet: Nicht sofort SumUp erklären. Erst aufgreifen: „Okay, verstanden. Und sind Sie damit bei Kosten und Ablauf grundsätzlich zufrieden?“",
+      "Nutzenanker: „Der Hintergrund ist ganz einfach: Ich vergleiche die bestehende Lösung mit den aktuellen Möglichkeiten von SumUp. Nicht jeder Vergleich führt zu einem Wechsel – aber danach wissen Sie zumindest, ob Ihre aktuelle Lösung noch gut passt.“",
+      "Übergang zum nächsten Schritt: „Wenn Sie möchten, brauche ich dafür nur ein paar Eckdaten zu Ihrer aktuellen Lösung. Dann kann ich Ihnen konkret zeigen, ob sich ein genauerer Vergleich lohnt.“",
+      "Bei vorhandener Händlerabrechnung: „Am genauesten ist es mit einer aktuellen Abrechnung. Dann vergleichen wir nicht mit Schätzungen, sondern mit Ihren tatsächlichen Kosten.“",
+      "Wenn wenig Zeit ist: „Kein Problem. Dann machen wir es einfach: Ich kann Ihnen die Informationen zum Vergleich schicken und wir schauen anschließend nur dann weiter, wenn es für Sie interessant ist.“",
+      "Wichtig: Ruhig sprechen, Blickkontakt halten, nach der ersten Frage bewusst schweigen. Der Kunde soll reden. Keine Tarifdetails, Ersparnis oder Wechselnotwendigkeit behaupten, bevor die Ist-Daten geprüft sind.",
+      "Vermeiden: „Haben Sie Interesse an SumUp?“, „Sind Sie mit Ihrem Anbieter unzufrieden?“, „Ich kann Ihnen Geld sparen.“ Diese Einstiege erzeugen früh ein Ja/Nein und unnötigen Verkaufsdruck.",
+      "Merksatz: Nicht SumUp verkaufen – zuerst die aktuelle Payment-Lösung des Kunden verstehen. Der Vergleich ist der Türöffner; die passende Lösung ist das Ergebnis."
+    ]
+  },
+  {
     group: "Gesprächseinstieg", title: "Erstkontakt im Geschäft · 30 Sekunden",
     summary: "Kurz, respektvoll und ohne unbestätigte Sparversprechen das Gespräch eröffnen.",
     points: [
