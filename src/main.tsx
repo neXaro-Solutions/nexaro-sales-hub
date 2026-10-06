@@ -17,28 +17,15 @@ function loadedBuild(){
   const src=document.querySelector<HTMLScriptElement>('script[type="module"][src]')?.src||"";
   return src.split("/").pop()||src;
 }
-function buildLabel(build:string){
-  const match=build.match(/index-([A-Za-z0-9_-]+)\.js$/);
-  return match?.[1]||build.replace(/\.js$/i,"");
-}
 function showVersionNotice(text:string){
   const notice=document.createElement("div");
   notice.setAttribute("role","status");notice.setAttribute("aria-live","polite");notice.textContent=text;
   Object.assign(notice.style,{position:"fixed",top:"max(14px, env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",zIndex:"99999",maxWidth:"calc(100vw - 28px)",padding:"12px 18px",borderRadius:"14px",background:"#f1ffe0",border:"1px solid #9fd653",color:"#244b2c",fontWeight:"800",boxShadow:"0 10px 30px rgba(36,75,44,.18)",fontFamily:"inherit",textAlign:"center"});
   document.body.appendChild(notice);window.setTimeout(()=>notice.remove(),9000);
 }
-function mountPersistentVersionStatus(build:string){
-  const existing=document.getElementById("nx-version-status");if(existing)existing.remove();
-  const badge=document.createElement("div");badge.id="nx-version-status";
-  badge.setAttribute("role","status");badge.setAttribute("aria-label",`Aktuelle CRM-Version ${buildLabel(build)}`);
-  badge.textContent=`● CRM aktuell · ${buildLabel(build)}`;
-  Object.assign(badge.style,{position:"fixed",right:"12px",bottom:"max(12px, env(safe-area-inset-bottom))",zIndex:"9998",padding:"7px 10px",borderRadius:"999px",background:"rgba(248,255,239,.96)",border:"1px solid #b8d892",color:"#31552f",fontSize:"12px",fontWeight:"800",lineHeight:"1",boxShadow:"0 6px 18px rgba(36,75,44,.12)",fontFamily:"inherit",pointerEvents:"none",whiteSpace:"nowrap"});
-  document.body.appendChild(badge);
-}
 function registerLoadedBuild(){
   if(!import.meta.env.PROD)return;
   const current=loadedBuild();if(!current)return;
-  mountPersistentVersionStatus(current);
   let previous="";try{previous=localStorage.getItem(LAST_BUILD_KEY)||"";}catch{/* private browsing */}
   if(previous&&previous!==current){
     const time=new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
