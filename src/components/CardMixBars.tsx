@@ -39,11 +39,41 @@ export function CardMixBars({debitShare,debitRate,creditRate,onDebitShare,onDebi
   return <div className="mix-bars">
     <div className="mix-section">
       <div className="mix-section-heading"><strong>Kartenmix</strong><span>Verteilung der monatlichen Transaktionen</span></div>
+
       <div className="notice" role="note">
-        <strong>ℹ️ Welche Karte gehört wohin?</strong>
-        <p><b>EC / Debit</b> umfasst typischerweise girocard sowie Debitkarten, z. B. Visa Debit oder Debit Mastercard. <b>Kredit / Premium</b> umfasst je nach Abrechnung klassische Kreditkarten sowie häufig Firmen-, internationale und Premiumkarten wie American Express. Entscheidend ist immer die tatsächliche Kartenklassifizierung auf der Händlerabrechnung – nicht nur das Visa- oder Mastercard-Logo.</p>
-        <p className="hint"><b>Wichtig:</b> Apple Pay und Google Pay sind keine eigene Kartenart. Für die Gebühr zählt die dahinter hinterlegte Karte. Eine Visa kann z. B. Debit oder Kredit, privat oder geschäftlich und im EWR oder außerhalb des EWR ausgegeben sein.</p>
+        <strong>💳 Karten auf einen Blick einordnen</strong>
+        <p>Für die Gebühr zählt nicht nur das Logo auf der Karte. Entscheidend sind <b>Kartenprodukt, Karteninhaber und Ausstellungsregion</b>. Eine Visa oder Mastercard kann deshalb in unterschiedliche Gebührenkategorien fallen.</p>
+        <div className="nx-card-fee-map">
+          <article className="nx-card-fee-card nx-card-fee-low">
+            <span className="nx-card-fee-rate">0,79 %</span>
+            <strong>Zahlungen Plus · begünstigte Karten</strong>
+            <p><b>Vor-Ort-Zahlungen mit im EWR ausgestellten Verbraucherkarten.</b> Das sind Debit- oder Kreditkarten, die auf eine Privatperson ausgestellt sind – nicht auf ein Unternehmen.</p>
+            <small>Typisch: private girocard/EC, private Visa Debit, Debit Mastercard oder private Kreditkarte aus Deutschland/EWR – sofern SumUp sie entsprechend klassifiziert.</small>
+          </article>
+          <article className="nx-card-fee-card nx-card-fee-standard">
+            <span className="nx-card-fee-rate">1,39 %</span>
+            <strong>Standard / Plus-Sondergruppe</strong>
+            <p>Im Standardtarif gilt 1,39 % für Vor-Ort-Zahlungen. Bei Zahlungen Plus gilt 1,39 % weiterhin für <b>Nicht-EWR-, Firmen- und Premiumkarten</b>.</p>
+            <small>SumUp nennt ausdrücklich American Express, JCB und Diners Club in dieser Gruppe.</small>
+          </article>
+          <article className="nx-card-fee-card nx-card-fee-current">
+            <span className="nx-card-fee-rate">z. B. 2,59 %</span>
+            <strong>Nur Ist-Satz des bisherigen Anbieters</strong>
+            <p>Dieser Wert wird nur verwendet, wenn er <b>tatsächlich auf der bestehenden Händlerabrechnung</b> steht.</p>
+            <small>2,59 % ist aktuell kein fester SumUp-Premiumkartensatz.</small>
+          </article>
+        </div>
+        <details className="nx-premium-explainer">
+          <summary>Was bedeutet „Premiumkarte“?</summary>
+          <div>
+            <p><b>Premium</b> ist eine Kartenklassifizierung – nicht einfach „jede Kreditkarte“. Ob eine Karte als Premium gilt, hängt vom konkreten Kartenprodukt und der Einstufung durch Kartenorganisation/Issuer bzw. Zahlungsdienstleister ab.</p>
+            <p><b>Wichtig:</b> Firmen-/Corporate-Karten und außerhalb des EWR ausgegebene Karten sind eigene Kriterien, landen bei SumUp Zahlungen Plus aber ebenfalls in der 1,39-%-Gruppe. American Express, JCB und Diners Club nennt SumUp ausdrücklich als Beispiele dieser höheren Gebührenkategorie.</p>
+            <p className="hint">Gold, Platinum, Infinite o. Ä. nicht allein aufgrund des Namens automatisch zuordnen. Maßgeblich ist die tatsächliche Kartenklassifizierung in Abrechnung bzw. Zahlungsdaten.</p>
+          </div>
+        </details>
+        <p className="hint"><b>Apple Pay / Google Pay:</b> keine eigene Kartenart. Es zählt die dahinter hinterlegte Karte.</p>
       </div>
+
       {total>0?<>
         <div className="mix-segmented" role="img" aria-label={`EC und Debit ${debitTransactions} Transaktionen; Kredit und Premium ${creditTransactions} Transaktionen`}>
           <div className="mix-segment mix-debit" style={{width:debitWidth+"%"}}>{debitWidth>=15&&<b>{debitTransactions.toLocaleString("de-DE")}</b>}</div>
@@ -56,12 +86,13 @@ export function CardMixBars({debitShare,debitRate,creditRate,onDebitShare,onDebi
         <p className="hint">Die prozentuale Aufteilung wird daraus automatisch im Hintergrund berechnet und für Gebührenvergleich und Empfehlung verwendet.</p>
       </>:<p className="hint">Bitte zuerst oben die <strong>Transaktionen pro Monat</strong> eintragen. Beim ersten Eintrag wird der Kartenmix automatisch mit 90 % EC/Debit und 10 % Kredit/Premium vorbelegt.</p>}
     </div>
+
     <div className="mix-section">
       <div className="mix-section-heading"><strong>Gebührensätze</strong><span>Bisheriger Anbieter · jederzeit anpassbar</span></div>
       <div className="notice" role="note">
-        <strong>💳 So liest du die Gebühren richtig</strong>
-        <p>Die beiden Werte unten sind die <b>Ist-Gebühren des bisherigen Anbieters</b>. Beispiel: Stehen auf der Abrechnung 1,39 % für Debit und 2,59 % für Kredit/Premium, werden die jeweiligen Transaktionen genau mit diesen dokumentierten Sätzen gerechnet. 2,59 % ist dabei <b>kein allgemeiner SumUp-Satz</b>.</p>
-        <p className="hint"><b>SumUp aktuell:</b> Im umsatzbasierten Tarif kosten Vor-Ort-Kartenzahlungen grundsätzlich 1,39 %. Bei Zahlungen Plus gelten 0,79 % für vor Ort akzeptierte Verbraucherkarten aus dem EWR und 1,39 % für Nicht-EWR-, Firmen- und Premiumkarten, einschließlich American Express. Online-/Karte-nicht-präsent-Zahlungen werden separat mit 2,50 % behandelt. Vor einem verbindlichen Angebot immer die aktuelle SumUp-Preisseite prüfen.</p>
+        <strong>ℹ️ Bestehende Gebühren ≠ SumUp-Gebühren</strong>
+        <p>Die beiden Werte unten sind ausschließlich die <b>Ist-Gebühren des bisherigen Anbieters</b>. Wenn eine Händlerabrechnung z. B. 1,39 % und 2,59 % ausweist, rechnen wir exakt mit diesen dokumentierten Werten – unabhängig davon, wie SumUp aktuell bepreist.</p>
+        <p className="hint"><b>SumUp aktuell:</b> Standardtarif 1,39 % für Vor-Ort-Zahlungen. Zahlungen Plus: 0,79 % für EWR-Verbraucherkarten; 1,39 % für Nicht-EWR-, Firmen- und Premiumkarten einschließlich American Express, JCB und Diners Club. Karte-nicht-präsent/Online: 2,50 %. Vor Angebot aktuelle SumUp-Konditionen erneut prüfen.</p>
       </div>
       <div className="mix-segmented" role="img" aria-label={`Gebühr EC und Debit ${format(debitRate)} Prozent; Kredit und Premium ${format(creditRate)} Prozent`}>
         <div className="mix-segment mix-debit" style={{width:feeDebitWidth+"%"}}>{feeDebitWidth>=18&&<b>{format(debitRate)} %</b>}</div>
