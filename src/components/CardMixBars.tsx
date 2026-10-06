@@ -39,6 +39,11 @@ export function CardMixBars({debitShare,debitRate,creditRate,onDebitShare,onDebi
   return <div className="mix-bars">
     <div className="mix-section">
       <div className="mix-section-heading"><strong>Kartenmix</strong><span>Verteilung der monatlichen Transaktionen</span></div>
+      <div className="notice" role="note">
+        <strong>ℹ️ Welche Karte gehört wohin?</strong>
+        <p><b>EC / Debit</b> umfasst typischerweise girocard sowie Debitkarten, z. B. Visa Debit oder Debit Mastercard. <b>Kredit / Premium</b> umfasst je nach Abrechnung klassische Kreditkarten sowie häufig Firmen-, internationale und Premiumkarten wie American Express. Entscheidend ist immer die tatsächliche Kartenklassifizierung auf der Händlerabrechnung – nicht nur das Visa- oder Mastercard-Logo.</p>
+        <p className="hint"><b>Wichtig:</b> Apple Pay und Google Pay sind keine eigene Kartenart. Für die Gebühr zählt die dahinter hinterlegte Karte. Eine Visa kann z. B. Debit oder Kredit, privat oder geschäftlich und im EWR oder außerhalb des EWR ausgegeben sein.</p>
+      </div>
       {total>0?<>
         <div className="mix-segmented" role="img" aria-label={`EC und Debit ${debitTransactions} Transaktionen; Kredit und Premium ${creditTransactions} Transaktionen`}>
           <div className="mix-segment mix-debit" style={{width:debitWidth+"%"}}>{debitWidth>=15&&<b>{debitTransactions.toLocaleString("de-DE")}</b>}</div>
@@ -53,6 +58,11 @@ export function CardMixBars({debitShare,debitRate,creditRate,onDebitShare,onDebi
     </div>
     <div className="mix-section">
       <div className="mix-section-heading"><strong>Gebührensätze</strong><span>Bisheriger Anbieter · jederzeit anpassbar</span></div>
+      <div className="notice" role="note">
+        <strong>💳 So liest du die Gebühren richtig</strong>
+        <p>Die beiden Werte unten sind die <b>Ist-Gebühren des bisherigen Anbieters</b>. Beispiel: Stehen auf der Abrechnung 1,39 % für Debit und 2,59 % für Kredit/Premium, werden die jeweiligen Transaktionen genau mit diesen dokumentierten Sätzen gerechnet. 2,59 % ist dabei <b>kein allgemeiner SumUp-Satz</b>.</p>
+        <p className="hint"><b>SumUp aktuell:</b> Im umsatzbasierten Tarif kosten Vor-Ort-Kartenzahlungen grundsätzlich 1,39 %. Bei Zahlungen Plus gelten 0,79 % für vor Ort akzeptierte Verbraucherkarten aus dem EWR und 1,39 % für Nicht-EWR-, Firmen- und Premiumkarten, einschließlich American Express. Online-/Karte-nicht-präsent-Zahlungen werden separat mit 2,50 % behandelt. Vor einem verbindlichen Angebot immer die aktuelle SumUp-Preisseite prüfen.</p>
+      </div>
       <div className="mix-segmented" role="img" aria-label={`Gebühr EC und Debit ${format(debitRate)} Prozent; Kredit und Premium ${format(creditRate)} Prozent`}>
         <div className="mix-segment mix-debit" style={{width:feeDebitWidth+"%"}}>{feeDebitWidth>=18&&<b>{format(debitRate)} %</b>}</div>
         <div className="mix-segment mix-credit" style={{width:(100-feeDebitWidth)+"%"}}>{100-feeDebitWidth>=18&&<b>{format(creditRate)} %</b>}</div>
