@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, MapPin, Navigation, Plus, Check, ExternalLink, RefreshCw, Trash2, Route as RouteIcon, ArrowRight, X, ArrowUp, ArrowDown } from "lucide-react";
 import { client } from "../lib/client";
 import { useStore } from "../lib/store";
-import { geocode, findProspects, wasProspectSearchCached, type Prospect } from "../lib/maps";
+import { geocode, findProspects, wasProspectSearchCached, prospectSearchWarning, type Prospect } from "../lib/maps";
 import { locate } from "../lib/location";
 import { osmEmbed } from "../lib/osmEmbed";
 import { optimizeHunterRoute,hunterRouteLength } from "../lib/hunterRoute";
@@ -47,6 +47,10 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
  const [stageFilter,setStageFilter]=useState("Offen");
  const [drafts,setDrafts]=useState<Record<string,string>>({});
  const [cached,setCached]=useState(false);
+ const [searchState,setSearchState]=useState<"idle"|"loading"|"success"|"error">("idle");
+ const [searchError,setSearchError]=useState("");
+ const [searchWarning,setSearchWarning]=useState("");
+ const [searchLabel,setSearchLabel]=useState("");
  const [selectedIds,setSelectedIds]=useState<string[]>([]);
  const [tour,setTour]=useState<string[]>([]);
  const [tourDay,setTourDay]=useState(today());
@@ -72,15 +76,17 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
  async function lookup(gps=false){
   if(busy)return;
   setBusy(true);setError("");setMessage("");setFocused(null);
+  setSearchState("loading");setSearchError("");setSearchWarning("");setResults([]);setCached(false);setCenter(null);setSearchLabel("");
   try{
    const c=gps?await locate():await geocode(place.trim()+(/berlin|brandenburg/i.test(place)?"":", Brandenburg"));
    if(!inRegion(c))throw Error("Hunter Core sucht derzeit nur in Berlin/Brandenburg. Bitte einen Ort innerhalb des Gebiets wählen.");
    setCenter(c);
+   setSearchLabel((gps?"Mein Standort":("label" in c?String(c.label):place.trim()))+" · "+radius+" km");
    const items=await findProspects(c,radius,category);
    const filtered=items.filter(inRegion);
-   setResults(filtered);setCached(wasProspectSearchCached());
+   setResults(filtered);setCached(wasProspectSearchCached());setSearchWarning(prospectSearchWarning());setSearchState("success");
    setMessage(filtered.length+" Standorte gefunden. Einträge vor Ort prüfen; die Daten sind kein bestätigter Zahlungsbedarf.");
-  }catch(e){setError((e as Error).message)}
+  }catch(e){setSearchError(e instanceof Error?e.message:"Suche fehlgeschlagen. Bitte erneut versuchen.");setSearchState("error");}
   finally{setBusy(false)}
  }
  const bySource=useMemo(()=>new Map(leads.map(l=>[l.source_id,l])),[leads]);
@@ -311,21 +317,25 @@ export function Hunter({initialTab="leads"}:{initialTab?:"leads"|"tour"|"search"
      <h2>Geschäfte vor Ort finden</h2>
      <p className="hint">Ort oder PLZ eingeben, Radius wählen und suchen. Alle Geschäftsarten sind standardmäßig aktiv; bekannte Ketten und öffentliche Einrichtungen werden weiter herausgefiltert.</p>
      <div className="form-grid">
-      <label>PLZ / Ort / Straße<input value={place} onChange={e=>setPlace(e.target.value)} placeholder="15757 Halbe"/></label>
-      <label>Umkreis<select value={radius} onChange={e=>setRadius(Number(e.target.value))}>{[1,2,5,10,15,20,25,30,35].map(k=><option key={k} value={k}>{k} km</option>)}</select></label>
-      <label>Branche<select value={category} onChange={e=>setCategory(e.target.value)}>{businessCategories.filter(b=>!["vape","health","office"].includes(b.id)).map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>
+      <label>PLZ / Ort / Straße<input disabled={busy} value={place} onChange={e=>setPlace(e.target.value)} placeholder="15757 Halbe"/></label>
+      <label>Umkreis<select disabled={busy} value={radius} onChange={e=>setRadius(Number(e.target.value))}>{[1,2,5,10,15,20,25,30,35].map(k=><option key={k} value={k}>{k} km</option>)}</select></label>
+      <label>Branche<select disabled={busy} value={category} onChange={e=>setCategory(e.target.value)}>{businessCategories.filter(b=>!["vape","health","office"].includes(b.id)).map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>
      </div>
      <div className="button-row">
       <button className="primary" disabled={busy||place.trim().length<3} onClick={()=>void lookup()}><Search size={16}/> {busy?"Suche läuft …":"Geschäfte suchen"}</button>
       <button className="secondary" disabled={busy} onClick={()=>void lookup(true)}><Navigation size={16}/> Mein Standort</button>
      </div>
+     {searchLabel&&<p className="hint">Suchgebiet: {searchLabel}</p>}
+     {searchState==="loading"&&<p className="notice" role="status">Standort und Geschäfte werden gesucht …</p>}
+     {searchError&&<p className="error" role="alert">{searchError}</p>}
+     {searchWarning&&<p className="notice" role="status">{searchWarning}</p>}
      {center&&<iframe title="Hunter Suchgebiet" loading="lazy" referrerPolicy="no-referrer" src={osmEmbed(center,radius,focused||undefined)} style={{width:"100%",height:280,border:"1px solid #dce5d5",borderRadius:12,marginTop:14}}/>}
-     {cached&&<p className="hint">Zwischengespeicherte Suchergebnisse – die öffentliche Schnittstelle musste nicht erneut belastet werden.</p>}
+     {cached&&<p className="hint">Zwischengespeicherte Suchergebnisse – können vom aktuellen Datenstand abweichen.</p>}
      <small>© OpenStreetMap-Mitwirkende (ODbL). Treffer sind Recherchehinweise, keine vollständig verifizierten Unternehmens- oder Kontaktdaten.</small>
     </section>
     <section className="card" style={{padding:20}}>
      <h2>Recherchetreffer ({results.length})</h2>
-     {results.length===0&&<p className="hint">Starte eine Suche, um lokale, bereits gefilterte Geschäfte zu sehen.</p>}
+     {results.length===0&&<p className="hint">{searchState==="idle"?"Starte eine Suche, um lokale, bereits gefilterte Geschäfte zu sehen.":searchState==="loading"?"Suche läuft – Ergebnisse folgen hier.":searchState==="error"?"Suche nicht abgeschlossen. Bitte die Meldung oben beachten und erneut versuchen.":searchWarning?"Keine Treffer aus den verfügbaren Datenquellen. Bitte erneut versuchen.":"Keine passenden Geschäfte im gewählten Suchgebiet gefunden. Versuche einen größeren Umkreis oder eine andere Branche."}</p>}
      {results.map(p=>{
       const duplicate=hunterDuplicate(p,data.customers),existing=bySource.get("osm:"+p.id);
       return <div key={p.id} className="prospect" style={{padding:"14px 0",borderBottom:"1px solid #e8ede5",display:"block"}}>

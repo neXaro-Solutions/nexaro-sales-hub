@@ -17,9 +17,19 @@ export type Prospect = {
 const searchCache = new Map<string,{at:number;items:Prospect[]}>();
 const searchCacheFresh = 15*60*1000, searchCacheMax = 24*60*60*1000;
 let lastSearchCached = false;
+let lastSearchWarning = "";
+export function prospectSearchWarning(){return lastSearchWarning;}
+async function searchError(error:unknown, geocoding=false):Promise<Error>{
+ const response=(error as {context?:Response})?.context;
+ const status=response?.status;
+ if(status===401||status===403)return Error("Die Suche benötigt eine gültige CRM-Anmeldung. Bitte neu anmelden und erneut suchen.");
+ if(status===429)return Error("Der Suchdienst ist gerade ausgelastet. Bitte etwas warten und erneut suchen.");
+ if(geocoding&&status===404)return Error("Kein passender Ort gefunden. Bitte PLZ und Ort oder die vollständige Adresse prüfen.");
+ return Error(geocoding?"Die Ortssuche ist momentan nicht erreichbar. Bitte erneut versuchen.":"Die Geschäftssuche ist momentan nicht erreichbar. Bitte erneut versuchen; das ist kein Ergebnis mit null Treffern.");
+}
 export function wasProspectSearchCached() { return lastSearchCached; }
 function searchKey(center:{lat:number;lng:number},radius:number,category:string){
- return ["nx-search-v10-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
+ return ["nx-search-v13-edge",center.lat.toFixed(3),center.lng.toFixed(3),radius,category].join(":");
 }
 function readSearchCache(key:string){
  const hit=searchCache.get(key);
@@ -51,9 +61,9 @@ export async function geocode(query:string){
   const raw=query.trim();
   if(raw.length<3)throw Error("Bitte einen Ort oder eine vollständige Adresse eingeben.");
   const {data,error}=await client.functions.invoke("nx-hunter-geocode",{body:{query:raw}});
-  if(error)throw Error("Die Ortssuche konnte den Standort nicht bestimmen. Bitte PLZ und Ort prüfen.");
+  if(error)throw await searchError(error,true);
   const lat=Number(data?.lat),lng=Number(data?.lng);
-  if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Die Ortssuche lieferte keine gültigen Koordinaten.");
+  if(data?.lat==null||data?.lng==null||!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Die Ortssuche lieferte keine gültigen Koordinaten.");
   return {lat,lng,label:String(data?.label||raw),city:String(data?.city||raw)};
 }
 
@@ -62,11 +72,11 @@ export async function findProspects(
   radius:number,
   category:string,
 ):Promise<Prospect[]> {
-  if(!Number.isFinite(center.lat)||!Number.isFinite(center.lng)||radius<1||radius>35)throw Error("Ungültiger Suchbereich.");
+  if(!Number.isFinite(center.lat)||!Number.isFinite(center.lng)||!Number.isFinite(radius)||radius<1||radius>35)throw Error("Ungültiger Suchbereich.");
 
   const key=searchKey(center,radius,category);
   const cached=readSearchCache(key);
-  lastSearchCached=false;
+  lastSearchCached=false;lastSearchWarning="";
   if(cached&&Date.now()-cached.at<searchCacheFresh){lastSearchCached=true;return cached.items;}
 
   try{
@@ -77,12 +87,12 @@ export async function findProspects(
       .filter(p=>!!p&&!!p.name&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng)))
       .map(p=>({...p,lat:Number(p.lat),lng:Number(p.lng)}))
       .slice(0,200);
-    writeSearchCache(key,found);
+    lastSearchWarning=[data.partial?"Ein Teil der Datenquellen ist nicht erreichbar. Die Trefferliste ist unvollständig.":"",data.truncated?"Es werden die nächstgelegenen Treffer gezeigt. Für weitere Ergebnisse bitte Radius oder Branche eingrenzen.":""].filter(Boolean).join(" ");
+    if(!data.partial&&!data.truncated)writeSearchCache(key,found);
     return found;
   }catch(e){
-    if(cached){lastSearchCached=true;return cached.items;}
-    const message=e instanceof Error?e.message:String(e);
-    if(/401|403|jwt|session|unauthorized/i.test(message))throw Error("Die Geschäftssuche benötigt eine gültige CRM-Anmeldung. Bitte einmal neu anmelden und erneut suchen.");
-    throw Error("Der neXaro-Suchdienst konnte die Geschäftsdaten nicht laden. Bitte Suche erneut starten oder Radius/Branche anpassen.");
+    const status=(e as {context?:Response})?.context?.status;
+    if(cached&&status!==401&&status!==403){lastSearchCached=true;lastSearchWarning="Suchdienst momentan nicht erreichbar – zuletzt gespeicherte Treffer werden angezeigt.";return cached.items;}
+    throw await searchError(e);
   }
 }
