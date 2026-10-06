@@ -42,7 +42,6 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
   const savedNew = saved?.newCardPayment || {};
   const [volume, setVolume] = useState<number>(Number(savedNew.volume || 3500));
   const [transactions, setTransactions] = useState<number>(Number(savedNew.transactions || 150));
-  const [eligibleShare, setEligibleShare] = useState<number>(Number(savedNew.eligibleShare ?? 90));
   const [useCase, setUseCase] = useState<NewUseCase>((savedNew.useCase || "simple") as NewUseCase);
   const [needsReceipt, setNeedsReceipt] = useState<boolean>(!!savedNew.needsReceipt);
   const [withoutPhone, setWithoutPhone] = useState<boolean>(!!savedNew.withoutPhone);
@@ -58,26 +57,25 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
 
   const estimate = useMemo(() => {
     const safeVolume = Number.isFinite(volume) && volume > 0 ? volume : 0;
-    const safeShare = Math.min(100, Math.max(0, Number.isFinite(eligibleShare) ? eligibleShare : 0));
     const standard = round(safeVolume * 0.0139);
-    const plus = round(safeVolume * safeShare / 100 * 0.0079 + safeVolume * (100 - safeShare) / 100 * 0.0139 + 19);
-    const plusAnnualEquivalent = round(safeVolume * safeShare / 100 * 0.0079 + safeVolume * (100 - safeShare) / 100 * 0.0139 + 199 / 12);
-    const tariff = safeVolume >= 10000 ? "individual" : safeVolume >= 3500 && plus < standard ? "plus" : "standard";
+    const plus = round(safeVolume * 0.0079 + 19);
+    const plusAnnualEquivalent = round(safeVolume * 0.0079 + 199 / 12);
+    const tariff = safeVolume >= 10000 ? "individual" : safeVolume >= 3500 ? "plus" : "standard";
     return { standard, plus, plusAnnualEquivalent, tariff };
-  }, [volume, eligibleShare]);
+  }, [volume]);
 
   const hardware = availableHardware.find(h => h.id === hardwareId) || availableHardware.find(h => h.id === "lite")!;
   const recommendation = estimate.tariff === "individual"
     ? "Ab 10.000 € monatlichem Kartenumsatz nennt SumUp individuelle Konditionen. Für das Angebot deshalb persönliche Konditionen anfragen; die Standardwerte unten dienen nur als Orientierung."
     : estimate.tariff === "plus"
-      ? "Zahlungen Plus ist anhand deiner Annahmen voraussichtlich günstiger. Die tatsächliche Kartenklassifizierung und Tarifberechtigung vor Abschluss prüfen."
-      : "Umsatzbasiertes Zahlen ist für diesen erwarteten Kartenumsatz die einfachere bzw. günstigere Ausgangsbasis – ohne monatliche Tarifgrundgebühr.";
+      ? "Zahlungen Plus ist ab 3.500 € erwartetem Kartenumsatz unsere empfohlene Ausgangsbasis. Die 0,79 % gelten für geeignete EWR-Verbraucherkarten bei Vor-Ort-Zahlungen; Nicht-EWR-, Firmen- und Premiumkarten können weiterhin mit 1,39 % berechnet werden."
+      : "Umsatzbasiertes Zahlen mit 1,39 % ist unter 3.500 € erwartetem Kartenumsatz die empfohlene Ausgangsbasis – ohne monatliche Tarifgrundgebühr.";
 
   async function persist() {
     if (!customerId) { setNotice("Bitte zuerst einen Kunden auswählen."); return; }
     setSaving(true); setNotice("");
     try {
-      const payload = { entryMode: "new", newCardPayment: { volume, transactions, eligibleShare, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id, notes, checkedAt: catalogCheckedAt } };
+      const payload = { entryMode: "new", newCardPayment: { volume, transactions, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id, tariff: estimate.tariff, notes, checkedAt: catalogCheckedAt } };
       await save("opportunities", {
         ...opportunity,
         customer_id: customerId,
@@ -94,7 +92,7 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
 
   function createOffer() {
     if (!customerId || volume <= 0 || transactions < 0) { setNotice("Bitte Kunde, erwarteten Kartenumsatz und Transaktionen prüfen."); return; }
-    const tariffName = estimate.tariff === "individual" ? "Individuelle SumUp Konditionen anfragen" : estimate.tariff === "plus" ? "Zahlungen Plus" : "Umsatzbasiertes Zahlen";
+    const tariffName = estimate.tariff === "individual" ? "Individuelle SumUp Konditionen anfragen" : estimate.tariff === "plus" ? "Zahlungen Plus · Empfehlung ab 3.500 €" : "Umsatzbasiertes Zahlen · 1,39 %";
     const monthly = estimate.tariff === "plus" ? estimate.plus : estimate.standard;
     const lines = hardware.price === null ? [] : [{ name: `SumUp ${hardware.name} · Hardware`, quantity: 1, price: hardware.price, vat: 19 }];
     onOffer({
@@ -104,17 +102,16 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
       notes: [
         "NEUEINSTIEG KARTENZAHLUNG – kein Bestandsanbieter und keine Ist-Gebühren vorhanden.",
         `Erwarteter Kartenumsatz: ${money(volume)} / Monat · ca. ${transactions} Transaktionen / Monat.`,
-        `Planungsannahme berechtigte inländische/EWR-Verbraucherkarten für Zahlungen Plus: ${eligibleShare} %.`,
+        `Empfohlene Tariflogik: unter 3.500 € Umsatzbasiertes Zahlen mit 1,39 %; ab 3.500 € Zahlungen Plus als Ausgangsbasis.`,
         `Orientierung Umsatzbasiertes Zahlen: ${money(estimate.standard)} / Monat bei 1,39 %.`,
-        `Orientierung Zahlungen Plus (Monatsabo): ${money(estimate.plus)} / Monat bei 0,79 % auf angenommene berechtigte Zahlungen, 1,39 % sonstige Karten und 19 € / Monat.`,
-        `Orientierung Zahlungen Plus (Jahresabo rechnerisch): ${money(estimate.plusAnnualEquivalent)} / Monat bei 199 € / Jahr.`,
+        `Orientierung Zahlungen Plus: ${money(estimate.plus)} / Monat bei 0,79 % für geeignete EWR-Verbraucherkarten zuzüglich Plus-Tarifgebühr. Nicht-EWR-, Firmen- und Premiumkarten können weiterhin mit 1,39 % berechnet werden.`,
         `Empfohlene Ausgangsbasis: ${tariffName}. Erwartete Zahlungskosten: ${money(monthly)} / Monat.`,
         `Hardware: ${hardware.name}${hardware.price !== null ? ` · ${money(hardware.price)} netto` : " · Preis vor Angebot prüfen"}.`,
-        "Wichtig: Kein Ausweis einer Ersparnis gegenüber einem bisherigen Anbieter, da keine Vergleichsbasis existiert. Tatsächlicher Kartenmix, Kartenklassifizierung und verbindliche Konditionen vor Abschluss prüfen.",
+        "Wichtig: Kein Ausweis einer Ersparnis gegenüber einem bisherigen Anbieter, da keine Vergleichsbasis existiert. Tatsächliche Kartenklassifizierung und verbindliche Konditionen vor Abschluss prüfen.",
         `Preisstand ${catalogCheckedAt} · ${catalogSource}`,
         notes
       ].filter(Boolean).join("\n"),
-      snapshot: { salesStudio: { entryMode: "new", newCardPayment: { volume, transactions, eligibleShare, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id, tariff: estimate.tariff, costs: estimate, checkedAt: catalogCheckedAt, source: catalogSource, hardwareSource: catalogHardwareSource } } }
+      snapshot: { salesStudio: { entryMode: "new", newCardPayment: { volume, transactions, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id, tariff: estimate.tariff, costs: estimate, checkedAt: catalogCheckedAt, source: catalogSource, hardwareSource: catalogHardwareSource } } }
     });
   }
 
@@ -137,7 +134,6 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
           <option value="busy">Gastronomie / hoher Durchsatz</option>
           <option value="pos">Kasse mit Warenkorb / zwei Displays</option>
         </select></Field>
-        <Field label="Anteil berechtigte Karten für Plus – Planungsannahme (%)"><input type="number" min="0" max="100" step="1" value={eligibleShare} onChange={e => setEligibleShare(Number(e.target.value))}/></Field>
       </div>
       <label className="checkbox-field"><input type="checkbox" checked={withoutPhone} onChange={e => setWithoutPhone(e.target.checked)}/> Kartenzahlung soll ohne gekoppeltes Smartphone funktionieren</label>
       <label className="checkbox-field"><input type="checkbox" checked={needsReceipt} onChange={e => setNeedsReceipt(e.target.checked)}/> Gedruckte Belege direkt am Gerät sind wichtig</label>
@@ -145,12 +141,11 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
 
     <Card title="02 · Kosten & passende Ausgangsbasis" eyebrow="SUMUP · MODELLRECHNUNG">
       <div className="mini-stats">
-        <div><span>Umsatzbasiert</span><b>{money(estimate.standard)} / Monat</b></div>
-        <div><span>Zahlungen Plus · monatlich</span><b>{money(estimate.plus)} / Monat</b></div>
-        <div><span>Zahlungen Plus · Jahresabo rechnerisch</span><b>{money(estimate.plusAnnualEquivalent)} / Monat</b></div>
+        <div className={estimate.tariff === "standard" ? "is-recommended" : ""}><span>1,39 % · Umsatzbasiert{estimate.tariff === "standard" ? " · EMPFEHLUNG" : ""}</span><b>{money(estimate.standard)} / Monat</b></div>
+        <div className={estimate.tariff === "plus" ? "is-recommended" : ""}><span>0,79 % · Zahlungen Plus{estimate.tariff === "plus" ? " · EMPFEHLUNG" : ""}</span><b>{money(estimate.plus)} / Monat*</b></div>
       </div>
       <p className="notice"><strong>Empfehlung:</strong> {recommendation}</p>
-      <p className="hint">SumUp nennt auf der zentralen Preisübersicht 1,39 % ohne monatliche Tarifgrundgebühr, Zahlungen Plus mit 0,79 % für berechtigte inländische Zahlungen plus 19 € / Monat bzw. 199 € / Jahr und individuelle Konditionen ab 10.000 € Monatsumsatz. Karten außerhalb der Plus-Berechtigung können weiterhin mit 1,39 % berechnet werden.</p>
+      <p className="hint">*Die 0,79 % gelten nicht automatisch für jede Karte. Entscheidend sind Kartenart, Karteninhaber und Ausstellungsregion. Bei Zahlungen Plus können Nicht-EWR-, Firmen- und Premiumkarten weiterhin mit 1,39 % berechnet werden. Die Plus-Tarifgebühr ist in der Orientierung berücksichtigt. Ab 10.000 € Monatsumsatz individuelle Konditionen prüfen.</p>
     </Card>
 
     <Card title="03 · Hardware" eyebrow="PASSEND ZUM EINSATZ">
