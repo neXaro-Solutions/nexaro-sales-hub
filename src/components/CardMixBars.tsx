@@ -37,6 +37,16 @@ export function CardMixBars({debitShare,debitRate,creditRate,onDebitShare,onDebi
   };
 
   return <div className="mix-bars">
+    <style>{`
+      .nx-card-fee-map{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+      .nx-card-fee-card{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid var(--border,#dde5da);border-radius:14px;background:#fff}
+      .nx-card-fee-card p,.nx-card-fee-card small{margin:0;line-height:1.45}.nx-card-fee-card small{color:#667268}
+      .nx-card-fee-rate{font-size:22px;font-weight:950;letter-spacing:-.03em}.nx-card-fee-low{background:#f2ffe2;border-color:#b7dc79}.nx-card-fee-low .nx-card-fee-rate{color:#5f951a}
+      .nx-card-fee-standard{background:#fff6ed;border-color:#f0ccb1}.nx-card-fee-standard .nx-card-fee-rate{color:#f36b29}
+      .nx-card-fee-current{background:#f7f8f7}.nx-card-fee-current .nx-card-fee-rate{color:#4e5a52}
+      .nx-premium-explainer{margin-top:10px;border-top:1px solid #dfe6dc;padding-top:10px}.nx-premium-explainer summary{cursor:pointer;font-weight:850}.nx-premium-explainer div{padding-top:8px}
+      @media(max-width:780px){.nx-card-fee-map{grid-template-columns:1fr}.nx-card-fee-card{padding:13px}.nx-card-fee-rate{font-size:20px}}
+    `}</style>
     <div className="mix-section">
       <div className="mix-section-heading"><strong>Kartenmix</strong><span>Verteilung der monatlichen Transaktionen</span></div>
 
