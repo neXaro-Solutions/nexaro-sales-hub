@@ -69,6 +69,11 @@ export function CallLeads() {
     } catch (e) { setError(e instanceof Error ? e.message : "Telefonleads konnten nicht geladen werden."); } finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(""), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
   useEffect(() => { const onFullscreen = () => { if (!document.fullscreenElement && callMode && !schedule) setCallMode(false); }; document.addEventListener("fullscreenchange", onFullscreen); return () => document.removeEventListener("fullscreenchange", onFullscreen); }, [callMode, schedule]);
 
   function removeFromQueue(lead: CallLead) {
@@ -96,8 +101,8 @@ export function CallLeads() {
   }
 
   function resetSwipe() { setDragX(0); setDragY(0); setOpenerOffset(0); }
-  function nextCard() { resetSwipe(); setCurrentIndex(index => rows.length ? (index + 1) % rows.length : 0); }
-  function previousCard() { resetSwipe(); setCurrentIndex(index => rows.length ? (index - 1 + rows.length) % rows.length : 0); }
+  function nextCard() { setNotice(""); resetSwipe(); setCurrentIndex(index => rows.length ? (index + 1) % rows.length : 0); }
+  function previousCard() { setNotice(""); resetSwipe(); setCurrentIndex(index => rows.length ? (index - 1 + rows.length) % rows.length : 0); }
   async function actionAndAdvance(action: "info" | "lost" | "unavailable") { const lead = rows[currentIndex]; if (!lead || busy) return; if (action === "info") { const ok = await startInfoFunnel(lead); if (ok) resetSwipe(); return; } if (action === "lost") await setStatus(lead, "verloren", "Kein Interesse im Telefongespräch dokumentiert. Dauerhaft aus dem aktiven Call-Pool ausgeschlossen."); if (action === "unavailable") await setStatus(lead, "nicht_verfuegbar", "Kontakt nicht verfügbar / Nummer nicht vergeben. Dauerhaft aus dem aktiven Call-Pool ausgeschlossen."); resetSwipe(); }
   function openSchedule(mode: ScheduleMode) { const lead = rows[currentIndex]; if (!lead || busy) return; setError(""); setNotice(""); setSchedule({ mode, lead }); setScheduleAt(localDateTimeValue(mode === "callback" ? 60 : 24 * 60)); }
 
