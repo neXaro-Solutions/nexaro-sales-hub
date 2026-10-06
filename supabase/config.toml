@@ -10,3 +10,8 @@ verify_jwt = false
 [functions.nx-software-sales]
 # Public intake uses signed challenges; management validates the user and nx_owner.
 verify_jwt = false
+
+[functions.nx-hunter-geocode]
+verify_jwt = true
+[functions.nx-hunter-search]
+verify_jwt = true
