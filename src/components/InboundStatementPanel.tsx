@@ -40,8 +40,8 @@ export function InboundStatementPanel({customerId,demo,onOpenSumup}:{
   }catch{setNotice("Datei konnte nicht geöffnet werden. Bitte Verbindung prüfen.")}
   finally{setBusy(false)}
  }
- return <section className="nx-inbound-statement-card" aria-label="Optionale Händlerabrechnung">
-  <h3>📄 Angebotsvorbereitung · Händlerabrechnung</h3>
+ return <section className="nx-inbound-statement-card" aria-label="Website-Anfrage und optionale Händlerabrechnung">
+  <h3>📄 Angebotsvorbereitung · Website-Anfrage</h3>
   {items.length?<>
    <span className="nx-statement-status">✓ Abrechnung vorhanden · {items.length} Datei{items.length!==1?"en":""}</span>
    <p>Privat gespeichert. Beträge, Gebühren und Kartentypen vor einer Angebotserstellung prüfen.</p>
@@ -50,8 +50,11 @@ export function InboundStatementPanel({customerId,demo,onOpenSumup}:{
     <small>{new Date(file.uploaded_at).toLocaleString("de-DE",{timeZone:"Europe/Berlin"})} · {(file.size_bytes/1048576).toFixed(1)} MB</small>
     <button type="button" className="secondary" disabled={busy} onClick={()=>void open(file.storage_path,file.mime)}>Abrechnung geschützt öffnen</button>
    </div>)}
-   {onOpenSumup&&<button className="primary" type="button" onClick={()=>onOpenSumup(customerId)}>Im SumUp-Vertriebsstudio auswerten →</button>}
-  </>:<p className="hint">Noch keine Abrechnung aus dem öffentlichen Formular eingegangen. Eine Beratungsanfrage benötigt keine Abrechnung; ein konkreter Ist-Gebührenvergleich wird erst nach Prüfung eines Belegs vorbereitet.</p>}
+  </>:<>
+   <span className="nx-statement-status">✓ Website-Anfrage im CRM angelegt</span>
+   <p className="hint">Keine Abrechnung erforderlich. Bei Beratung oder Neueinstieg übernimmt das Vertriebsstudio die bereits vorhandenen Angaben aus der Anfrage.</p>
+  </>}
+  {onOpenSumup&&<button className="primary" type="button" onClick={()=>onOpenSumup(customerId)}>SumUp-Vertriebsstudio öffnen →</button>}
   {(error||notice)&&<p className="hint" role="status">{error||notice}</p>}
  </section>;
 }
