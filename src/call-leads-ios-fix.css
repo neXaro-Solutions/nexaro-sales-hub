@@ -70,11 +70,43 @@
 }
 .nx-call-metric-card:active { transform: scale(.985); }
 
+/* Three secondary actions must remain visible in the fixed Call Hunter viewport. */
+.nx-swipe-secondary {
+  grid-template-columns: minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr) !important;
+}
+.nx-swipe-secondary button {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.15;
+  text-align: center;
+}
+
 @media (max-width: 430px) {
   @supports (-webkit-touch-callout: none) {
     .nx-swipe-card:not(.nx-swipe-card-back) {
       width: calc(100vw - 20px) !important;
       min-width: calc(100vw - 20px) !important;
     }
+  }
+
+  .nx-swipe-secondary {
+    grid-template-columns: minmax(0,1.45fr) minmax(0,.9fr) minmax(0,.9fr) !important;
+    gap: 6px !important;
+    padding: 0 10px 7px !important;
+  }
+  .nx-swipe-secondary button {
+    min-height: 48px !important;
+    padding: 5px 6px !important;
+    font-size: .68rem !important;
+    gap: 4px !important;
+  }
+  .nx-swipe-secondary button svg {
+    width: 16px !important;
+    height: 16px !important;
+    flex: 0 0 auto;
+  }
+  .nx-swipe-hints {
+    padding-top: 2px !important;
+    padding-bottom: calc(7px + env(safe-area-inset-bottom)) !important;
   }
 }
