@@ -24,6 +24,31 @@ type Props = {
 };
 type EntryMode = "existing" | "new";
 type NewUseCase = "simple" | "mobile" | "counter" | "busy" | "pos";
+type FeeProfileId = "standard" | "plus" | "campaign-099" | "campaign-139" | "campaign-129" | "campaign-119" | "campaign-105" | "campaign-089" | "campaign-085" | "custom";
+
+type FeeProfile = {
+  id: FeeProfileId;
+  label: string;
+  domestic: number;
+  international: number;
+  cnp: number;
+  monthlyFee: number;
+  source: "public" | "fee-campaign" | "custom";
+  badge?: string;
+};
+
+const feeProfiles: FeeProfile[] = [
+  { id: "standard", label: "Standard · 1,39 %", domestic: 1.39, international: 1.39, cnp: 2.50, monthlyFee: 0, source: "public" },
+  { id: "plus", label: "Zahlungen Plus · 0,79 %", domestic: 0.79, international: 1.39, cnp: 2.50, monthlyFee: 19, source: "public" },
+  { id: "campaign-099", label: "Fee Campaign · 0,99 % Domestic", domestic: 0.99, international: 1.99, cnp: 2.50, monthlyFee: 0, source: "fee-campaign", badge: "Empfohlen im Campaign-Screen" },
+  { id: "campaign-139", label: "Fee Campaign · 1,39 % Domestic", domestic: 1.39, international: 1.39, cnp: 2.50, monthlyFee: 0, source: "fee-campaign" },
+  { id: "campaign-129", label: "Fee Campaign · 1,29 % Domestic", domestic: 1.29, international: 1.99, cnp: 2.50, monthlyFee: 0, source: "fee-campaign" },
+  { id: "campaign-119", label: "Fee Campaign · 1,19 % Domestic", domestic: 1.19, international: 1.99, cnp: 2.50, monthlyFee: 0, source: "fee-campaign" },
+  { id: "campaign-105", label: "Fee Campaign · 1,05 % Domestic", domestic: 1.05, international: 1.99, cnp: 2.50, monthlyFee: 0, source: "fee-campaign" },
+  { id: "campaign-089", label: "Fee Campaign · 0,89 % Domestic", domestic: 0.89, international: 1.99, cnp: 2.50, monthlyFee: 0, source: "fee-campaign" },
+  { id: "campaign-085", label: "Fee Campaign · 0,85 % Domestic", domestic: 0.85, international: 1.99, cnp: 2.50, monthlyFee: 0, source: "fee-campaign", badge: "Niedrigste sichtbare Stufe" },
+  { id: "custom", label: "Manuelle Sonderkondition", domestic: 0.99, international: 1.99, cnp: 2.50, monthlyFee: 0, source: "custom" },
+];
 
 const availableHardware = hardwareCatalog.filter(h => ["tap", "lite", "solo", "terminal", "pos"].includes(h.id));
 
@@ -33,6 +58,11 @@ function recommendedHardware(useCase: NewUseCase, needsReceipt: boolean, without
   if (withoutPhone || useCase === "counter") return "solo";
   if (useCase === "mobile") return withoutPhone ? "solo" : "tap";
   return "lite";
+}
+
+function clampRate(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, Math.round(value * 100) / 100));
 }
 
 function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: string; onOffer: (draft: OfferDraft) => void; onBack: () => void }) {
@@ -46,6 +76,12 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
   const [needsReceipt, setNeedsReceipt] = useState<boolean>(!!savedNew.needsReceipt);
   const [withoutPhone, setWithoutPhone] = useState<boolean>(!!savedNew.withoutPhone);
   const [hardwareId, setHardwareId] = useState<string>(savedNew.hardwareId || recommendedHardware((savedNew.useCase || "simple") as NewUseCase, !!savedNew.needsReceipt, !!savedNew.withoutPhone));
+  const defaultProfile: FeeProfileId = (savedNew.feeProfileId as FeeProfileId) || (Number(savedNew.volume || 3500) >= 3500 ? "plus" : "standard");
+  const [feeProfileId, setFeeProfileId] = useState<FeeProfileId>(defaultProfile);
+  const initialProfile = feeProfiles.find(p => p.id === defaultProfile) || feeProfiles[0];
+  const [customDomestic, setCustomDomestic] = useState<number>(Number(savedNew.fees?.domestic ?? initialProfile.domestic));
+  const [customInternational, setCustomInternational] = useState<number>(Number(savedNew.fees?.international ?? initialProfile.international));
+  const [customCnp] = useState<number>(2.50);
   const [notes, setNotes] = useState<string>(savedNew.notes || "");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
@@ -55,27 +91,61 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
     setHardwareId(recommendedHardware(useCase, needsReceipt, withoutPhone));
   }, [useCase, needsReceipt, withoutPhone]);
 
+  useEffect(() => {
+    if (savedNew.feeProfileId || feeProfileId === "custom" || feeProfileId.startsWith("campaign-")) return;
+    setFeeProfileId(volume >= 3500 ? "plus" : "standard");
+  }, [volume]);
+
+  const selectedProfile = feeProfiles.find(p => p.id === feeProfileId) || feeProfiles[0];
+  const fees = useMemo(() => {
+    if (feeProfileId !== "custom") return selectedProfile;
+    return {
+      ...selectedProfile,
+      domestic: clampRate(customDomestic, 0.79, 1.39),
+      international: clampRate(customInternational, 1.39, 1.99),
+      cnp: customCnp,
+    };
+  }, [feeProfileId, selectedProfile, customDomestic, customInternational, customCnp]);
+
   const estimate = useMemo(() => {
     const safeVolume = Number.isFinite(volume) && volume > 0 ? volume : 0;
     const standard = round(safeVolume * 0.0139);
     const plus = round(safeVolume * 0.0079 + 19);
-    const plusAnnualEquivalent = round(safeVolume * 0.0079 + 199 / 12);
-    const tariff = safeVolume >= 10000 ? "individual" : safeVolume >= 3500 ? "plus" : "standard";
-    return { standard, plus, plusAnnualEquivalent, tariff };
-  }, [volume]);
+    const selectedDomestic = round(safeVolume * (fees.domestic / 100) + fees.monthlyFee);
+    const tariff = feeProfileId === "custom" || feeProfileId.startsWith("campaign-") ? "campaign" : feeProfileId;
+    return { standard, plus, selectedDomestic, tariff };
+  }, [volume, fees, feeProfileId]);
 
   const hardware = availableHardware.find(h => h.id === hardwareId) || availableHardware.find(h => h.id === "lite")!;
-  const recommendation = estimate.tariff === "individual"
-    ? "Ab 10.000 € monatlichem Kartenumsatz nennt SumUp individuelle Konditionen. Für das Angebot deshalb persönliche Konditionen anfragen; die Standardwerte unten dienen nur als Orientierung."
-    : estimate.tariff === "plus"
-      ? "Zahlungen Plus ist ab 3.500 € erwartetem Kartenumsatz unsere empfohlene Ausgangsbasis. Die 0,79 % gelten für geeignete EWR-Verbraucherkarten bei Vor-Ort-Zahlungen; Nicht-EWR-, Firmen- und Premiumkarten können weiterhin mit 1,39 % berechnet werden."
-      : "Umsatzbasiertes Zahlen mit 1,39 % ist unter 3.500 € erwartetem Kartenumsatz die empfohlene Ausgangsbasis – ohne monatliche Tarifgrundgebühr.";
+  const recommendation = volume >= 10000
+    ? "Ab 10.000 € monatlichem Kartenumsatz nennt SumUp öffentlich individuelle Konditionen. Fee-Campaign-Sätze nur verwenden, wenn sie im aktuellen SumUp-Angebotsprozess für den Händler tatsächlich auswählbar bzw. freigegeben sind."
+    : feeProfileId.startsWith("campaign-") || feeProfileId === "custom"
+      ? "Vertriebs-/Kampagnenkondition aktiv. Domestic, International/Premium/Corporate und Karte-nicht-anwesend werden getrennt dokumentiert. Die SumUp-Angebotsmaske bleibt die verbindliche Freigabeinstanz."
+      : feeProfileId === "plus"
+        ? "Zahlungen Plus ist ab 3.500 € erwartetem Kartenumsatz eine sinnvolle Ausgangsbasis. 0,79 % gelten für geeignete EWR-Verbraucherkarten; Nicht-EWR-, Firmen- und Premiumkarten werden öffentlich mit 1,39 % geführt."
+        : "Umsatzbasiertes Zahlen mit 1,39 % ist die öffentliche Standardbasis ohne monatliche Tarifgrundgebühr.";
+
+  function chooseFeeProfile(id: FeeProfileId) {
+    setFeeProfileId(id);
+    const profile = feeProfiles.find(p => p.id === id);
+    if (profile && id !== "custom") {
+      setCustomDomestic(profile.domestic);
+      setCustomInternational(profile.international);
+    }
+  }
 
   async function persist() {
     if (!customerId) { setNotice("Bitte zuerst einen Kunden auswählen."); return; }
     setSaving(true); setNotice("");
     try {
-      const payload = { entryMode: "new", newCardPayment: { volume, transactions, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id, tariff: estimate.tariff, notes, checkedAt: catalogCheckedAt } };
+      const payload = {
+        entryMode: "new",
+        newCardPayment: {
+          volume, transactions, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id,
+          tariff: estimate.tariff, feeProfileId, fees: { domestic: fees.domestic, international: fees.international, cnp: fees.cnp, monthlyFee: fees.monthlyFee },
+          notes, checkedAt: catalogCheckedAt
+        }
+      };
       await save("opportunities", {
         ...opportunity,
         customer_id: customerId,
@@ -84,7 +154,7 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
         potential: volume,
         details: { ...(opportunity?.details || {}), salesStudio: { ...(opportunity?.details?.salesStudio || {}), ...payload } }
       });
-      setNotice("Neueinstieg-Kalkulation in der Kundenakte gespeichert.");
+      setNotice("Neueinstieg-Kalkulation inklusive Gebührenprofil in der Kundenakte gespeichert.");
     } catch (e) {
       setNotice("Speichern fehlgeschlagen: " + (e instanceof Error ? e.message : "Unbekannter Fehler"));
     } finally { setSaving(false); }
@@ -92,8 +162,6 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
 
   function createOffer() {
     if (!customerId || volume <= 0 || transactions < 0) { setNotice("Bitte Kunde, erwarteten Kartenumsatz und Transaktionen prüfen."); return; }
-    const tariffName = estimate.tariff === "individual" ? "Individuelle SumUp Konditionen anfragen" : estimate.tariff === "plus" ? "Zahlungen Plus · Empfehlung ab 3.500 €" : "Umsatzbasiertes Zahlen · 1,39 %";
-    const monthly = estimate.tariff === "plus" ? estimate.plus : estimate.standard;
     const lines = hardware.price === null ? [] : [{ name: `SumUp ${hardware.name} · Hardware`, quantity: 1, price: hardware.price, vat: 19 }];
     onOffer({
       division: "sumup",
@@ -102,16 +170,19 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
       notes: [
         "NEUEINSTIEG KARTENZAHLUNG – kein Bestandsanbieter und keine Ist-Gebühren vorhanden.",
         `Erwarteter Kartenumsatz: ${money(volume)} / Monat · ca. ${transactions} Transaktionen / Monat.`,
-        `Empfohlene Tariflogik: unter 3.500 € Umsatzbasiertes Zahlen mit 1,39 %; ab 3.500 € Zahlungen Plus als Ausgangsbasis.`,
-        `Orientierung Umsatzbasiertes Zahlen: ${money(estimate.standard)} / Monat bei 1,39 %.`,
-        `Orientierung Zahlungen Plus: ${money(estimate.plus)} / Monat bei 0,79 % für geeignete EWR-Verbraucherkarten zuzüglich Plus-Tarifgebühr. Nicht-EWR-, Firmen- und Premiumkarten können weiterhin mit 1,39 % berechnet werden.`,
-        `Empfohlene Ausgangsbasis: ${tariffName}. Erwartete Zahlungskosten: ${money(monthly)} / Monat.`,
+        `Gewähltes Gebührenprofil: ${selectedProfile.label}.`,
+        `Domestic / EWR-Verbraucherkarten: ${fees.domestic.toFixed(2).replace(".", ",")} %.`,
+        `International / Premium / Corporate: ${fees.international.toFixed(2).replace(".", ",")} %.`,
+        `Karte nicht anwesend / Online: ${fees.cnp.toFixed(2).replace(".", ",")} %.`,
+        fees.monthlyFee ? `Zusätzliche Tarifgebühr: ${money(fees.monthlyFee)} / Monat.` : "Keine zusätzliche monatliche Tarifgebühr in dieser CRM-Kalkulation hinterlegt.",
+        `Rechnerische Orientierung bei vollständig Domestic-volumen: ${money(estimate.selectedDomestic)} / Monat.`,
         `Hardware: ${hardware.name}${hardware.price !== null ? ` · ${money(hardware.price)} netto` : " · Preis vor Angebot prüfen"}.`,
+        feeProfileId.startsWith("campaign-") || feeProfileId === "custom" ? "Fee-Campaign-/Sonderkondition: nur verwenden, wenn dieser Satz im aktuellen SumUp-Angebotsprozess für den Händler auswählbar bzw. freigegeben ist. Das CRM erteilt keine Konditionsfreigabe." : "Öffentliche SumUp-Tarifbasis verwendet.",
         "Wichtig: Kein Ausweis einer Ersparnis gegenüber einem bisherigen Anbieter, da keine Vergleichsbasis existiert. Tatsächliche Kartenklassifizierung und verbindliche Konditionen vor Abschluss prüfen.",
         `Preisstand ${catalogCheckedAt} · ${catalogSource}`,
         notes
       ].filter(Boolean).join("\n"),
-      snapshot: { salesStudio: { entryMode: "new", newCardPayment: { volume, transactions, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id, tariff: estimate.tariff, costs: estimate, checkedAt: catalogCheckedAt, source: catalogSource, hardwareSource: catalogHardwareSource } } }
+      snapshot: { salesStudio: { entryMode: "new", newCardPayment: { volume, transactions, useCase, needsReceipt, withoutPhone, hardwareId: hardware.id, tariff: estimate.tariff, feeProfileId, fees, costs: estimate, checkedAt: catalogCheckedAt, source: catalogSource, hardwareSource: catalogHardwareSource } } }
     });
   }
 
@@ -139,13 +210,32 @@ function NewToCardPaymentStudio({ customerId, onOffer, onBack }: { customerId: s
       <label className="checkbox-field"><input type="checkbox" checked={needsReceipt} onChange={e => setNeedsReceipt(e.target.checked)}/> Gedruckte Belege direkt am Gerät sind wichtig</label>
     </Card>
 
-    <Card title="02 · Kosten & passende Ausgangsbasis" eyebrow="SUMUP · MODELLRECHNUNG">
+    <Card title="02 · Gebühren & passende Ausgangsbasis" eyebrow="SUMUP · TARIF / FEE CAMPAIGN">
+      <Field label="Gebührenprofil"><select value={feeProfileId} onChange={e => chooseFeeProfile(e.target.value as FeeProfileId)}>
+        <optgroup label="Öffentliche SumUp-Tarife">
+          {feeProfiles.filter(p => p.source === "public").map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </optgroup>
+        <optgroup label="Fee Campaign · laut aktuellem SumUp-Angebotsscreen">
+          {feeProfiles.filter(p => p.source === "fee-campaign").map(p => <option key={p.id} value={p.id}>{p.label}{p.badge ? ` · ${p.badge}` : ""}</option>)}
+        </optgroup>
+        <option value="custom">Manuelle Sonderkondition</option>
+      </select></Field>
+
       <div className="mini-stats">
-        <div className={estimate.tariff === "standard" ? "is-recommended" : ""}><span>1,39 % · Umsatzbasiert{estimate.tariff === "standard" ? " · EMPFEHLUNG" : ""}</span><b>{money(estimate.standard)} / Monat</b></div>
-        <div className={estimate.tariff === "plus" ? "is-recommended" : ""}><span>0,79 % · Zahlungen Plus{estimate.tariff === "plus" ? " · EMPFEHLUNG" : ""}</span><b>{money(estimate.plus)} / Monat*</b></div>
+        <div className="is-recommended"><span>Domestic / EWR-Verbraucher</span><b>{fees.domestic.toFixed(2).replace(".", ",")} %</b></div>
+        <div><span>International / Premium / Corporate</span><b>{fees.international.toFixed(2).replace(".", ",")} %</b></div>
+        <div><span>Karte nicht anwesend / Online</span><b>{fees.cnp.toFixed(2).replace(".", ",")} %</b></div>
       </div>
-      <p className="notice"><strong>Empfehlung:</strong> {recommendation}</p>
-      <p className="hint">*Die 0,79 % gelten nicht automatisch für jede Karte. Entscheidend sind Kartenart, Karteninhaber und Ausstellungsregion. Bei Zahlungen Plus können Nicht-EWR-, Firmen- und Premiumkarten weiterhin mit 1,39 % berechnet werden. Die Plus-Tarifgebühr ist in der Orientierung berücksichtigt. Ab 10.000 € Monatsumsatz individuelle Konditionen prüfen.</p>
+
+      {feeProfileId === "custom" && <div className="form-grid">
+        <Field label="Domestic (%)"><input type="number" min="0.79" max="1.39" step="0.01" value={customDomestic} onChange={e => setCustomDomestic(Number(e.target.value))}/></Field>
+        <Field label="International / Premium / Corporate (%)"><input type="number" min="1.39" max="1.99" step="0.01" value={customInternational} onChange={e => setCustomInternational(Number(e.target.value))}/></Field>
+        <Field label="Karte nicht anwesend / Online (%)"><input type="number" value={customCnp} disabled /></Field>
+      </div>}
+
+      <p className="notice"><strong>Einordnung:</strong> {recommendation}</p>
+      <p className="hint">Fee-Campaign-Stufen aus dem aktuellen SumUp-Angebotsscreen: Domestic 1,39 / 1,29 / 1,19 / 1,05 / 0,99 / 0,89 / 0,85 %. Bei den gezeigten reduzierten Domestic-Stufen wird International/Premium/Corporate mit 1,99 % ausgewiesen; beim 1,39-%-Profil mit 1,39 %. Karte nicht anwesend bleibt im gezeigten Screen bei 2,50 %. Öffentliche Standard-/Plus-Sätze können davon abweichen. Sonderkonditionen immer im SumUp-Prozess final bestätigen.</p>
+      <p className="hint"><strong>Rechnerische Orientierung:</strong> Bei vollständig Domestic-volumen wären es mit dem gewählten Profil ca. {money(estimate.selectedDomestic)} / Monat{fees.monthlyFee ? ` inkl. ${money(fees.monthlyFee)} Tarifgebühr` : ""}.</p>
     </Card>
 
     <Card title="03 · Hardware" eyebrow="PASSEND ZUM EINSATZ">
