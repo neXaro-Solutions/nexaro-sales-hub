@@ -84,6 +84,7 @@ test("current SumUp photo flow and centralized customer selection",async ({page}
   await page.goto("/?demo=1");
   await navigate(page,"SumUp");
   await expect(page.getByRole("heading",{name:"Wie nimmt der Kunde heute Zahlungen an?"})).toBeVisible();
+  await page.getByRole("button",{name:"Bestehende Lösung vergleichen →"}).click();
   await expect(page.getByRole("button",{name:"Foto aufnehmen / hochladen"})).toBeVisible();
   await page.getByLabel("Kundenakte für das Vertriebsstudio").selectOption({label:"Café Morgenrot"});
   await page.getByRole("button",{name:"Ist-Bestand"}).click();
