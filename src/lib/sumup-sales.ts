@@ -1,7 +1,7 @@
 import { round } from "./calculations";
 
-/** Öffentliche DE-Referenzpreise netto, Stand 2026-09-19. Null = Preis vor Angebot verifizieren. */
-export const catalogCheckedAt = "2026-09-19";
+/** Öffentliche DE-Referenzpreise netto, Stand 2026-10-06. Null = Preis vor Angebot verifizieren. */
+export const catalogCheckedAt = "2026-10-06";
 export const catalogSource = "https://www.sumup.com/de-de/preise/";
 export const catalogHardwareSource =
   "https://www.sumup.com/de-de/kartenterminals/";
@@ -12,12 +12,12 @@ export const hardwareCatalog = [
     price: 0,
     source: "https://www.sumup.com/de-de/tap-to-pay/",
   },
-  { id: "lite", name: "Solo Lite", price: 34, source: catalogHardwareSource },
-  { id: "solo", name: "Solo", price: 79, source: catalogHardwareSource },
+  { id: "lite", name: "Solo Lite", price: 22, source: catalogHardwareSource },
+  { id: "solo", name: "Solo", price: 59, source: catalogHardwareSource },
   {
     id: "terminal",
     name: "Terminal",
-    price: 169,
+    price: 139,
     source: catalogHardwareSource,
   },
   {
@@ -139,143 +139,32 @@ export type ComparisonInput = {
   currentVariablePercent: number;
   currentTransactionCount: number;
   currentPerTransaction: number;
+  plan: PricingPlan;
   mix: CardMix;
-  splitConfirmed: boolean;
   hardware: HardwareSelection[];
-  hardwareDiscount: number;
   subscriptions: SubscriptionSelection[];
+  customRate?: number | null;
 };
-const totalMix = (mix: CardMix) =>
-  Object.values(mix).reduce((a, b) => a + b, 0);
-export function compareOffers(input: ComparisonInput) {
-  const numeric = [
-    input.monthlyVolume,
-    input.currentMonthly,
-    input.currentFixed,
-    input.currentVariablePercent,
-    input.currentTransactionCount,
-    input.currentPerTransaction,
-    input.hardwareDiscount,
-    ...Object.values(input.mix),
-  ];
-  if (numeric.some((n) => !Number.isFinite(n) || n < 0))
-    throw Error(
-      "Beträge und Kartenumsätze müssen gültige, nichtnegative Zahlen sein.",
-    );
-  // Hardware is always calculated at its un-discounted reference price.
-  if (input.currentVariablePercent > 100)
-    throw Error("Ist-Gebühr darf maximal 100 % betragen.");
-  if (
-    input.hardware.some(
-      (h) =>
-        !Number.isInteger(h.quantity) ||
-        h.quantity < 1 ||
-        h.quantity > 100 ||
-        h.price === null ||
-        !Number.isFinite(h.price) ||
-        h.price < 0,
-    ) ||
-    input.subscriptions.some(
-      (s) => s.monthly === null || !Number.isFinite(s.monthly) || s.monthly < 0,
-    )
-  )
-    throw Error(
-      "Ausgewählte Produkte ohne bestätigten Preis zuerst bepreisen.",
-    );
-  const sum = totalMix(input.mix);
-  if (sum > input.monthlyVolume + 0.01)
-    throw Error("Kartenmix ist größer als das monatliche TPV.");
-  const remaining = Math.max(0, input.monthlyVolume - sum);
-  // Unaufgeschlüsselter Rest: konservativ mit 1,39 %, nicht als 0,79 % behandeln.
-  const reduced = input.mix.domesticDebit + input.mix.domesticCredit;
-  const online = input.mix.cardNotPresent;
-  const taxable = Math.max(
-    0,
-    input.monthlyVolume - input.mix.sumupCard - online,
-  );
-  const variablePayg = taxable * 0.0139 + online * 0.025;
-  const variablePlus =
-    reduced * 0.0079 + (taxable - reduced) * 0.0139 + online * 0.025;
-  const fixedSubs = input.subscriptions.reduce(
-    (s, x) => s + (x.monthly || 0),
-    0,
-  );
-  const current =
-    input.currentMode === "total" ||
-    (input.currentMode === undefined && input.currentMonthly > 0)
-      ? input.currentMonthly
-      : round(
-          input.currentFixed +
-            (input.monthlyVolume * input.currentVariablePercent) / 100 +
-            input.currentTransactionCount * input.currentPerTransaction,
-        );
-  const regularHardwarePrice = (h: HardwareSelection) =>
-    hardwareCatalog.find((item) => item.id === h.id)?.price ?? h.price ?? 0;
-  const hardwareNet = round(
-    input.hardware.reduce(
-      (sum, h) => sum + h.quantity * round(regularHardwarePrice(h)),
-      0,
-    ),
-  );
-  const hardwareSaving = 0;
-  const plans = (
-    [
-      {
-        id: "payg",
-        title: "Umsatzbasiertes Zahlen",
-        base: 0,
-        yearlyPrepaid: 0,
-        variable: variablePayg,
-      },
-      {
-        id: "plus",
-        title: "Zahlungen Plus · monatlich",
-        base: 19,
-        yearlyPrepaid: 0,
-        variable: variablePlus,
-      },
-      {
-        id: "annual",
-        title: "Zahlungen Plus · jährlich",
-        base: 0,
-        yearlyPrepaid: 199,
-        variable: variablePlus,
-      },
-    ] as const
-  ).map((plan) => {
-    const monthly = round(
-      plan.variable + plan.base + fixedSubs + plan.yearlyPrepaid / 12,
-    );
-    const year = round(
-      (plan.variable + plan.base + fixedSubs) * 12 +
-        plan.yearlyPrepaid +
-        hardwareNet,
-    );
-    return {
-      ...plan,
-      monthly,
-      year,
-      firstMonth: round(
-        plan.variable +
-          plan.base +
-          fixedSubs +
-          plan.yearlyPrepaid +
-          hardwareNet,
-      ),
-      savingsMonthly: round(current - monthly),
-      savingsYear: round(current * 12 - year),
-    };
-  });
-  const best = [...plans].sort((a, b) => a.year - b.year)[0];
-  return {
-    current,
-    plans,
-    best,
-    hardwareNet,
-    hardwareSaving,
-    fixedSubs,
-    missingMix: round(remaining),
-    warning: !input.splitConfirmed || remaining > 0.01,
-    customOffer: input.monthlyVolume >= 10000,
-  };
+export function calculateComparison(input: ComparisonInput) {
+  const mixTotal = Object.values(input.mix).reduce((sum, v) => sum + v, 0);
+  if (Math.abs(mixTotal - 100) > 0.01) throw Error("Kartenmix muss 100 % ergeben.");
+  if (input.monthlyVolume < 0 || input.currentMonthly < 0 || input.currentFixed < 0 ||
+    input.currentVariablePercent < 0 || input.currentTransactionCount < 0 || input.currentPerTransaction < 0)
+    throw Error("Werte dürfen nicht negativ sein.");
+  const current = input.currentMode === "total"
+    ? round(input.currentMonthly)
+    : round(input.currentFixed + input.monthlyVolume * input.currentVariablePercent / 100 + input.currentTransactionCount * input.currentPerTransaction);
+  const paygRate = input.customRate ?? 1.39;
+  const plusDomestic = 0.79;
+  const plusOther = 1.39;
+  const domesticShare = input.mix.domesticDebit + input.mix.domesticCredit;
+  const otherShare = 100 - domesticShare;
+  const paymentFees = input.plan === "plus"
+    ? round(input.monthlyVolume * domesticShare / 100 * plusDomestic / 100 + input.monthlyVolume * otherShare / 100 * plusOther / 100 + 19)
+    : round(input.monthlyVolume * paygRate / 100);
+  const subscriptionCost = round(input.subscriptions.reduce((sum,s)=>sum+(s.monthly||0),0));
+  const sumupMonthly = round(paymentFees + subscriptionCost);
+  const hardwareOneTime = round(input.hardware.reduce((sum,h)=>sum+(h.price||0)*h.quantity,0));
+  return {current,sumupMonthly,paymentFees,subscriptionCost,hardwareOneTime,
+    monthlyDifference:round(current-sumupMonthly),annualDifference:round((current-sumupMonthly)*12)};
 }
