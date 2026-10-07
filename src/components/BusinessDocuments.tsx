@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, Printer, Trash2, Mail } from "lucide-react";
 import { AsyncForm, Field, Modal } from "../components/UI";
 import { useStore } from "../lib/store";
-import { seller, invoiceTerms } from "../lib/branding";
+import { seller, invoiceTerms, invoiceTermsEn } from "../lib/branding";
 import { address, dateLabel, money, offerTotals, today } from "../lib/calculations";
 import type { Customer, Invoice, Offer, OfferLine, Division } from "../lib/types";
 
@@ -21,6 +21,7 @@ export function InvoiceForm({
   onSaved: (invoice: Invoice) => void;
 }) {
   const { data, save } = useStore();
+  const english = localStorage.getItem("nexaro-language") === "en";
   const [division, setDivision] = useState<Division>(invoice?.division || offer?.division || "sumup");
   const [lines, setLines] = useState<OfferLine[]>(invoice?.lines || offer?.lines || [{ name: "", quantity: 1, price: 0, vat: 19 }]);
   const [customerId, setCustomerId] = useState(invoice?.customer_id || offer?.customer_id || "");
@@ -80,7 +81,7 @@ export function InvoiceForm({
         </div>)}
         <button type="button" className="text-button" disabled={lines.length >= 100} onClick={() => setLines((v) => [...v, { name: "", quantity: 1, price: 0, vat: 19 }])}><Plus size={16}/> Position hinzufügen</button>
         <div className="total-strip"><span>Netto <b>{money(total.net)}</b></span><span>MwSt. <b>{money(total.vat)}</b></span><span>Gesamt <b>{money(total.gross)}</b></span></div>
-        <Field label="Zusätzliche Hinweise"><textarea name="notes" maxLength={5000} defaultValue={invoice?.notes || offer?.notes || invoiceTerms} rows={4}/></Field>
+        <Field label="Zusätzliche Hinweise"><textarea name="notes" maxLength={5000} defaultValue={invoice?.notes || offer?.notes || (english ? invoiceTermsEn : invoiceTerms)} rows={4}/></Field>
       </AsyncForm>
     </Modal>
   );
@@ -89,27 +90,26 @@ export function InvoiceForm({
 type Party = {company?: string; contact?: string; address?: string; email?: string};
 export function DocumentPreview({ document, onClose, onSendOffer }: { document: Offer | Invoice; onClose: () => void; onSendOffer?: () => void }) {
   const { data } = useStore();
+  const english = localStorage.getItem("nexaro-language") === "en";
   const invoice = "issue_date" in document;
   const customer = data.customers.find((c) => c.id === document.customer_id);
   const saved = document.snapshot.customer as Party | undefined;
   const recipient: Party = saved || (customer ? customerSnapshot(customer) : {});
   const issuer = (document.snapshot.seller as typeof seller | undefined) || seller;
   const vatGroups = [...new Set(document.lines.map((l) => l.vat))].sort((a,b) => b-a);
-  const subject=(invoice?"Rechnung ":"Angebot ")+document.number+" · neXaro Solutions";
-  const emailBody=[
-    "Guten Tag,",
-    "",
-    "anbei erhalten Sie "+(invoice?"die Rechnung ":"das Angebot ")+document.number+".",
-    "Bitte fügen Sie die zuvor als PDF gespeicherte Datei als Anhang hinzu.",
-    "",
-    "Mit freundlichen Grüßen",
-    "neXaro Solutions",
-  ].join("\n");
+  const subject=(english ? (invoice?"Invoice ":"Offer ") : (invoice?"Rechnung ":"Angebot "))+document.number+" · neXaro Solutions";
+  const emailBody=(english ? [
+    "Hello,", "", "Please find "+(invoice?"invoice ":"offer ")+document.number+" attached.",
+    "Please attach the file you previously saved as a PDF.", "", "Best regards", "neXaro Solutions"
+  ] : [
+    "Guten Tag,", "", "anbei erhalten Sie "+(invoice?"die Rechnung ":"das Angebot ")+document.number+".",
+    "Bitte fügen Sie die zuvor als PDF gespeicherte Datei als Anhang hinzu.", "", "Mit freundlichen Grüßen", "neXaro Solutions"
+  ]).join("\n");
   const emailTo=recipient.email||"";
   const emailHref="mailto:"+encodeURIComponent(emailTo)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(emailBody);
   async function shareSummary(){
-    const message=subject+"\n"+(recipient.company||"Entwurf ohne Kundenzuordnung")+"\nGesamtbetrag: "+money(document.gross)+
-      "\nPDF separat über Drucken / als PDF sichern speichern und beim Versand anhängen.";
+    const message=subject+"\n"+(recipient.company||(english?"Draft without customer assignment":"Entwurf ohne Kundenzuordnung"))+"\n"+(english?"Total amount: ":"Gesamtbetrag: ")+money(document.gross)+
+      (english?"\nSave the PDF separately via Print / Save as PDF and attach it when sending.":"\nPDF separat über Drucken / als PDF sichern speichern und beim Versand anhängen.");
     if(navigator.share){try{await navigator.share({title:subject,text:message});}catch(e){
       if((e as Error)?.name!=="AbortError")window.location.href=emailHref;
     }} else window.location.href=emailHref;
@@ -124,34 +124,34 @@ export function DocumentPreview({ document, onClose, onSendOffer }: { document: 
       </div>
       <div className="nx-document-address">
         <div><small>{issuer.name} · {issuer.street} · {issuer.city}</small>
-          <p className="nx-recipient"><strong>{recipient.company || "Kunde"}</strong><br/>{recipient.contact && <>{recipient.contact}<br/></>}{recipient.address}</p>
+          <p className="nx-recipient"><strong>{recipient.company || (english ? "Customer" : "Kunde")}</strong><br/>{recipient.contact && <>{recipient.contact}<br/></>}{recipient.address}</p>
         </div>
-        <div className="nx-document-label"><small>GESCHÄFTSDOKUMENT</small><h1>{invoice ? "RECHNUNG" : "ANGEBOT"}</h1><b>{document.number}</b></div>
+        <div className="nx-document-label"><small>{english ? "BUSINESS DOCUMENT" : "GESCHÄFTSDOKUMENT"}</small><h1>{english ? (invoice ? "INVOICE" : "OFFER") : (invoice ? "RECHNUNG" : "ANGEBOT")}</h1><b>{document.number}</b></div>
       </div>
       <div className="nx-document-meta">
-        <div><span>{invoice ? "Rechnungsdatum" : "Angebotsdatum"}</span><strong>{dateLabel(invoice ? document.issue_date : document.created_at)}</strong></div>
-        <div><span>{invoice ? "Leistungsdatum" : "Gültig bis"}</span><strong>{dateLabel(invoice ? document.service_date : document.valid_until)}</strong></div>
-        {invoice && <div><span>Zahlbar bis</span><strong>{dateLabel(document.due_date)}</strong></div>}
-        <div><span>Status</span><strong>{document.status}</strong></div>
+        <div><span>{english ? (invoice ? "Invoice date" : "Offer date") : (invoice ? "Rechnungsdatum" : "Angebotsdatum")}</span><strong>{dateLabel(invoice ? document.issue_date : document.created_at)}</strong></div>
+        <div><span>{english ? (invoice ? "Service date" : "Valid until") : (invoice ? "Leistungsdatum" : "Gültig bis")}</span><strong>{dateLabel(invoice ? document.service_date : document.valid_until)}</strong></div>
+        {invoice && <div><span>{english ? "Payable by" : "Zahlbar bis"}</span><strong>{dateLabel(document.due_date)}</strong></div>}
+        <div><span>{english ? "Status" : "Status"}</span><strong>{document.status}</strong></div>
       </div>
-      <h2 className="nx-document-greeting">{invoice ? "Vielen Dank für Ihren Auftrag." : "Vielen Dank für Ihr Interesse."}</h2>
-      <p className="nx-document-subtitle">{invoice ? "Wir berechnen Ihnen folgende Leistungen und Produkte:" : "Gerne bieten wir Ihnen die folgenden Leistungen und Produkte an:"}</p>
-      <table className="nx-document-table"><thead><tr><th>Pos.</th><th>Beschreibung</th><th>Menge</th><th>Einzel netto</th><th>Gesamt netto</th></tr></thead>
-        <tbody>{document.lines.map((l,i)=><tr key={i}><td>{String(i+1).padStart(2,"0")}</td><td><strong>{l.name}</strong><small>{l.vat} % MwSt.</small></td><td>{l.quantity}</td><td>{money(l.price)}</td><td>{money(Math.round(l.quantity*l.price*100)/100)}</td></tr>)}</tbody>
+      <h2 className="nx-document-greeting">{english ? (invoice ? "Thank you for your order." : "Thank you for your interest.") : (invoice ? "Vielen Dank für Ihren Auftrag." : "Vielen Dank für Ihr Interesse.")}</h2>
+      <p className="nx-document-subtitle">{english ? (invoice ? "We invoice the following services and products:" : "We are pleased to offer you the following services and products:") : (invoice ? "Wir berechnen Ihnen folgende Leistungen und Produkte:" : "Gerne bieten wir Ihnen die folgenden Leistungen und Produkte an:")}</p>
+      <table className="nx-document-table"><thead><tr><th>Pos.</th><th>{english ? "Description" : "Beschreibung"}</th><th>{english ? "Qty" : "Menge"}</th><th>{english ? "Unit net" : "Einzel netto"}</th><th>{english ? "Total net" : "Gesamt netto"}</th></tr></thead>
+        <tbody>{document.lines.map((l,i)=><tr key={i}><td>{String(i+1).padStart(2,"0")}</td><td><strong>{l.name}</strong><small>{l.vat} % {english ? "VAT" : "MwSt."}</small></td><td>{l.quantity}</td><td>{money(l.price)}</td><td>{money(Math.round(l.quantity*l.price*100)/100)}</td></tr>)}</tbody>
       </table>
       <div className="nx-document-summary">
-        <div><span>Zwischensumme netto</span><b>{money(document.net)}</b></div>
-        {vatGroups.map((rate) => <div key={rate}><span>Umsatzsteuer {rate} %</span><b>{money(document.lines.filter((l)=>l.vat===rate).reduce((sum,l)=>{const net=Math.round(l.quantity*l.price*100)/100;return sum+Math.round(net*rate)/100;},0))}</b></div>)}
-        <div className="nx-document-grand"><span>Gesamtbetrag</span><strong>{money(document.gross)}</strong></div>
+        <div><span>{english ? "Net subtotal" : "Zwischensumme netto"}</span><b>{money(document.net)}</b></div>
+        {vatGroups.map((rate) => <div key={rate}><span>{english ? "VAT" : "Umsatzsteuer"} {rate} %</span><b>{money(document.lines.filter((l)=>l.vat===rate).reduce((sum,l)=>{const net=Math.round(l.quantity*l.price*100)/100;return sum+Math.round(net*rate)/100;},0))}</b></div>)}
+        <div className="nx-document-grand"><span>{english ? "Total amount" : "Gesamtbetrag"}</span><strong>{money(document.gross)}</strong></div>
       </div>
       {!invoice && document.division === "sumup" && <SumupOfferComparison snapshot={document.snapshot} />}
-      {invoice && <div className="nx-document-payment"><b>Zahlungsinformationen</b><p>{invoiceTerms}<br/>Bank: {issuer.bank} · IBAN: {issuer.iban}<br/>Verwendungszweck: {document.number}</p></div>}
-      {document.notes && <div className="nx-document-notes"><b>Hinweise</b><p className="prewrap">{document.notes}</p></div>}
+      {invoice && <div className="nx-document-payment"><b>{english ? "Payment information" : "Zahlungsinformationen"}</b><p>{english ? invoiceTermsEn : invoiceTerms}<br/>Bank: {issuer.bank} · IBAN: {issuer.iban}<br/>{english ? "Payment reference" : "Verwendungszweck"}: {document.number}</p></div>}
+      {document.notes && <div className="nx-document-notes"><b>{english ? "Notes" : "Hinweise"}</b><p className="prewrap">{document.notes}</p></div>}
       <footer className="nx-document-footer">
         <div><b>{issuer.name}</b><br/>{issuer.owner}<br/>{issuer.street}<br/>{issuer.city}</div>
-        <div><b>Kontakt</b><br/>{issuer.email}<br/>{issuer.web}</div>
-        <div><b>Steuerangaben</b><br/>USt.-ID: {issuer.vatId}<br/>Steuer-Nr.: {issuer.taxNumber}<br/>{issuer.taxOffice}</div>
-        <div><b>Bankverbindung</b><br/>{issuer.bank}<br/>IBAN: {issuer.iban}</div>
+        <div><b>{english ? "Contact" : "Kontakt"}</b><br/>{issuer.email}<br/>{issuer.web}</div>
+        <div><b>{english ? "Tax details" : "Steuerangaben"}</b><br/>{english ? "VAT ID" : "USt.-ID"}: {issuer.vatId}<br/>{english ? "Tax no." : "Steuer-Nr."}: {issuer.taxNumber}<br/>{issuer.taxOffice}</div>
+        <div><b>{english ? "Bank details" : "Bankverbindung"}</b><br/>{issuer.bank}<br/>IBAN: {issuer.iban}</div>
       </footer>
     </div>
     <div className="no-print document-export-actions">
