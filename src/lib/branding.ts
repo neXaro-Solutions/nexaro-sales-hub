@@ -12,3 +12,5 @@ export const seller = {
   iban: "DE02100110012046791637",
 } as const;
 export const invoiceTerms = "Zahlbar ohne Abzug bis zum angegebenen Fälligkeitsdatum unter Angabe der Rechnungsnummer.";
+
+export const invoiceTermsEn = "Payable without deduction by the stated due date, quoting the invoice number.";
