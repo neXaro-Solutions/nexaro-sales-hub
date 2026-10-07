@@ -4,7 +4,7 @@ function lead(id: string, status = "neu") {
   return { id, company: `Firma ${id}`, status, created_at: new Date().toISOString(), batch_date: "2026-10-01", phone: "030123456", email: "test@example.com", last_contact_at: status === "neu" ? null : new Date().toISOString(), customer_id: null, callback_at: null };
 }
 async function openHunter(page: Page) {
-  await page.goto("/?demo=1");
+  await page.goto("/?demo=1&e2eLiveCallLeads=1");
   const menu = page.getByRole("button", { name: "Menü öffnen", exact: true });
   if (await menu.isVisible()) await menu.click();
   await page.locator("nav").getByRole("button", { name: "Telefonleads", exact: true }).click();
