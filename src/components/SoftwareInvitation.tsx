@@ -4,7 +4,8 @@ import {invitationMail,demoLink} from '../../supabase/functions/nx-software-sale
 export type PreparedInvitation={code:string;lead:{company:string;contact:string;email:string;updated_at:string};invitation:{id:string;expires_at:string}};
 export function SoftwareInvitation({issued,onSend,onClose}:{issued:PreparedInvitation;onSend:()=>Promise<void>;onClose:()=>void}){
  const [busy,setBusy]=useState(false),[sent,setSent]=useState(false),[error,setError]=useState('');
- const mail=invitationMail({...issued.lead,code:issued.code,expires_at:issued.invitation.expires_at});
+ const language=(localStorage.getItem('nexaro-language')==='en'?'en':'de') as 'de'|'en';
+ const mail=invitationMail({...issued.lead,code:issued.code,expires_at:issued.invitation.expires_at,language});
  const [copied,setCopied]=useState('');
  async function copy(value:string,label:string){setCopied('');try{if(!navigator.clipboard?.writeText)throw Error('clipboard');await navigator.clipboard.writeText(value);setCopied(label+' kopiert.')}catch{setCopied('Kopieren nicht möglich. Bitte das Feld markieren und manuell kopieren.')}}
  async function send(){
