@@ -123,6 +123,20 @@ test("unified Hunter exposes the integrated tour workspace",async ({page})=>{
   await expect(page.getByRole("heading",{name:"Deine Touren & Besuche"})).toBeVisible();
   await expect(page.getByRole("region",{name:"Gespeicherte Touren"})).toBeVisible();
 });
+test("demo Call Hunter uses local sample leads without live CRM writes", async ({page})=>{
+  const blocked:string[]=[];
+  page.on("request",request=>{if(request.url().includes("/rest/v1/nx_daily_call_leads")||request.url().includes("/functions/v1/nx-sales-funnel-web")) blocked.push(request.url())});
+  await page.goto("/?demo=1");
+  await navigate(page,"Telefonleads");
+  await expect(page.getByRole("heading",{name:"📞 Telefonleads"})).toBeVisible();
+  await expect(page.getByText(/Demo-Modus: fiktive Telefonleads/)).toBeVisible();
+  await expect(page.getByText("Kaffeewerk Mitte")).toBeVisible();
+  await page.getByRole("button",{name:/Call-Modus starten/}).first().click();
+  await expect(page.getByText("CALL HUNTER")).toBeVisible();
+  await expect(page.getByRole("button",{name:/Infos senden/})).toBeVisible();
+  expect(blocked).toEqual([]);
+});
+
 test("authenticated data is unavailable on public landing", async ({
   page,
 }) => {
