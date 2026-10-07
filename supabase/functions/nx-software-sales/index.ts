@@ -1,6 +1,6 @@
 import {validateLead,stages} from './validation.ts';
 import nodemailer from 'npm:nodemailer@7.0.6';
-import {invitationMail,invitationSubject} from './invitation-template.ts';
+import {invitationMail,invitationSubjectFor} from './invitation-template.ts';
 const url=Deno.env.get('SUPABASE_URL')!,key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const origins=new Set(['https://www.nexaro-solutions.de','https://nexaro-solutions.de','https://nexaro-solutions.github.io']);
 const encoder=new TextEncoder();const hmacKey=crypto.subtle.importKey('raw',encoder.encode(key),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
@@ -70,9 +70,9 @@ Deno.serve(async(req:Request)=>{
    const transport=nodemailer.createTransport({host,port,secure:port===465,requireTLS:port!==465,tls:{minVersion:'TLSv1.2',servername:host},auth:{user:smtpUser,pass:password},connectionTimeout:12000,greetingTimeout:12000,socketTimeout:20000});
    try{await transport.verify()}catch{return reply(503,{error:'Der Mailserver ist momentan nicht erreichbar. Es wurde noch keine E-Mail versendet. Bitte später erneut versuchen.'})}
    const hash=hex(await crypto.subtle.digest('SHA-256',encoder.encode(b.code)));
-   let claim;try{claim=await db('rpc/nx_claim_software_mail','POST',{p_id:b.id,p_hash:hash,p_recipient:b.recipient,p_subject:invitationSubject,p_owner:user.id,p_updated_at:b.updated_at})}catch{return reply(409,{error:'Code, Empfänger oder Anfrage haben sich geändert oder die Einladung ist abgelaufen. Bitte aktualisieren und eine neue Vorschau erstellen.'})}
+   let claim;try{claim=await db('rpc/nx_claim_software_mail','POST',{p_id:b.id,p_hash:hash,p_recipient:b.recipient,p_subject:invitationSubjectFor(b.language==='en'?'en':'de'),p_owner:user.id,p_updated_at:b.updated_at})}catch{return reply(409,{error:'Code, Empfänger oder Anfrage haben sich geändert oder die Einladung ist abgelaufen. Bitte aktualisieren und eine neue Vorschau erstellen.'})}
    if(!claim.claimed)return claim.status==='accepted'?reply(200,{ok:true,status:'accepted',already_sent:true}):reply(409,{error:'Dieser Versand wurde bereits gestartet. Bitte den Versandverlauf prüfen und nicht erneut senden.'});
-   const mail=invitationMail({company:claim.lead.company,contact:claim.lead.contact,code:b.code,expires_at:claim.invitation.expires_at});
+   const mail=invitationMail({company:claim.lead.company,contact:claim.lead.contact,code:b.code,expires_at:claim.invitation.expires_at,language:b.language==='en'?'en':'de'});
    try{
     const result=await transport.sendMail({from:{name:'neXaro Solutions',address:sender},replyTo:sender,to:claim.lead.email,subject:mail.subject,text:mail.text,html:mail.html,disableFileAccess:true,disableUrlAccess:true});
     if(!result.accepted?.some((v:string)=>String(v).toLowerCase()===claim.lead.email.toLowerCase()))throw Error('not_accepted');
