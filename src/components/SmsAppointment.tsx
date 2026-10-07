@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { client } from "../lib/client";
 import type { Task } from "../lib/types";
 
-type SmsState = {task_id:string;enabled:boolean;status:string;sent_at:string|null;request_note:string;failure_reason:string|null;confirmed_at:string|null};
+type SmsState = {task_id:string;enabled:boolean;status:string;sent_at:string|null;request_note:string;failure_reason:string|null;confirmed_at:string|null;language?:string};
 const names:Record<string,string>={planned:"E-Mail geplant",sending:"E-Mail wird versendet",sent:"E-Mail versendet · Rückmeldung offen",confirmed:"Termin bestätigt",reschedule_requested:"Verschiebung angefragt",failed:"E-Mail-Fehler"};
 export function SmsAppointment({task,demo}:{task:Task;demo:boolean}){
  const [row,setRow]=useState<SmsState|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(""),[ready,setReady]=useState(false);
@@ -10,7 +10,7 @@ export function SmsAppointment({task,demo}:{task:Task;demo:boolean}){
   let active=true;
   async function load(){
    if(demo){setReady(true);return}
-   const result=await client.from("nx_sms_appointments").select("task_id,enabled,status,sent_at,request_note,failure_reason,confirmed_at").eq("task_id",task.id).maybeSingle();
+   const result=await client.from("nx_sms_appointments").select("task_id,enabled,status,sent_at,request_note,failure_reason,confirmed_at,language").eq("task_id",task.id).maybeSingle();
    if(!active)return;
    if(result.error)setError("E-Mail-Status konnte nicht geladen werden.");else setRow(result.data);
    setReady(true);
@@ -20,8 +20,8 @@ export function SmsAppointment({task,demo}:{task:Task;demo:boolean}){
  },[task.id,demo]);
  async function toggle(enabled:boolean){
   setBusy(true);setError("");
-  if(demo){setRow({task_id:task.id,enabled,status:"planned",sent_at:null,request_note:"",failure_reason:null,confirmed_at:null});setBusy(false);return}
-  const result=await client.from("nx_sms_appointments").upsert({task_id:task.id,enabled},{onConflict:"task_id"}).select("task_id,enabled,status,sent_at,request_note,failure_reason,confirmed_at").single();
+  if(demo){setRow({task_id:task.id,enabled,status:"planned",sent_at:null,request_note:"",failure_reason:null,confirmed_at:null,language:localStorage.getItem("nexaro-language")==="en"?"en":"de"});setBusy(false);return}
+  const result=await client.from("nx_sms_appointments").upsert({task_id:task.id,enabled,language:localStorage.getItem("nexaro-language")==="en"?"en":"de"},{onConflict:"task_id"}).select("task_id,enabled,status,sent_at,request_note,failure_reason,confirmed_at,language").single();
   if(result.error)setError("E-Mail-Freigabe konnte nicht gespeichert werden.");else setRow(result.data);
   setBusy(false);
  }
