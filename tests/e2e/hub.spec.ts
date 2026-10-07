@@ -83,10 +83,10 @@ test("central customer import form and shared contact record", async ({page})=>{
 test("current SumUp photo flow and centralized customer selection",async ({page})=>{
   await page.goto("/?demo=1");
   await navigate(page,"SumUp");
+  await page.getByLabel("Kundenakte für das Vertriebsstudio").selectOption({label:"Café Morgenrot"});
   await expect(page.getByRole("heading",{name:"Wie nimmt der Kunde heute Zahlungen an?"})).toBeVisible();
   await page.getByRole("button",{name:"Bestehende Lösung vergleichen →"}).click();
   await expect(page.getByRole("button",{name:"Foto aufnehmen / hochladen"})).toBeVisible();
-  await page.getByLabel("Kundenakte für das Vertriebsstudio").selectOption({label:"Café Morgenrot"});
   await page.getByRole("button",{name:"Ist-Bestand"}).click();
   await expect(page.getByText("03 · Kartenmix & Gebühren")).toBeVisible();
   await expect(page.getByLabel("Aktueller Anbieter",{exact:true})).toBeVisible();
@@ -130,8 +130,9 @@ test("demo Call Hunter uses local sample leads without live CRM writes", async (
   await navigate(page,"Telefonleads");
   await expect(page.getByRole("heading",{name:"📞 Telefonleads"})).toBeVisible();
   await expect(page.getByText(/Demo-Modus: fiktive Telefonleads/)).toBeVisible();
-  await expect(page.getByText("Kaffeewerk Mitte")).toBeVisible();
+  await expect(page.getByRole("button",{name:"4 Arbeitsliste",exact:true})).toBeVisible();
   await page.getByRole("button",{name:/Call-Modus starten/}).first().click();
+  await expect(page.locator(".nx-company-overlay h1")).toHaveText("Kaffeewerk Mitte");
   await expect(page.getByText("CALL HUNTER")).toBeVisible();
   await expect(page.getByRole("button",{name:/Infos senden/})).toBeVisible();
   expect(blocked).toEqual([]);
