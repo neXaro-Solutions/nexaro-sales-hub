@@ -96,7 +96,7 @@ function installToggle(){
  .nx-language-toggle{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:34px;padding:0 10px;border:1px solid #cfdcc8;border-radius:999px;background:#fff;color:#243522;font:inherit;font-size:11px;font-weight:900;letter-spacing:.08em;cursor:pointer;box-shadow:0 6px 18px rgba(35,55,28,.08);z-index:9300}
  .nx-language-toggle:hover{border-color:#9fc970;background:#f5fbea}
  body>.nx-language-toggle{position:fixed;right:14px;top:14px}
- @media(max-width:700px){.topbar-right .nx-language-toggle{min-width:38px;height:32px;padding:0 8px}}
+ body.nx-demo-active .nx-language-toggle{position:fixed;right:14px;top:14px;z-index:10050} @media(max-width:700px){.topbar-right .nx-language-toggle{min-width:38px;height:32px;padding:0 8px}body.nx-demo-active .nx-language-toggle{right:10px;top:10px}}
  `;document.head.appendChild(st);
 }
 const observer=new MutationObserver(muts=>{if(applying)return;for(const m of muts){for(const node of m.addedNodes){if(node.nodeType===Node.TEXT_NODE)applyText(node);else if(node.nodeType===Node.ELEMENT_NODE){applyEl(node);walk(node);}}}});
