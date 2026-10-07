@@ -36,13 +36,23 @@ function localDateTimeValue(offsetMinutes = 60) { const date = new Date(Date.now
 function addressParts(lead: CallLead) { const raw = (lead.address || "").trim(); const match = raw.match(/^(.+?),\s*(\d{5})\s+(.+)$/); if (match) return { street: match[1].trim(), zip: match[2], city: match[3].trim() }; return { street: raw, zip: "", city: (lead.city || "").trim() }; }
 
 export function CallLeads() {
-  const { data: crmData, save } = useStore();
+  const { data: crmData, save, demo } = useStore();
   const [rows, setRows] = useState<CallLead[]>([]); const [queueTotal, setQueueTotal] = useState(0); const [automations, setAutomations] = useState<Record<string, SalesAutomation>>({}); const [draftEmails, setDraftEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(""); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [callMode, setCallMode] = useState(false); const [currentIndex, setCurrentIndex] = useState(0); const [openerOffset, setOpenerOffset] = useState(0); const [dragX, setDragX] = useState(0); const [dragY, setDragY] = useState(0); const [dragging, setDragging] = useState(false); const [schedule, setSchedule] = useState<ScheduleDraft | null>(null); const [scheduleAt, setScheduleAt] = useState("");
   const pointerStart = useRef<{x:number;y:number}|null>(null); const modeRef = useRef<HTMLDivElement>(null); const today = berlinDate();
 
   async function load(preserveNotice = false) {
     setLoading(true); setError(""); if (!preserveNotice) setNotice("");
+    if (demo) {
+      const sample = demoCallLeads();
+      setRows(sample);
+      setQueueTotal(sample.filter(row => row.status === "neu").length);
+      setAutomations({});
+      setDraftEmails(Object.fromEntries(sample.map(row => [row.id, row.email || ""])));
+      setCurrentIndex(0);
+      setLoading(false);
+      return;
+    }
     try {
       const result = await client.from("nx_daily_call_leads").select("id,created_at,batch_date,company,phone,email,website,city,industry,address,source,status,notes,customer_id,info_permission_at,info_permission_source,last_contact_at,callback_at").in("status", ["neu", "kontaktiert"]).order("batch_date", { ascending: true }).order("created_at", { ascending: true }).limit(250);
       if (result.error) throw result.error;
@@ -68,7 +78,7 @@ export function CallLeads() {
       setDraftEmails(current => { const next = { ...current }; for (const row of chosen) if (next[row.id] === undefined) next[row.id] = row.email || ""; return next; });
     } catch (e) { setError(e instanceof Error ? e.message : "Telefonleads konnten nicht geladen werden."); } finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [demo]);
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(""), 3000);
@@ -83,7 +93,15 @@ export function CallLeads() {
   }
 
   async function setStatus(lead: CallLead, status: CallLead["status"], note?: string) {
-    if (busy) return false; setBusy(lead.id); setError(""); setNotice("");
+    if (busy) return false;
+    if (demo) {
+      const now = new Date(); const stamp = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(now); const notes = [lead.notes?.trim(), note ? `${stamp}: ${note}` : ""].filter(Boolean).join("\n").slice(0, 5000) || null;
+      const next = { ...lead, status, notes, last_contact_at: now.toISOString() };
+      if (isExcluded(status)) removeFromQueue(lead); else setRows(current => current.map(row => row.id === lead.id ? next : row));
+      setNotice(`Demo · ${lead.company}: ${statusLabel[status]} simuliert.`);
+      return true;
+    }
+    setBusy(lead.id); setError(""); setNotice("");
     const now = new Date(); const stamp = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(now); const notes = [lead.notes?.trim(), note ? `${stamp}: ${note}` : ""].filter(Boolean).join("\n").slice(0, 5000) || null;
     try {
       const { data, error } = await client.from("nx_daily_call_leads").update({ status, notes, last_contact_at: now.toISOString() }).eq("id", lead.id).select("id,created_at,batch_date,company,phone,email,website,city,industry,address,source,status,notes,customer_id,info_permission_at,info_permission_source,last_contact_at,callback_at").single();
@@ -96,6 +114,11 @@ export function CallLeads() {
 
   async function startInfoFunnel(lead: CallLead) {
     if (busy) return false; const email = (draftEmails[lead.id] || "").trim().toLowerCase(); if (!validEmail(email)) { setNotice(`${lead.company}: Bitte zuerst die geschäftliche E-Mail-Adresse eintragen, die im Gespräch ausdrücklich für den Versand genannt wurde.`); return false; }
+    if (demo) {
+      removeFromQueue(lead);
+      setNotice(`Demo · ${lead.company}: Versandfreigabe erfasst, Info-Funnel und erste E-Mail wurden nur simuliert.`);
+      return true;
+    }
     setBusy(lead.id); setError(""); setNotice("");
     try { if (email !== (lead.email || "").trim().toLowerCase()) { const saved = await client.from("nx_daily_call_leads").update({ email }).eq("id", lead.id).select("id").single(); if (saved.error) throw saved.error; } const { data, error } = await client.functions.invoke("nx-sales-funnel-web", { body: { action: "start", leadId: lead.id, consentConfirmed: true } }); if (error || !data?.ok) { let detail = data?.error || "Der neXaro-Mailfunnel konnte nicht gestartet werden."; try { if (!data?.error && error && "context" in error) detail = (await (error as any).context.json())?.error || detail; } catch {} throw new Error(detail); } removeFromQueue(lead); await load(true); if (data.alreadyActive) setNotice(`${lead.company}: Funnel bereits aktiv.`); else if (data.initialSent) setNotice(`${lead.company}: Erste neXaro-Mail versendet. Die Folge läuft automatisch.`); else setNotice(`${lead.company}: Funnel aktiv. Der erste Versand wird serverseitig automatisch erneut versucht.`); return true; } catch (e) { setError(e instanceof Error ? e.message : "Funnel konnte nicht gestartet werden."); return false; } finally { setBusy(""); }
   }
@@ -117,9 +140,15 @@ export function CallLeads() {
     try { const customerId = await ensureCustomer(lead); const email = (draftEmails[lead.id] || lead.email || "").trim().toLowerCase(); const due = new Date(scheduleAt); if (Number.isNaN(due.getTime())) throw new Error("Bitte Datum und Uhrzeit prüfen."); const dueAt = due.toISOString(); const address = place(lead);
       const task = await save("tasks", { customer_id: customerId, division: "sumup", due_at: dueAt, kind: mode === "appointment" ? "Termin" : "Wiedervorlage", title: `${mode === "appointment" ? "Kundentermin" : "Rückruf"} · ${lead.company}`, notes: [`Terminart: ${mode === "appointment" ? "Kundentermin vor Ort" : "Rückruf"}`, `Telefon: ${lead.phone}`, email ? `E-Mail: ${email}` : "", address ? `Adresse: ${address}` : "", `Quelle: neXaro Call Hunter · Telefonlead ${lead.id}`].filter(Boolean).join("\n"), done: false });
       const now = new Date().toISOString(); const stamp = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(new Date()); const notes = [lead.notes?.trim(), `${stamp}: ${mode === "appointment" ? "Kundentermin" : "Rückruf"} im CRM-Kalender angelegt.`].filter(Boolean).join("\n").slice(0, 5000) || null;
-      const update = await client.from("nx_daily_call_leads").update({ status: mode === "appointment" ? "termin" : "kontaktiert", customer_id: customerId, email: email || lead.email, callback_at: mode === "callback" ? dueAt : lead.callback_at, last_contact_at: now, notes }).eq("id", lead.id).select("id,created_at,batch_date,company,phone,email,website,city,industry,address,source,status,notes,customer_id,info_permission_at,info_permission_source,last_contact_at,callback_at").single(); if (update.error) throw update.error;
+      let updatedLead: CallLead;
+      if (demo) {
+        updatedLead = { ...lead, status: mode === "appointment" ? "termin" : "kontaktiert", customer_id: customerId, email: email || lead.email, callback_at: mode === "callback" ? dueAt : lead.callback_at, last_contact_at: now, notes };
+      } else {
+        const update = await client.from("nx_daily_call_leads").update({ status: mode === "appointment" ? "termin" : "kontaktiert", customer_id: customerId, email: email || lead.email, callback_at: mode === "callback" ? dueAt : lead.callback_at, last_contact_at: now, notes }).eq("id", lead.id).select("id,created_at,batch_date,company,phone,email,website,city,industry,address,source,status,notes,customer_id,info_permission_at,info_permission_source,last_contact_at,callback_at").single(); if (update.error) throw update.error;
+        updatedLead = update.data as CallLead;
+      }
       if (mode === "appointment") removeFromQueue(lead);
-      else setRows(currentRows => currentRows.map(row => row.id === lead.id ? update.data as CallLead : row)); setSchedule(null); setNotice(`${mode === "appointment" ? "Termin" : "Rückruf"} gespeichert: ${task.title}.`); setCallMode(false); if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} } window.setTimeout(() => { const calendarButton = Array.from(document.querySelectorAll<HTMLButtonElement>("aside nav button")).find(button => button.textContent?.includes("Kalender")); calendarButton?.click(); }, 0);
+      else setRows(currentRows => currentRows.map(row => row.id === lead.id ? updatedLead : row)); setSchedule(null); setNotice(`${mode === "appointment" ? "Termin" : "Rückruf"} gespeichert: ${task.title}.`); setCallMode(false); if (document.fullscreenElement) { try { await document.exitFullscreen(); } catch {} } window.setTimeout(() => { const calendarButton = Array.from(document.querySelectorAll<HTMLButtonElement>("aside nav button")).find(button => button.textContent?.includes("Kalender")); calendarButton?.click(); }, 0);
     } catch (e) { setError(e instanceof Error ? e.message : "Kalendereintrag konnte nicht angelegt werden."); } finally { setBusy(""); }
   }
 
@@ -135,7 +164,7 @@ export function CallLeads() {
 
   return <>
     <section className="nx-call-leads">
-      <div className="section-intro"><div><span className="eyebrow">AUSSENDIENST · TELEFONAKQUISE</span><h1>📞 Telefonleads</h1><p>10er-Arbeitsliste mit Vollbild-Call-Modus. Offene Anrufe bleiben erhalten, bis du sie bearbeitet hast.</p></div><div className="nx-call-top-actions"><button className="secondary" type="button" disabled={loading || !!busy} onClick={() => void load()}><RefreshCw size={16}/> Aktualisieren</button><button className="primary" type="button" disabled={loading || !rows.length} onClick={() => void startCallMode()}><Maximize2 size={17}/> Call-Modus starten</button></div></div>
+      <div className="section-intro"><div><span className="eyebrow">AUSSENDIENST · TELEFONAKQUISE</span><h1>📞 Telefonleads</h1><p>10er-Arbeitsliste mit Vollbild-Call-Modus. Offene Anrufe bleiben erhalten, bis du sie bearbeitet hast.</p>{demo && <p className="hint">Demo-Modus: fiktive Telefonleads · E-Mails, Funnel und Statusänderungen werden ausschließlich simuliert.</p>}</div><div className="nx-call-top-actions"><button className="secondary" type="button" disabled={loading || !!busy} onClick={() => void load()}><RefreshCw size={16}/> Aktualisieren</button><button className="primary" type="button" disabled={loading || !rows.length} onClick={() => void startCallMode()}><Maximize2 size={17}/> Call-Modus starten</button></div></div>
       <div className="metrics nx-call-metrics"><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("all")}><strong>{stats.total}</strong><p>Arbeitsliste</p></button><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("open")}><strong>{stats.open}</strong><p>Noch offen</p></button><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("contacted")}><strong>{stats.contacted}</strong><p>Funnel / Kontakt</p></button><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("backlog")}><strong>{queueTotal}</strong><p>Rückstand gesamt</p></button></div>
       {notice && <p className="notice" role="status">{notice}</p>}{error && <p className="error" role="alert">{error}</p>}
       {!loading && rows.length > 0 && <div className="card nx-call-preview"><div><span className="eyebrow">MOBILE CALL EXPERIENCE</span><h2>Ein Lead. Ein Gespräch. Eine Entscheidung.</h2><p>Im Call-Modus bekommst du jede Firma einzeln als Swipe-Karte – ohne CRM-Ablenkung.</p></div><button className="primary" onClick={() => void startCallMode()}><Phone size={18}/> Jetzt starten</button></div>}
