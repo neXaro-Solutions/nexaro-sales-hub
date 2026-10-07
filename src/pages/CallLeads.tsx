@@ -49,13 +49,15 @@ function demoCallLeads(): CallLead[] {
 
 export function CallLeads() {
   const { data: crmData, save, demo } = useStore();
+  const e2eLiveCallLeads = demo && navigator.webdriver && new URLSearchParams(location.search).get("e2eLiveCallLeads") === "1";
+  const localDemo = demo && !e2eLiveCallLeads;
   const [rows, setRows] = useState<CallLead[]>([]); const [queueTotal, setQueueTotal] = useState(0); const [automations, setAutomations] = useState<Record<string, SalesAutomation>>({}); const [draftEmails, setDraftEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(""); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [callMode, setCallMode] = useState(false); const [currentIndex, setCurrentIndex] = useState(0); const [openerOffset, setOpenerOffset] = useState(0); const [dragX, setDragX] = useState(0); const [dragY, setDragY] = useState(0); const [dragging, setDragging] = useState(false); const [schedule, setSchedule] = useState<ScheduleDraft | null>(null); const [scheduleAt, setScheduleAt] = useState("");
   const pointerStart = useRef<{x:number;y:number}|null>(null); const modeRef = useRef<HTMLDivElement>(null); const today = berlinDate();
 
   async function load(preserveNotice = false) {
     setLoading(true); setError(""); if (!preserveNotice) setNotice("");
-    if (demo) {
+    if (localDemo) {
       const sample = demoCallLeads();
       setRows(sample);
       setQueueTotal(sample.filter(row => row.status === "neu").length);
@@ -90,7 +92,7 @@ export function CallLeads() {
       setDraftEmails(current => { const next = { ...current }; for (const row of chosen) if (next[row.id] === undefined) next[row.id] = row.email || ""; return next; });
     } catch (e) { setError(e instanceof Error ? e.message : "Telefonleads konnten nicht geladen werden."); } finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, [demo]);
+  useEffect(() => { void load(); }, [localDemo]);
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(""), 3000);
@@ -106,7 +108,7 @@ export function CallLeads() {
 
   async function setStatus(lead: CallLead, status: CallLead["status"], note?: string) {
     if (busy) return false;
-    if (demo) {
+    if (localDemo) {
       const now = new Date(); const stamp = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(now); const notes = [lead.notes?.trim(), note ? `${stamp}: ${note}` : ""].filter(Boolean).join("\n").slice(0, 5000) || null;
       const next = { ...lead, status, notes, last_contact_at: now.toISOString() };
       if (isExcluded(status)) removeFromQueue(lead); else setRows(current => current.map(row => row.id === lead.id ? next : row));
@@ -126,7 +128,7 @@ export function CallLeads() {
 
   async function startInfoFunnel(lead: CallLead) {
     if (busy) return false; const email = (draftEmails[lead.id] || "").trim().toLowerCase(); if (!validEmail(email)) { setNotice(`${lead.company}: Bitte zuerst die geschäftliche E-Mail-Adresse eintragen, die im Gespräch ausdrücklich für den Versand genannt wurde.`); return false; }
-    if (demo) {
+    if (localDemo) {
       removeFromQueue(lead);
       setNotice(`Demo · ${lead.company}: Versandfreigabe erfasst, Info-Funnel und erste E-Mail wurden nur simuliert.`);
       return true;
@@ -153,7 +155,7 @@ export function CallLeads() {
       const task = await save("tasks", { customer_id: customerId, division: "sumup", due_at: dueAt, kind: mode === "appointment" ? "Termin" : "Wiedervorlage", title: `${mode === "appointment" ? "Kundentermin" : "Rückruf"} · ${lead.company}`, notes: [`Terminart: ${mode === "appointment" ? "Kundentermin vor Ort" : "Rückruf"}`, `Telefon: ${lead.phone}`, email ? `E-Mail: ${email}` : "", address ? `Adresse: ${address}` : "", `Quelle: neXaro Call Hunter · Telefonlead ${lead.id}`].filter(Boolean).join("\n"), done: false });
       const now = new Date().toISOString(); const stamp = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }).format(new Date()); const notes = [lead.notes?.trim(), `${stamp}: ${mode === "appointment" ? "Kundentermin" : "Rückruf"} im CRM-Kalender angelegt.`].filter(Boolean).join("\n").slice(0, 5000) || null;
       let updatedLead: CallLead;
-      if (demo) {
+      if (localDemo) {
         updatedLead = { ...lead, status: mode === "appointment" ? "termin" : "kontaktiert", customer_id: customerId, email: email || lead.email, callback_at: mode === "callback" ? dueAt : lead.callback_at, last_contact_at: now, notes };
       } else {
         const update = await client.from("nx_daily_call_leads").update({ status: mode === "appointment" ? "termin" : "kontaktiert", customer_id: customerId, email: email || lead.email, callback_at: mode === "callback" ? dueAt : lead.callback_at, last_contact_at: now, notes }).eq("id", lead.id).select("id,created_at,batch_date,company,phone,email,website,city,industry,address,source,status,notes,customer_id,info_permission_at,info_permission_source,last_contact_at,callback_at").single(); if (update.error) throw update.error;
@@ -176,7 +178,7 @@ export function CallLeads() {
 
   return <>
     <section className="nx-call-leads">
-      <div className="section-intro"><div><span className="eyebrow">AUSSENDIENST · TELEFONAKQUISE</span><h1>📞 Telefonleads</h1><p>10er-Arbeitsliste mit Vollbild-Call-Modus. Offene Anrufe bleiben erhalten, bis du sie bearbeitet hast.</p>{demo && <p className="hint">Demo-Modus: fiktive Telefonleads · E-Mails, Funnel und Statusänderungen werden ausschließlich simuliert.</p>}</div><div className="nx-call-top-actions"><button className="secondary" type="button" disabled={loading || !!busy} onClick={() => void load()}><RefreshCw size={16}/> Aktualisieren</button><button className="primary" type="button" disabled={loading || !rows.length} onClick={() => void startCallMode()}><Maximize2 size={17}/> Call-Modus starten</button></div></div>
+      <div className="section-intro"><div><span className="eyebrow">AUSSENDIENST · TELEFONAKQUISE</span><h1>📞 Telefonleads</h1><p>10er-Arbeitsliste mit Vollbild-Call-Modus. Offene Anrufe bleiben erhalten, bis du sie bearbeitet hast.</p>{localDemo && <p className="hint">Demo-Modus: fiktive Telefonleads · E-Mails, Funnel und Statusänderungen werden ausschließlich simuliert.</p>}</div><div className="nx-call-top-actions"><button className="secondary" type="button" disabled={loading || !!busy} onClick={() => void load()}><RefreshCw size={16}/> Aktualisieren</button><button className="primary" type="button" disabled={loading || !rows.length} onClick={() => void startCallMode()}><Maximize2 size={17}/> Call-Modus starten</button></div></div>
       <div className="metrics nx-call-metrics"><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("all")}><strong>{stats.total}</strong><p>Arbeitsliste</p></button><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("open")}><strong>{stats.open}</strong><p>Noch offen</p></button><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("contacted")}><strong>{stats.contacted}</strong><p>Funnel / Kontakt</p></button><button className="card nx-call-metric-card" type="button" onClick={() => void openMetric("backlog")}><strong>{queueTotal}</strong><p>Rückstand gesamt</p></button></div>
       {notice && <p className="notice" role="status">{notice}</p>}{error && <p className="error" role="alert">{error}</p>}
       {!loading && rows.length > 0 && <div className="card nx-call-preview"><div><span className="eyebrow">MOBILE CALL EXPERIENCE</span><h2>Ein Lead. Ein Gespräch. Eine Entscheidung.</h2><p>Im Call-Modus bekommst du jede Firma einzeln als Swipe-Karte – ohne CRM-Ablenkung.</p></div><button className="primary" onClick={() => void startCallMode()}><Phone size={18}/> Jetzt starten</button></div>}
