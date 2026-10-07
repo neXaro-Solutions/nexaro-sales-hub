@@ -35,6 +35,18 @@ function openerFor(lead: CallLead, offset = 0) { const seed = Array.from(lead.id
 function localDateTimeValue(offsetMinutes = 60) { const date = new Date(Date.now() + offsetMinutes * 60000); const parts = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(date); return parts.replace(" ", "T"); }
 function addressParts(lead: CallLead) { const raw = (lead.address || "").trim(); const match = raw.match(/^(.+?),\s*(\d{5})\s+(.+)$/); if (match) return { street: match[1].trim(), zip: match[2], city: match[3].trim() }; return { street: raw, zip: "", city: (lead.city || "").trim() }; }
 
+
+function demoCallLeads(): CallLead[] {
+  const day = berlinDate();
+  const now = new Date().toISOString();
+  return [
+    { id: "demo-call-1", created_at: now, batch_date: day, company: "Kaffeewerk Mitte", phone: "030 5550101", email: "kontakt@kaffeewerk.example", website: "kaffeewerk.example", city: "Berlin", industry: "Café", address: "Torstraße 48, 10119 Berlin", source: "Demo · regionale Recherche", status: "neu", notes: "Mittagsgeschäft mit hoher Kartenzahlungsquote.", customer_id: null, info_permission_at: null, info_permission_source: null, last_contact_at: null, callback_at: null },
+    { id: "demo-call-2", created_at: now, batch_date: day, company: "Salon Nordlicht", phone: "030 5550102", email: "team@salon-nordlicht.example", website: "salon-nordlicht.example", city: "Berlin", industry: "Friseur", address: "Invalidenstraße 92, 10115 Berlin", source: "Demo · regionale Recherche", status: "neu", notes: "Mobiles Kassieren und Terminspitzen ansprechen.", customer_id: null, info_permission_at: null, info_permission_source: null, last_contact_at: null, callback_at: null },
+    { id: "demo-call-3", created_at: now, batch_date: day, company: "Werkstatt am Kanal", phone: "030 5550103", email: null, website: "werkstatt-kanal.example", city: "Berlin", industry: "Dienstleistung", address: "Kottbusser Damm 71, 10967 Berlin", source: "Demo · regionale Recherche", status: "neu", notes: "Aktuelle Payment-Lösung und feste Gebühren erfragen.", customer_id: null, info_permission_at: null, info_permission_source: null, last_contact_at: null, callback_at: null },
+    { id: "demo-call-4", created_at: now, batch_date: day, company: "Feinkost Linden", phone: "030 5550104", email: "hallo@feinkost-linden.example", website: null, city: "Berlin", industry: "Einzelhandel", address: "Lindenstraße 33, 10969 Berlin", source: "Demo · regionale Recherche", status: "kontaktiert", notes: "Rückruf nach dem Mittagsgeschäft gewünscht.", customer_id: null, info_permission_at: null, info_permission_source: null, last_contact_at: now, callback_at: null }
+  ];
+}
+
 export function CallLeads() {
   const { data: crmData, save, demo } = useStore();
   const [rows, setRows] = useState<CallLead[]>([]); const [queueTotal, setQueueTotal] = useState(0); const [automations, setAutomations] = useState<Record<string, SalesAutomation>>({}); const [draftEmails, setDraftEmails] = useState<Record<string, string>>({});
