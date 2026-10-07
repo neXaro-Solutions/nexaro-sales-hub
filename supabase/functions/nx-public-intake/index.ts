@@ -13,7 +13,7 @@ const env=(k:string)=>Deno.env.get(k)||"";
 const validMail=(mail:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)&&mail.length<=254;
 function head(){return `<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><style>:root{color-scheme:light only!important}body,.nx{background:#fffdf9!important;color:#252724!important}.card{background:#fff!important}.panel{background:#f4ffdf!important}.warm{background:#fff0e5!important}@media(prefers-color-scheme:dark){body,.nx{background:#fffdf9!important;color:#252724!important}.card{background:#fff!important}.panel{background:#f4ffdf!important}.warm{background:#fff0e5!important}}</style>`}
 function header(){return `<tr><td bgcolor="#fffdf9" style="padding:24px 30px;background:#fffdf9!important;border-top:4px solid #ff6b00;border-bottom:1px solid #e7e0d9"><div style="font-size:30px;font-weight:900;letter-spacing:-1.4px;color:#252724">ne<span style="color:#ff6b00">X</span>aro</div><div style="font-size:10px;font-weight:800;color:#59634e;letter-spacing:4px">SOLUTIONS</div><div style="height:5px;background:#baff00;margin-top:18px;border-radius:5px"></div></td></tr>`}
-function footer(){return `<tr><td bgcolor="#f1f5e9" style="padding:22px 30px;background:#f1f5e9!important;border-top:4px solid #baff00;font-size:11px;line-height:1.65;color:#59634e"><strong>neXaro Solutions</strong> · Kirchstraße 1A · 15757 Halbe<br><a href="https://www.nexaro-solutions.de/">Website</a> · <a href="https://www.nexaro-solutions.de/impressum.html">Impressum</a> · <a href="https://www.nexaro-solutions.de/datenschutz.html">Datenschutz</a></td></tr>`}
+function footer(language="de"){const en=language==="en";return `<tr><td bgcolor="#f1f5e9" style="padding:22px 30px;background:#f1f5e9!important;border-top:4px solid #baff00;font-size:11px;line-height:1.65;color:#59634e"><strong>neXaro Solutions</strong> · Kirchstraße 1A · 15757 Halbe<br><a href="https://www.nexaro-solutions.de/">Website</a> · <a href="https://www.nexaro-solutions.de/impressum.html">${en?"Legal notice":"Impressum"}</a> · <a href="https://www.nexaro-solutions.de/datenschutz.html">${en?"Privacy":"Datenschutz"}</a></td></tr>`}
 
 async function confirm(id:string,p:any){
   if(!(env("NX_EMAIL_ENABLED")==="true"&&["SMTP_HOST","SMTP_PORT","SMTP_USER","SMTP_PASSWORD","SMTP_FROM"].every(k=>env(k))))return;
@@ -57,7 +57,36 @@ async function confirm(id:string,p:any){
       warm='<strong>Persönlich. Klar. Nachvollziehbar.</strong><br>Ihre Anfrage wird zweckgebunden bearbeitet. Eine Einwilligung in Werbe-E-Mails ist damit nicht verbunden.';
       text=`${sal}\n\n${intro}\n\nWir prüfen Ihre Angaben und melden uns persönlich mit den nächsten sinnvollen Schritten.\n\nFreundliche Grüße\nSebastian Pötschke\nneXaro Solutions`;
     }
-    const html=`<!doctype html><html lang="de"><head>${head()}</head><body class="nx" bgcolor="#fffdf9" style="margin:0;background:#fffdf9!important;font-family:Arial,Helvetica,sans-serif;line-height:1.62"><table width="100%" bgcolor="#fffdf9"><tr><td style="padding:26px 12px"><table class="card" width="100%" bgcolor="#fff" style="max-width:640px;margin:auto;border:1px solid #e7e0d9;border-radius:20px;overflow:hidden">${header()}<tr><td style="padding:34px 30px"><p style="margin:0;color:#a44000;font-size:11px;font-weight:800;letter-spacing:1.6px">${kicker}</p><h1 style="font-size:30px;line-height:1.14;margin:8px 0 20px">${title}</h1><p>${esc(sal)}</p><p>${esc(intro)}</p><table class="panel" width="100%" bgcolor="#f4ffdf" style="margin:24px 0;border:1px solid #cfe68b;border-left:5px solid #baff00;border-radius:14px"><tr><td style="padding:20px">${panel}</td></tr></table><div class="warm" style="margin:22px 0;padding:16px 18px;border-left:5px solid #ff6b00;background:#fff0e5;border-radius:0 12px 12px 0;font-size:13px">${warm}</div><p>Freundliche Grüße<br><strong>Sebastian Pötschke</strong><br>neXaro Solutions</p></td></tr>${footer()}</table></td></tr></table></body></html>`;
+    const language=p.language==="en"?"en":"de",english=language==="en";
+    if(english){
+      if(newPayment){
+        subject="Your start with card payments – request received | neXaro Solutions";
+        title="We received your card payment setup request.";
+        kicker="CARD PAYMENTS · GETTING STARTED";
+        intro="Thank you for your details. We review your expected card turnover, preferred tariff and day-to-day use to prepare a suitable SumUp recommendation.";
+        panel='<strong style="font-size:16px">What happens next</strong><p>We assess the fee model, card types and hardware for your intended use. We deliberately do not invent previous costs or artificial savings.</p><p><strong>Your details are already recorded in the neXaro sales process.</strong> If anything is missing for a reliable recommendation, we will contact you specifically.</p>';
+        warm='<strong>No comparison data required.</strong><br>We work only with your expected use and the currently relevant SumUp conditions.';
+        text=`${name?"Hello "+name+",":"Hello,"}\n\n${intro}\n\nWe assess the tariff, card types and hardware. No invented previous fees or artificial savings are used. If details are missing, we will contact you specifically.\n\nBest regards\nSebastian Pötschke\nneXaro Solutions`;
+      }else if(fee){
+        subject="Your statement has arrived – we are preparing your payment comparison | neXaro Solutions";
+        title="We received your statement.";
+        kicker="STATEMENT · RECEIVED";
+        intro="Thank you for sending your statement. We analyse your current conditions and use them to create a transparent basis for your individual payment offer.";
+        panel='<strong style="font-size:16px">What happens next</strong><p>We review fees, card mix, hardware and relevant recurring costs. You will then receive a tailored offer with an understandable comparison. If anything is missing or unclear, we will contact you directly.</p><p><strong>You do not need to do anything else right now.</strong></p>';
+        warm='<strong>Personal. Clear. Transparent.</strong><br>Your data is used exclusively to process your request and prepare your individual offer.';
+        text=`${name?"Hello "+name+",":"Hello,"}\n\n${intro}\n\nWe review fees, card mix, hardware and recurring costs and then prepare your individual offer. If anything is missing, we will contact you directly.\n\nBest regards\nSebastian Pötschke\nneXaro Solutions`;
+      }else{
+        const area=p.interest==="sumup"?"your SumUp and payment consulting request":p.interest==="vape"?"your vape and trend product request":"your request";
+        subject="We received your request – we will take care of it personally | neXaro Solutions";
+        title="We received your request.";
+        kicker="REQUEST · RECEIVED";
+        intro=`We received ${area}. We will review your details and contact you personally so you can quickly get a clear solution that fits your business.`;
+        panel='<strong style="font-size:16px">What happens next</strong><p>We review your request and contact you personally with the next sensible steps. Our goal is not a standard reply, but a solution that fits your actual needs.</p><p>If you would like to add anything beforehand, simply reply directly to this email.</p>';
+        warm='<strong>Personal. Clear. Transparent.</strong><br>Your request is processed for this purpose only. This does not constitute consent to marketing emails.';
+        text=`${name?"Hello "+name+",":"Hello,"}\n\n${intro}\n\nWe review your details and contact you personally with the next sensible steps.\n\nBest regards\nSebastian Pötschke\nneXaro Solutions`;
+      }
+    }
+    const html=`<!doctype html><html lang="${language}"><head>${head()}</head><body class="nx" bgcolor="#fffdf9" style="margin:0;background:#fffdf9!important;font-family:Arial,Helvetica,sans-serif;line-height:1.62"><table width="100%" bgcolor="#fffdf9"><tr><td style="padding:26px 12px"><table class="card" width="100%" bgcolor="#fff" style="max-width:640px;margin:auto;border:1px solid #e7e0d9;border-radius:20px;overflow:hidden">${header()}<tr><td style="padding:34px 30px"><p style="margin:0;color:#a44000;font-size:11px;font-weight:800;letter-spacing:1.6px">${kicker}</p><h1 style="font-size:30px;line-height:1.14;margin:8px 0 20px">${title}</h1><p>${esc(sal)}</p><p>${esc(intro)}</p><table class="panel" width="100%" bgcolor="#f4ffdf" style="margin:24px 0;border:1px solid #cfe68b;border-left:5px solid #baff00;border-radius:14px"><tr><td style="padding:20px">${panel}</td></tr></table><div class="warm" style="margin:22px 0;padding:16px 18px;border-left:5px solid #ff6b00;background:#fff0e5;border-radius:0 12px 12px 0;font-size:13px">${warm}</div><p>${english?"Best regards":"Freundliche Grüße"}<br><strong>Sebastian Pötschke</strong><br>neXaro Solutions</p></td></tr>${footer(language)}</table></td></tr></table></body></html>`;
     const sent=await tr.sendMail({from:env("SMTP_FROM"),to:p.email,replyTo:"kontakt@nexaro-solutions.de",subject,text,html});
     status=sent.accepted?.some((a:string)=>a.toLowerCase()===p.email.toLowerCase())?"sent":"failed";if(status==="failed")reason="Recipient not accepted";
   }catch(x){reason=x instanceof Error?x.name:"Send error"}finally{tr.close()}
