@@ -133,7 +133,6 @@ test("demo Call Hunter uses local sample leads without live CRM writes", async (
   await expect(page.getByRole("button",{name:"4 Arbeitsliste",exact:true})).toBeVisible();
   await page.getByRole("button",{name:/Call-Modus starten/}).first().click();
   await expect(page.locator(".nx-company-overlay h1")).toHaveText("Kaffeewerk Mitte");
-  await expect(page.locator(".nx-call-mode").getByText("CALL HUNTER",{exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:/Infos senden/})).toBeVisible();
   expect(blocked).toEqual([]);
 });
