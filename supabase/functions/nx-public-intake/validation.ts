@@ -41,5 +41,6 @@ export function validatePayload(input: unknown) {
     utm_content: text("utm_content", 200),
     gclid: text("gclid", 255),
     landing_page: text("landing_page", 500),
+    language: String(p.language)==="en"?"en":"de",
   };
 }
