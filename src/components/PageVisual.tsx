@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import {
   ArrowRight, BadgeCheck, BookOpen, CalendarCheck2, CreditCard,
-  FileText, MapPinned, Package, Search, Settings2, Sparkles,
+  FileText, Laptop2, MapPinned, Package, PhoneCall, Search, Settings2, Sparkles,
   Store, Users, WalletCards
 } from "lucide-react";
 
@@ -9,10 +9,12 @@ type Icon = ComponentType<{ size?: number; strokeWidth?: number; className?: str
 
 const visuals: Record<string, { title: string; subtitle: string; icon: Icon; detail: Icon; label: string }> = {
   hunter: { title: "Neue Geschäfte. Klare nächste Schritte.", subtitle: "SumUp-Außendienst: recherchieren, vormerken und zentral weiterbearbeiten.", icon: MapPinned, detail: Store, label: "NEXARO HUNTER" },
+  call_leads: { title: "Ein Lead. Ein Gespräch. Eine Entscheidung.", subtitle: "Telefonakquise mit fokussierter Arbeitsliste, Gesprächseinstieg und direkter nächster Aktion.", icon: PhoneCall, detail: Users, label: "NEXARO CALL HUNTER" },
   customers: { title: "Jeder Standort zählt.", subtitle: "Kontakte, Gesprächsnotizen und Chancen übersichtlich an einem Ort.", icon: Users, detail: Store, label: "KUNDEN & LEADS" },
   routes: { title: "Dein Außendienst. Dein Weg.", subtitle: "Hunter-Leads und Kunden zu einer Tour verbinden und direkt navigieren.", icon: MapPinned, detail: Search, label: "STANDORTE & ROUTEN" },
   sumup: { title: "Payment sichtbar machen.", subtitle: "Bedarf verstehen, Tarife vergleichen und passende Lösungen zeigen.", icon: CreditCard, detail: WalletCards, label: "SUMUP VERTRIEB" },
   vape: { title: "Produkte im Blick.", subtitle: "Händler und B2B-Sortiment schnell und strukturiert betreuen.", icon: Package, detail: Store, label: "VAPE B2B" },
+  software: { title: "Software-Vertrieb ohne Medienbruch.", subtitle: "Anfragen, Demo-Projekte und Wiedervorlagen mit der zentralen Kundenakte verbinden.", icon: Laptop2, detail: Users, label: "CRM SOFTWARE" },
   offers: { title: "Angebote mit Wirkung.", subtitle: "Vergleiche, Angebote und Rechnungen auf einen Blick.", icon: FileText, detail: BadgeCheck, label: "DOKUMENTE" },
   knowledge: { title: "Wissen für unterwegs.", subtitle: "Produktwissen und Gesprächshilfen griffbereit, wenn du sie brauchst.", icon: BookOpen, detail: Sparkles, label: "VERTRIEBSWISSEN" },
   tasks: { title: "Kein Kontakt geht verloren.", subtitle: "Wiedervorlagen und nächste Schritte ohne Umwege.", icon: CalendarCheck2, detail: BadgeCheck, label: "DEINE AUFGABEN" },
