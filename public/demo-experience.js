@@ -79,7 +79,7 @@
     <h2>${esc(scene.title)}</h2><p>${esc(scene.copy)}</p>
     <div class="nx-demo-benefit"><span>✦</span><strong>${esc(scene.benefit)}</strong></div>
     <div class="nx-demo-action"><span>▶</span><span>${esc(scene.action)}</span></div>
-    <div class="nx-demo-autoplay"><span>Automatischer Rundgang</span><i style="animation-duration:${SCENE_MS}ms"></i></div>`}
+    <div class="nx-demo-autoplay"><span><b class="nx-demo-live-dot"></b> Automatischer Rundgang · nächster Bereich gleich</span><span class="nx-demo-pulse-dots" aria-hidden="true"><i></i><i></i><i></i></span><em style="animation-duration:${SCENE_MS}ms"></em></div>`}
 
   function clearSceneTimer(){if(sceneTimer){clearTimeout(sceneTimer);sceneTimer=null;}}
   function showScene(next,autoplay=false){
