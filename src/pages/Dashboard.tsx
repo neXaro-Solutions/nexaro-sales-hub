@@ -6,6 +6,7 @@ import {
   Users,
   Check,
   MapPin,
+  Phone,
   Inbox,
 } from "lucide-react";
 import { useState } from "react";
@@ -114,6 +115,7 @@ export function Dashboard({
         <button type="button" className="nx-dashboard-shortcut" onClick={newTask}><Plus size={18}/><span>Termin anlegen</span></button>
         <button type="button" className="nx-dashboard-shortcut" onClick={()=>navigate("customers")}><Users size={18}/><span>Kunden & Leads</span></button>
         <button type="button" className="nx-dashboard-shortcut" onClick={()=>navigate("hunter")}><MapPin size={18}/><span>Außendienst</span></button>
+        <button type="button" className="nx-dashboard-shortcut" onClick={()=>navigate("call_leads")}><Phone size={18}/><span>Call Hunter</span></button>
         <button type="button" className="nx-dashboard-shortcut" onClick={()=>navigate("offers")}><Target size={18}/><span>Angebote</span></button>
       </div>
       <div className="metrics">
