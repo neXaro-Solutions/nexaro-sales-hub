@@ -12,13 +12,18 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
   const { data, demo } = useStore();
   const customer = data.customers.find(c => c.id === offer.customer_id);
   const isSumUp = offer.division === "sumup";
+  const language = localStorage.getItem("nexaro-language") === "en" ? "en" : "de";
+  const english = language === "en";
   const [to, setTo] = useState(customer?.email || "");
   const [salutation, setSalutation] = useState<"neutral" | "herr" | "frau">("neutral");
   const [recipientName, setRecipientName] = useState(customer?.contact?.trim().split(/\s+/).at(-1) || "");
-  const greeting = salutation === "herr" && recipientName.trim() ? "Guten Tag Herr " + recipientName.trim() + "," : salutation === "frau" && recipientName.trim() ? "Guten Tag Frau " + recipientName.trim() + "," : "Guten Tag,";
+  const greeting = english
+    ? (recipientName.trim() ? "Hello " + recipientName.trim() + "," : "Hello,")
+    : salutation === "herr" && recipientName.trim() ? "Guten Tag Herr " + recipientName.trim() + "," : salutation === "frau" && recipientName.trim() ? "Guten Tag Frau " + recipientName.trim() + "," : "Guten Tag,";
   const [message, setMessage] = useState(
-    "vielen Dank für Ihr Interesse. Anbei erhalten Sie unser Angebot " + offer.number +
-    " als PDF. Bei Fragen stehe ich Ihnen gerne persönlich zur Verfügung."
+    english
+      ? "Thank you for your interest. Please find our offer " + offer.number + " attached as a PDF. If you have any questions, I will be happy to assist you personally."
+      : "vielen Dank für Ihr Interesse. Anbei erhalten Sie unser Angebot " + offer.number + " als PDF. Bei Fragen stehe ich Ihnen gerne persönlich zur Verfügung."
   );
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +34,7 @@ export function OfferSendDialog({ offer, onClose, onSent }: {
     setSending(true); setError("");
     try {
       const { data: result, error: invokeError } = await client.functions.invoke("nx-send-offer", {
-        body: { action: "send", offerId: offer.id, to: to.trim(), message: greeting + "\n\n" + message.trim() }
+        body: { action: "send", offerId: offer.id, to: to.trim(), message: greeting + "\n\n" + message.trim(), language }
       });
       if (invokeError || !result?.sent) {
         let diagnostic: {error?: string; phase?: string; code?: string; smtpStatus?: number; detail?: string} | undefined = result;
